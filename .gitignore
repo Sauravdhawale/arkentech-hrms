@@ -1,0 +1,10 @@
+/config/database.php
+.env
+.env.*
+!.env.example
+/logs/
+*.log
+/uploads/private/
+/storage/private/
+.vscode/
+.idea/
