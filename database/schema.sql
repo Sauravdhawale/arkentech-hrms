@@ -1,0 +1,15 @@
+CREATE TABLE users (
+ id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(150) NOT NULL,
+ email VARCHAR(190) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL,
+ role ENUM('super_admin','employee') NOT NULL DEFAULT 'employee',
+ active BOOLEAN NOT NULL DEFAULT TRUE,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE login_attempts (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ attempt_key CHAR(64) NOT NULL,
+ attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ INDEX attempt_window(attempt_key,attempted_at)
+);
