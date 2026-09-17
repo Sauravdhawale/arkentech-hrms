@@ -1,0 +1,33 @@
+CREATE TABLE IF NOT EXISTS hr_requests (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ user_id INT UNSIGNED NOT NULL,
+ kind ENUM('leave','regularisation','helpdesk') NOT NULL,
+ category VARCHAR(40) NOT NULL,
+ subject VARCHAR(180) NOT NULL,
+ details TEXT NOT NULL,
+ start_date DATE NULL,
+ end_date DATE NULL,
+ status ENUM('Pending','Approved','Rejected','Cancelled','Resolved') NOT NULL DEFAULT 'Pending',
+ reviewer_id INT UNSIGNED NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id),
+ FOREIGN KEY(reviewer_id) REFERENCES users(id),
+ INDEX owner_kind(user_id,kind)
+);
+CREATE TABLE IF NOT EXISTS hr_announcements (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ title VARCHAR(180) NOT NULL,
+ body TEXT NOT NULL,
+ author_id INT UNSIGNED NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(author_id) REFERENCES users(id)
+);
+CREATE TABLE IF NOT EXISTS hr_audit (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ actor_id INT UNSIGNED NOT NULL,
+ action VARCHAR(80) NOT NULL,
+ record_id BIGINT UNSIGNED NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(actor_id) REFERENCES users(id)
+);
