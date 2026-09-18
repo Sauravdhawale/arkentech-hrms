@@ -8,3 +8,6 @@
 /storage/private/
 .vscode/
 .idea/
+/config/peopleflow.local.php
+/config/peopleflow.setup.lock
+/config/peopleflow.setup.mutex

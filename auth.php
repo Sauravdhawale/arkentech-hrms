@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+define('PEOPLEFLOW_INTERNAL',true);
 ini_set('session.use_strict_mode','1');
 session_set_cookie_params(['httponly'=>true,'secure'=>!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off','samesite'=>'Lax']);
 session_start();
@@ -10,6 +11,10 @@ if (isset($_SESSION['last_active']) && time()-$_SESSION['last_active'] > 1800) {
 $_SESSION['last_active']=time();
 $_SESSION['csrf'] ??= bin2hex(random_bytes(32));
 function db(): PDO {
- return new PDO('mysql:host='.(getenv('DB_HOST') ?: 'localhost').';dbname='.getenv('DB_NAME').';charset=utf8mb4',getenv('DB_USER') ?: '',getenv('DB_PASSWORD') ?: '',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
+ $path=__DIR__.'/config/peopleflow.local.php';
+ $c=is_file($path)?require $path:[];
+ if (!is_array($c)) $c=[];
+ return new PDO('mysql:host='.(getenv('DB_HOST') ?: ($c['host'] ?? 'localhost')).';dbname='.(getenv('DB_NAME') ?: ($c['database'] ?? '')).';charset=utf8mb4',getenv('DB_USER') ?: ($c['username'] ?? ''),getenv('DB_PASSWORD') ?: ($c['password'] ?? ''),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_EMULATE_PREPARES=>false]);
 }
+
 function csrf(): void { if (!hash_equals($_SESSION['csrf'],$_POST['csrf'] ?? '')) { http_response_code(403); exit('Invalid request. Reload the page.'); } }
