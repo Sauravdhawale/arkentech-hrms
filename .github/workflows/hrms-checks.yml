@@ -1,0 +1,31 @@
+name: HRMS checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  php-mysql:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ci-only-password
+          MYSQL_DATABASE: peopleflow_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pci-only-password"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PHP extensions
+        run: sudo apt-get update && sudo apt-get install -y php-cli php-mysql php-xml php-zip
+      - name: Check PHP syntax
+        run: find . -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: Check data isolation, payroll and import parsing
+        env:
+          DB_HOST: 127.0.0.1
+          DB_NAME: peopleflow_ci
+          DB_USER: root
+          DB_PASSWORD: ci-only-password
+        run: php tests/integration.php

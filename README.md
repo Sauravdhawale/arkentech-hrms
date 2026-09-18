@@ -55,3 +55,40 @@ Grouped sidebar matches the reference: Overview, People, Attendance, Leave, Payr
 Super Admin can deactivate Employee accounts under Offboarding; data is retained and the next protected request rejects inactive accounts. Asset clearance, final settlement and other exit workflows remain unconnected. System configuration reports database and migration readiness and allows changing the current administrator password. Employees use Login & security for their own password changes.
 
 JavaScript syntax was checked for this update. PHP/MySQL execution and live account creation are still unverified from this environment. Validate the one-time setup on a staging database before using real HR data.
+
+## HR suite update
+
+Requires PHP 8.0+ with PDO MySQL, zip, SimpleXML and fileinfo. Deploy code, sign in as Super Admin, then open System configuration and choose **Install / update HR modules**. This creates the additive `003-hr-suite.sql` tables and adds nullable unique usernames, optional email and the first-login password-change flag. Existing accounts/passwords are preserved. Back up the database before applying a production migration.
+
+The new sections persist records in MySQL: employment profiles, devices, employee mapping, shift definitions and assignments, holidays, leave entitlements/configuration/restricted periods, salary structures, employment contracts, advances, components, payroll, jobs, candidates, interviews, offers, onboarding/exit tasks, goals, reviews, improvement plans, assets, licenses, policies, tasks, documents, expenses, departments and designations. Company or employee visibility is enforced on the server. Forms support create/edit, status changes, optimistic version checks and CSV export (latest 1,000 records). Employee expenses/advances start Pending; employees can update their own task/onboarding status. Other record administration is Super Admin only. Published payroll is locked and only published payroll/reviews/policies are shown to employees.
+
+### Employee import
+
+In People → Import employee accounts, upload the original **Physical Id card.xlsx**, review, then create accounts. Only Sheet1 is read, with named header columns. Duplicate names are deduplicated in the workbook; existing account names are skipped without password changes. Names are transliterated into `firstname.lastname`; database username collisions receive numeric suffixes. Existing employees with the same name require manual review if they are different people.
+
+Import sets the requested initial password `User@123`, hashes it independently for each account, and forces password change before workspace/document/payslip access. The workbook contains no emails. Emails and business employee IDs remain empty; admins may add them later through People and Employee profiles. Imported source ID-card preparation status is metadata, not account activation status. The original workbook is not committed to GitHub. Actual accounts are only created when import is run against the hosting database.
+
+### Payroll and leave boundaries
+
+Payroll is an explicit draft → approval → publication workflow for manually verified amounts. Net pay is calculated from entered components. Statutory tax/PF/ESI rules, attendance-based automatic deductions, bulk payroll generation, disbursement, advance repayment scheduling and salary-template automation are not implemented. Enter and verify the final amounts before approval. Download is the browser's Print / Save as PDF flow.
+
+Paid leave approval requires annual entitlements, rejects overlap and prevents over-allocation under a per-employee lock. It currently counts inclusive calendar days, including holidays/weekends. Leave policy/restricted-period records document policy but do not yet drive eligibility or accrual rules. No separate Manager/HR/Payroll roles have been introduced: the requested two-role model remains.
+
+### Documents and policies
+
+Employee-linked document records accept PDF/JPEG/PNG uploads up to 4 MB. Binary content stays in MySQL and is served only through the authenticated `document.php` download route after an ownership check. Uploads reset the document to Received for review. Policies can be acknowledged per employee and record version. Editing a policy requires re-acknowledgement. The dashboard lists upcoming holidays, tasks and documents expiring within 30 days. No outbound email/SMS jobs run.
+
+### Biometric endpoint
+
+`api/punches.php` accepts normalized bridge events over HTTPS with `Authorization: Bearer <key>`. Create private `config/biometric.local.php` returning `['api_key' => '<random secret of at least 32 characters>']` with the same PEOPLEFLOW_INTERNAL guard as the DB configuration. Never commit this file. Register the matching enabled device code in Biometric devices.
+
+Example JSON (illustrative values only):
+```json
+{"device_code":"PUNE-01","events":[{"event_key":"event-0001","biometric_id":"1001","punched_at":"2026-09-18 09:00:00","direction":"in"}]}
+```
+
+Batches accept 1–500 events, validate completely before insertion, and deduplicate by device/event key. Successful batch counts are logged. The client must retry failed batches with the same event keys. A Windows/eSSL SDK bridge, EXE installer, device discovery, persistent client retry queue and live-device verification remain required. Current attendance views group first/last punches by calendar date and explicitly show elapsed span rather than worked hours. Shift/overnight allocation, break pairing, late/early/overtime rules and approved regularisation application are not yet calculated.
+
+### Verification
+
+`tests/integration.php` only runs against a disposable database named `peopleflow_ci`. The GitHub HRMS checks workflow lints PHP and checks schema installation, repeated migration, record isolation, published-payslip visibility, arithmetic, input validation, leave calculations and synthetic XLSX parsing. This does not replace Hostinger deployment and real-device verification.

@@ -1,0 +1,23 @@
+<?php
+if(!isset($suiteReady))exit;
+if(!$suiteReady){echo '<section class="panel"><p>Install HR modules from System configuration first.</p></section>';return;}
+$month=$_GET['month']??date('Y-m');$dt=DateTimeImmutable::createFromFormat('!Y-m',$month);if(!$dt||$dt->format('Y-m')!==$month)$dt=new DateTimeImmutable('first day of this month');
+$start=$dt->format('Y-m-01 00:00:00');$end=$dt->modify('+1 month')->format('Y-m-01 00:00:00');
+if($page==='sync'){
+ echo '<section class="panel"><h2>Biometric sync history</h2><p>Successful API batches appear here. Configure a device and the private connector key before sending punches. No live device connection is assumed.</p><table><thead><tr><th>Received</th><th>Device</th><th>New punches</th><th>Duplicates ignored</th></tr></thead><tbody>';
+ foreach($pdo->query('SELECT * FROM hr_sync_events ORDER BY id DESC LIMIT 100') as $r)echo '<tr><td>'.h($r['created_at']).'</td><td>'.h($r['device_code']).'</td><td>'.(int)$r['accepted'].'</td><td>'.(int)$r['duplicates'].'</td></tr>';echo '</tbody></table></section>';return;
+}
+if($page==='reports'){
+ echo '<div class="stats">';foreach(['employment'=>'Employee profiles','recruitment'=>'Candidates','assets'=>'Assets','payroll'=>'Payroll records'] as $m=>$label){$q=$pdo->prepare('SELECT COUNT(*) FROM hr_records WHERE module=?');$q->execute([$m]);echo '<section class="stat"><div>'.h($label).'</div><strong>'.(int)$q->fetchColumn().'</strong></section>';}echo '</div><section class="panel"><h2>Report exports</h2><div class="report-grid">';foreach($suite as $key=>$def)echo '<a href="?page='.h($key).'&export=1">'.h($def[0]).' → CSV</a>';echo '</div></section>';return;
+}
+$maps=[];foreach(suite_rows($pdo,'mapping',['role'=>'super_admin'],$suite['mapping']) as $r){$d=json_decode($r['data'],true);if($r['status']==='Active')$maps[$d['device_code'].'|'.$d['biometric_id']]=['id'=>(int)$r['employee_id'],'name'=>$r['employee_name']];}
+$q=$pdo->prepare('SELECT * FROM hr_punches WHERE punched_at>=? AND punched_at<? ORDER BY punched_at LIMIT 20000');$q->execute([$start,$end]);$punches=$q->fetchAll(PDO::FETCH_ASSOC);$days=[];$visible=[];
+foreach($punches as $p){$map=$maps[$p['device_code'].'|'.$p['biometric_id']]??null;if(!$admin&&(!$map||$map['id']!==(int)$user['id']))continue;$visible[]=[$p,$map];if(!$map)continue;$day=substr($p['punched_at'],0,10);$key=$map['id'].'|'.$day;if(!isset($days[$key]))$days[$key]=['name'=>$map['name'],'date'=>$day,'first'=>$p['punched_at'],'last'=>$p['punched_at'],'count'=>0];$days[$key]['last']=$p['punched_at'];$days[$key]['count']++;}
+?>
+<section class="panel"><form method="get" class="suite-toolbar"><input type="hidden" name="page" value="<?=h($page)?>"><label>Month <input type="month" name="month" value="<?=h($dt->format('Y-m'))?>" required></label><button class="primary">View month</button></form></section>
+<?php if($page==='raw_logs'): ?>
+<section class="panel"><h2>Raw biometric logs</h2><p>Raw device events are preserved. Unmapped IDs remain visible for review.</p><div class="table-scroll"><table><thead><tr><th>Employee</th><th>Device</th><th>Biometric ID</th><th>Timestamp</th><th>Direction</th></tr></thead><tbody><?php foreach($visible as [$p,$m]):?><tr><td><?=h($m['name']??'Needs mapping')?></td><td><?=h($p['device_code'])?></td><td><?=h($p['biometric_id'])?></td><td><?=h($p['punched_at'])?></td><td><?=h($p['direction'])?></td></tr><?php endforeach?></tbody></table></div></section>
+<?php else: ?>
+<div class="stats"><section class="stat mint"><div>Mapped employee-days</div><strong><?=count($days)?></strong></section><section class="stat blue"><div>Punch events</div><strong><?=count($visible)?></strong></section></div>
+<section class="panel"><h2><?= $page==='monthly'?'Monthly punch summary':'Attendance records' ?></h2><p>First and last punches are grouped by calendar date in the device's supplied local time. Elapsed time includes breaks. Night-shift allocation, worked hours, late/early flags and overtime calculations are not yet applied; use raw logs for verification.</p><div class="table-scroll"><table><thead><tr><th>Employee</th><th>Date</th><th>First punch</th><th>Last punch</th><th>Punches</th><th>Elapsed span</th></tr></thead><tbody><?php foreach($days as $d):?><tr><td><?=h($d['name'])?></td><td><?=h($d['date'])?></td><td><?=h(substr($d['first'],11))?></td><td><?=h(substr($d['last'],11))?></td><td><?=$d['count']?></td><td><?=$d['count']<2?'Incomplete':number_format((strtotime($d['last'])-strtotime($d['first']))/3600,2).' h'?></td></tr><?php endforeach?><?php if(!$days):?><tr><td colspan="6">No mapped punches for this month.</td></tr><?php endif?></tbody></table></div></section>
+<?php endif ?>

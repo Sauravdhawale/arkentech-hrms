@@ -11,3 +11,7 @@
 /config/peopleflow.local.php
 /config/peopleflow.setup.lock
 /config/peopleflow.setup.mutex
+
+config/biometric.local.php
+*.xlsx
+*.csv

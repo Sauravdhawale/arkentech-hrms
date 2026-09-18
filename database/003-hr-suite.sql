@@ -1,0 +1,54 @@
+CREATE TABLE IF NOT EXISTS hr_records (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ module VARCHAR(40) NOT NULL,
+ employee_id INT UNSIGNED NULL,
+ title VARCHAR(190) NOT NULL,
+ status VARCHAR(40) NOT NULL,
+ data LONGTEXT NOT NULL,
+ version INT UNSIGNED NOT NULL DEFAULT 1,
+ created_by INT UNSIGNED NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ INDEX module_employee(module,employee_id),
+ FOREIGN KEY(employee_id) REFERENCES users(id),
+ FOREIGN KEY(created_by) REFERENCES users(id)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS hr_punches (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ device_code VARCHAR(80) NOT NULL,
+ biometric_id VARCHAR(80) NOT NULL,
+ event_key VARCHAR(128) NOT NULL,
+ punched_at DATETIME NOT NULL,
+ direction ENUM('in','out','unknown') NOT NULL DEFAULT 'unknown',
+ received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY device_event(device_code,event_key),
+ INDEX punch_time(punched_at),
+ INDEX biometric_time(biometric_id,punched_at)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS hr_sync_events (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ device_code VARCHAR(80) NOT NULL,
+ accepted INT NOT NULL DEFAULT 0,
+ duplicates INT NOT NULL DEFAULT 0,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS hr_files (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ record_id BIGINT UNSIGNED NOT NULL,
+ uploaded_by INT UNSIGNED NOT NULL,
+ filename VARCHAR(190) NOT NULL,
+ mime VARCHAR(80) NOT NULL,
+ content MEDIUMBLOB NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(record_id) REFERENCES hr_records(id),
+ FOREIGN KEY(uploaded_by) REFERENCES users(id)
+) ENGINE=InnoDB;
+CREATE TABLE IF NOT EXISTS hr_acknowledgements (
+ record_id BIGINT UNSIGNED NOT NULL,
+ user_id INT UNSIGNED NOT NULL,
+ version INT UNSIGNED NOT NULL,
+ acknowledged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(record_id,user_id,version),
+ FOREIGN KEY(record_id) REFERENCES hr_records(id),
+ FOREIGN KEY(user_id) REFERENCES users(id)
+) ENGINE=InnoDB;
