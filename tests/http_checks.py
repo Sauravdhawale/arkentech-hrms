@@ -29,3 +29,4 @@ try:
  print('PASS: admin sections render, username login, employee record isolation, payroll visibility, rejected unauthorized write and persisted task.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
+ if __import__('sys').exc_info()[0]: print(open('/tmp/peopleflow-http-test.log').read())

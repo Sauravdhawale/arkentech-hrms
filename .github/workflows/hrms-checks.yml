@@ -30,4 +30,4 @@ jobs:
           DB_PASSWORD: ci-only-password
         run: |
           php tests/integration.php
-          python3 tests/http.py
+          python3 tests/http_checks.py
