@@ -36,11 +36,15 @@ if($_SERVER['REQUEST_METHOD']==='POST' && !$disabled) {
      $pdo->exec($sql);
     }
     $stage='checking the users table';
-    if((int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='super_admin'")->fetchColumn()>0)throw new RuntimeException('A Super Admin already exists. Sign in with that account.');
+    $adminExists=(int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='super_admin'")->fetchColumn()>0;
     if(!$configured) {
      $body="<?php\nif (!defined('PEOPLEFLOW_INTERNAL')) { http_response_code(404); exit; }\nreturn ".var_export($c,true).";\n";
      $f=fopen($configPath,'x');if(!$f)throw new RuntimeException('Unable to save configuration.');
      $ok=fwrite($f,$body);fclose($f);chmod($configPath,0600);if($ok!==strlen($body)){unlink($configPath);throw new RuntimeException('Unable to save configuration.');}
+    }
+    if($adminExists) {
+     $disabled=true;
+     throw new RuntimeException('Database connection is saved. A Super Admin already exists. Sign in with that account’s original email and password; the account details entered on this form were not applied.');
     }
     $stage='creating the Super Admin account';
     $pdo->beginTransaction();
