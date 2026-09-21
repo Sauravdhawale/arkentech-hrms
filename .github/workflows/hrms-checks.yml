@@ -30,4 +30,6 @@ jobs:
           DB_PASSWORD: ci-only-password
         run: |
           php tests/integration.php
+          php tests/foundation.php
           python3 tests/http_checks.py
+          APP_ENV=testing python3 tests/foundation_http.py

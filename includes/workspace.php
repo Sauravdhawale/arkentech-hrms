@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && empty($suiteHandledPost)) {
    $q=$pdo->prepare('SELECT password_hash FROM users WHERE id=? FOR UPDATE');$q->execute([$user['id']]);
    if(!password_verify($old,$q->fetchColumn()))throw new InvalidArgumentException('Current password is incorrect.');
    $pdo->prepare('UPDATE users SET password_hash=? WHERE id=?')->execute([password_hash($new,PASSWORD_DEFAULT),$user['id']]);
+   if(array_key_exists('session_version',$user)){$pdo->prepare('UPDATE users SET session_version=session_version+1 WHERE id=?')->execute([$user['id']]);$_SESSION['user']['session_version']=(int)$user['session_version']+1;}
    if(array_key_exists('must_change_password',$user))$pdo->prepare('UPDATE users SET must_change_password=0 WHERE id=?')->execute([$user['id']]);
    audit_action($pdo,(int)$user['id'],'password.changed',(int)$user['id']);session_regenerate_id(true);
   } elseif ($action==='create_employee' && $admin && $page==='employees') {

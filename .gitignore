@@ -15,3 +15,5 @@
 config/biometric.local.php
 *.xlsx
 *.csv
+
+config/mail.local.php

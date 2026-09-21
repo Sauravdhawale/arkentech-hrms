@@ -4,6 +4,7 @@ function require_user(?string $role=null): array {
  if (!isset($_SESSION['user']['id'])) { header('Location: login.php'); exit; }
  try { $q=db()->prepare('SELECT * FROM users WHERE id=? AND active=1'); $q->execute([$_SESSION['user']['id']]); $u=$q->fetch(PDO::FETCH_ASSOC); }
  catch(Throwable $e) { http_response_code(503); exit('Workspace unavailable. Please contact your administrator.'); }
+ if ($u && isset($u['session_version']) && (int)($u['session_version'])!==(int)($_SESSION['user']['session_version']??0)) {$_SESSION=[];session_regenerate_id(true);header('Location: login.php');exit;}
  if (!$u || !in_array($u['role'],['super_admin','employee'],true)) { $_SESSION=[]; header('Location: login.php'); exit; }
  if ($role && $u['role']!==$role) { http_response_code(403); exit('You do not have access to this workspace.'); }
  unset($u['password_hash']);
