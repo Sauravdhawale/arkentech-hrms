@@ -9,6 +9,13 @@ def get(c,path):
  with c.open(base+path) as r:return r.geturl(),r.read().decode()
 def post(c,path,v):
  with c.open(base+path,urllib.parse.urlencode(v,doseq=True).encode()) as r:return r.geturl(),r.read().decode()
+def upload(c,path,v,field,filename,content,mime):
+ boundary='hrms-ci-multipart-boundary'
+ body=b''
+ for k,value in v.items():body+=f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{value}\r\n'.encode()
+ body+=f'--{boundary}\r\nContent-Disposition: form-data; name="{field}"; filename="{filename}"\r\nContent-Type: {mime}\r\n\r\n'.encode()+content+f'\r\n--{boundary}--\r\n'.encode()
+ req=urllib.request.Request(base+path,body,{'Content-Type':'multipart/form-data; boundary='+boundary})
+ with c.open(req) as r:return r.geturl(),r.read().decode()
 def token(h):return re.search(r'name="csrf" value="([^"]+)"',h).group(1)
 def login(name,password='User@123'):
  c=client();_,h=get(c,'login.php');url,h=post(c,'login.php',{'csrf':token(h),'email':name,'password':password});assert 'login.php' not in url,(name,h[-1200:]);return c,url,h
@@ -37,6 +44,26 @@ try:
  viewer,_,h=login('test.two');_,h=get(viewer,'super-admin.php?page=employees');assert 'All employees' in h
  denied(lambda:post(viewer,'super-admin.php?page=employees',{'csrf':token(h),'action':'delete_employee','id':uid}))
  denied(lambda:post(a,'super-admin.php?page=employees',{'csrf':'bad','action':'delete_employee','id':uid}))
+ denied(lambda:get(viewer,'super-admin.php?page=employee-view&id='+uid+'&tab=documents'))
+ docpath='super-admin.php?page=employee-view&id='+uid+'&tab=documents'
+ _,h=get(a,docpath)
+ _,h=upload(a,docpath,{'csrf':token(h),'action':'save_document','employee_id':uid,'title':'CI document','type':'Resume'},'document','ci.pdf',b'%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF','application/pdf')
+ assert 'Document saved.' in h,h[-1800:]
+ file_id=re.search(r'document.php\?id=(\d+)',h).group(1)
+ with a.open(base+'document.php?id='+file_id) as r:assert r.read().startswith(b'%PDF')
+ with e.open(base+'document.php?id='+file_id) as r:assert r.read().startswith(b'%PDF')
+ denied(lambda:get(viewer,'document.php?id='+file_id),404)
+ stranger,_,_=login('test.one');denied(lambda:get(stranger,'document.php?id='+file_id),404)
+ _,h=get(a,docpath)
+ _,h=upload(a,docpath,{'csrf':token(h),'action':'save_document','employee_id':uid,'title':'Bad upload','type':'Resume'},'document','evil.php',b'<?php echo "bad";', 'application/x-php')
+ assert 'Only PDF, JPEG or PNG' in h
+ _,h=get(a,'super-admin.php?page=settings')
+ import base64
+ png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l1sAAAAASUVORK5CYII=')
+ _,h=upload(a,'super-admin.php?page=settings',{'csrf':token(h),'action':'save_company','name':'CI Company','timezone':'Asia/Kolkata'},'logo','logo.png',png,'image/png')
+ assert 'Company settings updated.' in h
+ with a.open(base+'media.php') as r:assert r.headers['Content-Type']=='image/png' and r.read()==png
+
  _,h=get(a,'super-admin.php?page=employee-view&id='+uid+'&tab=employment');_,h=post(a,'super-admin.php?page=employee-view&id='+uid+'&tab=employment',{'csrf':token(h),'action':'toggle_employee','id':uid});assert 'deactivated' in h
  assert 'login.php' in get(e,'index.php')[0]
  _,h=post(a,'super-admin.php?page=employee-view&id='+uid+'&tab=employment',{'csrf':token(h),'action':'toggle_employee','id':uid});assert 'activated' in h

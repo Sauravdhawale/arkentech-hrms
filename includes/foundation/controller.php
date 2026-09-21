@@ -4,6 +4,7 @@ $pdo=db();$installed=foundation_ready($pdo);$page=(string)($_GET['page']??'overv
 $pages=['overview'=>['Dashboard','dashboard.view'],'employees'=>['All employees','employees.view'],'employee-add'=>['Add employee','employees.create'],'employee-edit'=>['Edit employee','employees.edit'],'employee-view'=>['Employee profile','employees.view'],'settings'=>['Company settings','settings.view'],'departments'=>['Departments','departments.view'],'designations'=>['Designations','designations.view'],'roles'=>['Roles & permissions','roles.view'],'account'=>['My account',null]];
 if(!isset($pages[$page])){http_response_code(404);exit('Page not found.');}
 if($pages[$page][1])need($pdo,$user,$pages[$page][1]);
+if($page==='employee-view'&&($_GET['tab']??'')==='documents')need($pdo,$user,'documents.view');
 $error='';$notice=$_SESSION['foundation_notice']??'';unset($_SESSION['foundation_notice']);
 $docTypes=['Aadhaar Card','PAN Card','Resume','Offer Letter','Appointment Letter','Education Documents','Experience Letter','Relieving Letter','Passport','Other Documents'];
 if($_SERVER['REQUEST_METHOD']==='POST'){
