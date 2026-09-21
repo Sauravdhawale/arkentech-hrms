@@ -33,6 +33,12 @@ try:
  dep=re.search(r'HTTP Department</strong>.*?edit=(\d+)',h,re.S).group(1)
  _,h=get(a,'super-admin.php?page=designations');_,h=post(a,'super-admin.php?page=designations',{'csrf':token(h),'action':'save_designation','name':'HTTP Designer','department_id':dep,'active':1});assert 'Saved successfully.' in h
  des=re.search(r'HTTP Designer</strong>.*?edit=(\d+)',h,re.S).group(1)
+ _,h=get(a,'super-admin.php?page=roles')
+ perm=re.search(r'name="permissions\[\]" value="(\d+)"[^>]*>View dashboard',h).group(1)
+ _,h=post(a,'super-admin.php?page=roles',{'csrf':token(h),'action':'save_role','name':'HTTP Custom','slug':'http-custom','active':1,'permissions[]':[perm]});assert 'Saved successfully.' in h
+ custom=re.search(r'HTTP Custom</strong>.*?edit=(\d+)',h,re.S).group(1)
+ _,h=post(a,'super-admin.php?page=roles',{'csrf':token(h),'action':'save_role','id':custom,'name':'HTTP Custom Updated','slug':'http-custom','active':1,'permissions[]':[perm]});assert 'HTTP Custom Updated' in h
+ _,h=post(a,'super-admin.php?page=roles',{'csrf':token(h),'action':'delete_role','id':custom});assert 'Deleted.' in h
  _,h=get(a,'super-admin.php?page=employee-add');role=re.search(r'<option value="(\d+)" selected>Employee</option>',h).group(1)
  data={'csrf':token(h),'action':'save_employee','first_name':'HTTP','last_name':'Person','username':'http.person','email':'http.person@example.test','department_id':dep,'designation_id':des,'role_id':role,'joining_date':'2026-01-02','employment_type':'Full Time','employment_status':'Active'}
  url,h=post(a,'super-admin.php?page=employee-add',data);assert 'Employee saved.' in h,h[-3000:];uid=re.search(r'id=(\d+)',url).group(1)
@@ -57,6 +63,10 @@ try:
  _,h=get(a,docpath)
  _,h=upload(a,docpath,{'csrf':token(h),'action':'save_document','employee_id':uid,'title':'Bad upload','type':'Resume'},'document','evil.php',b'<?php echo "bad";', 'application/x-php')
  assert 'Only PDF, JPEG or PNG' in h
+ _,h=get(a,docpath)
+ document_id=re.search(r'name="document_id" value="(\d+)"',h).group(1)
+ _,h=post(a,docpath,{'csrf':token(h),'action':'delete_document','document_id':document_id});assert 'Document and its uploaded versions deleted.' in h
+ denied(lambda:get(a,'document.php?id='+file_id),404)
  _,h=get(a,'super-admin.php?page=settings')
  import base64
  png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l1sAAAAASUVORK5CYII=')
@@ -75,6 +85,12 @@ try:
  login('http.person@example.test','Reset-HTTP-Password-2026!')
  _,h=get(a,'super-admin.php?page=employee-view&id='+uid+'&tab=employment');_,h=post(a,'super-admin.php?page=employee-view&id='+uid+'&tab=employment',{'csrf':token(h),'action':'delete_employee','id':uid});assert 'archived' in h
  _,h=get(a,'super-admin.php?page=employees&search=http.person');assert 'No employees found' in h
+ _,h=get(a,'super-admin.php?page=account')
+ _,h=post(a,'super-admin.php?page=account',{'csrf':token(h),'action':'change_password','current_password':'User@123','new_password':'Admin-Changed-2026!','confirm_password':'Admin-Changed-2026!'});assert 'Password changed.' in h
+ _,h=get(a,'super-admin.php?page=overview');assert 'Good ' in h
+ url,h=post(a,'logout.php',{'csrf':token(h)});assert 'login.php' in url
+ assert 'login.php' in get(a,'super-admin.php')[0]
+ login('test.admin','Admin-Changed-2026!')
  print('PASS: Phase 1 screens, employee creation, assigned-department delete protection, forced password change, role/CSRF denial, disable/reactivate, email recovery, session revocation, archive.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()

@@ -92,3 +92,7 @@ Batches accept 1–500 events, validate completely before insertion, and dedupli
 ### Verification
 
 `tests/integration.php` only runs against a disposable database named `peopleflow_ci`. The GitHub HRMS checks workflow lints PHP and checks schema installation, repeated migration, record isolation, published-payslip visibility, arithmetic, input validation, leave calculations and synthetic XLSX parsing. This does not replace Hostinger deployment and real-device verification.
+
+## Phase 1 Super Admin foundation
+
+See [the Phase 1 deployment and feature guide](docs/PHASE-1.md) for the new admin dashboard, normalized employee management, Company Settings, configurable roles, private workbook import and password recovery. Deploy to the existing subdomain root and run the signed-in **Install Phase 1 database** action. Imported employee IDs remain blank until assigned; no employee workbook is committed here. PHP/MySQL and authenticated HTTP regression tests now run in GitHub Actions; production migration, real recovery-email delivery and browser rendering on the hosting environment require separate verification.

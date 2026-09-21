@@ -29,7 +29,7 @@ Employee deletion is archival: login disabled, sessions revoked, history retaine
 
 Photos and documents are authenticated database blobs, not public uploads. Supported photos: JPEG/PNG <=2 MB. Documents: PDF/JPEG/PNG <=4 MB. Employee documents show approaching/expired dates; this release does not send expiry reminder emails. Document deletion permanently removes its uploaded versions after confirmation.
 
-Dashboard cards show real directory totals, active accounts, active departments and incomplete profiles. The donut reflects account status, not attendance. Growth uses known joining dates, excludes unknown dates and describes current employees only; it is not a historical headcount snapshot. The calendar marks recorded birthdays/anniversaries. Existing pending requests appear for Super Admin with links to their existing review flows. No demonstration employee counts are shown in production.
+Dashboard cards show real directory totals, active accounts, active departments and active designations. The donut reflects account status, not attendance. Growth uses known joining dates, excludes unknown dates and describes current employees only; it is not a historical headcount snapshot. The calendar marks recorded birthdays/anniversaries. Existing pending requests appear for Super Admin with links to their existing review flows. No demonstration employee counts are shown in production.
 
 ## Files
 - `includes/foundation/`: controller, migration, permission and employee services, recovery service, shared layout, dashboard, employee and settings screens
@@ -40,3 +40,5 @@ Dashboard cards show real directory totals, active accounts, active departments 
 
 ## Validation and remaining deployment checks
 GitHub Actions lints PHP and executes existing plus Phase 1 regression tests using an isolated MySQL 8 database. Tests do not modify Hostinger or send real recovery email. Run the production migration, privately import the workbook, configure the sender, verify reset-email delivery and check real hosting upload limits after deployment. Existing legacy employee profile screens still use their old records; normalized employee self-service is a separate next phase.
+
+Verified on the Phase 1 test branch: PHP syntax and all four PHP/MySQL/HTTP test suites passed, including forbidden document downloads and file type rejection. JavaScript syntax passed locally. A visual browser and mobile rendering review of the deployed PHP version remains outstanding; the current authoring environment has no PHP runtime for a live local preview.
