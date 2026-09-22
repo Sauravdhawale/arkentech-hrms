@@ -2,13 +2,17 @@
 
 ## Status
 
-Local implementation prepared on 21 September 2026; checkpoint updated 22 September. **Not pushed or deployed.** GitHub connectivity is restored, but automatic approval review rejected publishing this change to the public repository, requiring explicit user confirmation of public code publication. Read-only checks confirmed the destination and push access, and found no runtime credential files, employee workbooks or database dumps in the 23 changed files. The MySQL integration and authenticated HTTP CI suites have not run for this change. No live Hostinger database connection, migration, import or deployment has been performed.
+Core HR was published to GitHub and verified on 22 September 2026. The full PHP/MySQL integration and authenticated HTTP suites passed for implementation commit `7e66262b6ea4b6e343d8ef81266fa2c64167dfc7`.
+
+Validation run: https://github.com/Sauravdhawale/arkentech-hrms/actions/runs/35736625704
+
+**Hostinger deployment is not verified.** No live Hostinger database connection, migration or employee import has been performed by this development session. Tests used a separate disposable MySQL database.
 
 ## Phase 1 retained
 
 Company Profile, Departments, Designations and Roles & Permissions continue inside the single Company Settings screen, using their existing routes and CRUD. Shifts is added under Work Configuration. The Phase 1 dashboard, employee identities, login credentials and existing role assignments are not recreated.
 
-## Implemented locally
+## Implemented
 
 - Shift definitions: code, custom times, overnight shifts, break, required hours, late/early tolerance, half-day threshold, three overtime rules, weekly offs and status.
 - Dated assignments: overlap prevention, optional end date, historical rule snapshots and protected started assignments. When editing a legacy shift, missing snapshots are added to its existing assignments to preserve their rules; other assignment data remains intact.
@@ -30,7 +34,7 @@ Company Profile, Departments, Designations and Roles & Permissions continue insi
 
 **No columns added to existing tables.** Existing shifts, rosters, holidays, leave policies and allocations remain in `hr_records`. Requests remain in `hr_requests`; uploads use `hr_files`; audits use `hr_audit`. The application installer adds new permission definitions and the `005-core-hr` migration marker. It does not assign new permissions to existing custom roles, seed employees or reset passwords.
 
-The installer uses an advisory lock, idempotent table creation and column-presence verification. Full database compatibility and preservation must still pass the supplied MySQL tests. Production data has not been inspected or verified here.
+The installer uses an advisory lock, idempotent table creation and column-presence verification. Database compatibility and preservation passed the supplied MySQL tests. Production data has not been inspected or verified here.
 
 ## Files
 
@@ -82,15 +86,15 @@ Completed locally:
 - Rendering smoke checks for ten Core HR pages and configuration edit forms using disposable in-memory SQLite fixtures: passed. These check PHP rendering, not visual browser quality or MySQL behavior.
 - Python HTTP test file compilation: passed.
 
-Added but **not executed**:
+Completed in GitHub Actions with MySQL 8 and authenticated HTTP:
 
 - MySQL migration idempotence and snapshots proving existing users/profiles/roles/settings/uploads/records unchanged by installation.
 - Database-backed CRUD, assignment snapshots, stale writes, holiday exclusions, half-day approvals, overlap/balance rejection, cancellation, saved attendance and permission tests.
 - Authenticated HTTP routes, CSV, year filters, CSRF and role-denial tests.
 - Full existing Phase 1 regression rerun together with Core HR.
 
-## Required completion gate
+## Deployment and remaining verification
 
-Obtain the explicit public-publication confirmation requested by automatic approval review, compare the current `main` to the saved checkpoint, push a review branch, and run the complete GitHub Actions workflow. Fix any failures before merging/deploying. Browser/mobile review against an actual PHP preview remains outstanding.
+The user approved public GitHub publication. The review branch passed the full workflow and the verified code is being promoted to main with these updated notes. Visual browser/mobile review and verification against the actual hosting configuration remain outstanding.
 
-After those gates, deploy to the existing subdomain root `public_html/employeeportal` (do not create a nested `public_html`). Enable Core HR once from the Super Admin page to create its additive tables and permissions. No production rollout is claimed by this report.
+Deploy to the existing subdomain root `public_html/employeeportal` (do not create a nested `public_html`). Enable Core HR once from the Super Admin page to create its additive tables and permissions. No production rollout is claimed by this report.
