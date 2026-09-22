@@ -2,15 +2,20 @@
 require_once __DIR__.'/core.php';require_once __DIR__.'/employees.php';require_once __DIR__.'/migrate.php';
 $pdo=db();$installed=foundation_ready($pdo);$page=(string)($_GET['page']??'overview');if($page==='system')$page='account';
 $pages=['overview'=>['Dashboard','dashboard.view'],'employees'=>['All employees','employees.view'],'employee-add'=>['Add employee','employees.create'],'employee-edit'=>['Edit employee','employees.edit'],'employee-view'=>['Employee profile','employees.view'],'settings'=>['Company settings','settings.view'],'departments'=>['Departments','departments.view'],'designations'=>['Designations','designations.view'],'roles'=>['Roles & permissions','roles.view'],'account'=>['My account',null]];
+require_once dirname(__DIR__).'/core-hr/controller.php';$pages=array_merge($pages,$corePages);
 if(!isset($pages[$page])){http_response_code(404);exit('Page not found.');}
 if($pages[$page][1])need($pdo,$user,$pages[$page][1]);
 if($page==='employee-view'&&($_GET['tab']??'')==='documents')need($pdo,$user,'documents.view');
 $error='';$notice=$_SESSION['foundation_notice']??'';unset($_SESSION['foundation_notice']);
+$company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
+if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
+if(isset($_GET['export'])&&in_array($page,['attendance','attendance_history','monthly'],true))chr_export($pdo,$user,$page);
 $docTypes=['Aadhaar Card','PAN Card','Resume','Offer Letter','Appointment Letter','Education Documents','Experience Letter','Relieving Letter','Passport','Other Documents'];
 if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();$action=(string)($_POST['action']??'');
  try{
-  if($action==='install_foundation'){
+  if(str_starts_with($action,'core_')){$notice=chr_handle_post($pdo,$user,$action,$_POST,$_FILES);
+  }elseif($action==='install_foundation'){
    if($user['role']!=='super_admin')throw new InvalidArgumentException('Super Admin access required.');foundation_migrate($pdo);faudit($pdo,$user,'foundation.installed');$notice='Phase 1 database installed. Existing records were preserved.';
   }else{
    if(!$installed)throw new InvalidArgumentException('Install the Phase 1 database first.');

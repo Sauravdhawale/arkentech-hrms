@@ -1,0 +1,44 @@
+<?php
+function chr_datetime(string $value):string {
+ $value=str_replace('T',' ',$value);$format=strlen($value)===16?'Y-m-d H:i':'Y-m-d H:i:s';$date=DateTimeImmutable::createFromFormat('!'.$format,$value);if(!$date||$date->format($format)!==$value)throw new InvalidArgumentException('Enter a valid date and time.');return $date->format('Y-m-d H:i:s');
+}
+function chr_save_attendance(PDO $db,array $actor,array $in):int {
+ if(!can($db,$actor,'attendance.manage'))throw new InvalidArgumentException('Attendance editing is not permitted.');$employee=(int)($in['employee_id']??0);chr_employee($db,$employee);$day=chr_date((string)($in['attendance_date']??''));$checkin=chr_datetime((string)($in['check_in']??''));$checkout=empty($in['check_out'])?null:chr_datetime((string)$in['check_out']);if($checkin>date('Y-m-d H:i:s')||($checkout&&$checkout>date('Y-m-d H:i:s')))throw new InvalidArgumentException('Punch timestamps cannot be in the future.');$source=$in['source']??'Admin';if(!in_array($source,['Manual','Web','Admin','eSSL','API'],true))throw new InvalidArgumentException('Select a valid source.');$notes=ftext($in,'notes',3000);$id=(int)($in['id']??0);if($id&&$notes==='')throw new InvalidArgumentException('Add a reason for correcting attendance.');
+ $db->beginTransaction();try{chr_lock($db);$old=null;if($id){$q=$db->prepare('SELECT * FROM hr_attendance WHERE id=? FOR UPDATE');$q->execute([$id]);$old=$q->fetch(PDO::FETCH_ASSOC);if(!$old||(int)$old['version']!==(int)($in['version']??0))throw new InvalidArgumentException('Attendance changed. Reload before editing.');if((int)$old['employee_id']!==$employee||$old['attendance_date']!==$day)throw new InvalidArgumentException('Employee and attendance date cannot be changed on an existing record.');}
+ $shift=chr_assignment($db,$employee,$day);$snapshot=$old?json_decode($old['shift_snapshot'],true):($shift['values']??null);$metrics=chr_calculate($day,$checkin,$checkout,$snapshot);$values=[$checkin,$checkout,$old?$old['shift_id']:($shift['id']??null),json_encode($snapshot),$metrics['working_minutes'],$metrics['late_minutes'],$metrics['early_minutes'],$metrics['overtime_minutes'],$metrics['status'],$source,$notes,$actor['id']];
+ if($old)$db->prepare('UPDATE hr_attendance SET check_in=?,check_out=?,shift_id=?,shift_snapshot=?,working_minutes=?,late_minutes=?,early_minutes=?,overtime_minutes=?,status=?,source=?,notes=?,updated_by=?,version=version+1 WHERE id=?')->execute([...$values,$id]);else{$db->prepare('INSERT INTO hr_attendance(check_in,check_out,shift_id,shift_snapshot,working_minutes,late_minutes,early_minutes,overtime_minutes,status,source,notes,updated_by,employee_id,attendance_date) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([...$values,$employee,$day]);$id=(int)$db->lastInsertId();}faudit($db,$actor,'core.attendance.saved',$id);$db->commit();return $id;
+ }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+}
+// Preload once per report; no employee-by-day database queries.
+function chr_report_context(PDO $db,string $from,string $to):array {
+ $ctx=['assignments'=>[],'shifts'=>[],'holidays'=>[],'attendance'=>[],'leave'=>[],'leave_parts'=>[]];foreach(chr_rows($db,'shifts') as $r)$ctx['shifts'][(int)$r['id']]=$r;
+ foreach(chr_rows($db,'roster') as $r)if($r['status']==='Active'&&($r['values']['from']??'9999')<=$to&&(($r['values']['to']??null)?:'9999-12-31')>=$from)$ctx['assignments'][(int)$r['employee_id']][]=$r;
+ foreach(chr_rows($db,'holidays') as $r)if($r['status']==='Published'&&($r['values']['holiday_type']??'Company Holiday')!=='Optional Holiday')$ctx['holidays'][$r['values']['date']??'']=$r;
+ $q=$db->prepare('SELECT * FROM hr_attendance WHERE attendance_date BETWEEN ? AND ?');$q->execute([$from,$to]);foreach($q as $r)$ctx['attendance'][(int)$r['employee_id']][$r['attendance_date']]=$r;
+ $q=$db->prepare("SELECT * FROM hr_requests WHERE kind='leave' AND status='Approved' AND start_date<=? AND end_date>=?");$q->execute([$to,$from]);foreach($q->fetchAll(PDO::FETCH_ASSOC) as $r)foreach(chr_request_days($db,$r) as $d)if($d['leave_date']>=$from&&$d['leave_date']<=$to){$ctx['leave'][(int)$r['user_id']][$d['leave_date']]=min(1,($ctx['leave'][(int)$r['user_id']][$d['leave_date']]??0)+(float)$d['units']);if((float)$d['units']>0)$ctx['leave_parts'][(int)$r['user_id']][$d['leave_date']]=$d['day_part'];}return $ctx;
+}
+function chr_day(array $ctx,array $employee,string $day):array {
+ $id=(int)$employee['user_id'];$p=$ctx['attendance'][$id][$day]??null;$shift=null;$matches=0;
+ foreach($ctx['assignments'][$id]??[] as $assignment){$v=$assignment['values'];if(($v['from']??'9999')<=$day&&(($v['to']??null)?:'9999-12-31')>=$day){$matches++;$shift=$ctx['shifts'][(int)($v['shift_id']??0)]??null;if($shift)$shift['values']=$v['shift_snapshot']??$shift['values'];}}
+ $r=['date'=>$day,'employee_id'=>$id,'name'=>$employee['name'],'employee_code'=>$employee['employee_code']??'','department'=>$employee['department_name']??'','shift'=>$shift['title']??'Unassigned','shift_id'=>$shift['id']??0,'status'=>'Unscheduled','working_days'=>0,'present'=>0,'absent'=>0,'leave'=>0,'holidays'=>0,'week_offs'=>0,'half_days'=>0,'late_count'=>0,'working_minutes'=>0,'late_minutes'=>0,'early_minutes'=>0,'overtime_minutes'=>0,'check_in'=>'','check_out'=>'','record_id'=>$p['id']??null,'source'=>$p['source']??'','note'=>''];
+ if($p){foreach(['working_minutes','late_minutes','early_minutes','overtime_minutes','check_in','check_out'] as $k)$r[$k]=$p[$k]??'';$r['late_count']=$p['late_minutes']>0?1:0;$r['shift_id']=$p['shift_id']??0;$r['shift']=$ctx['shifts'][(int)$r['shift_id']]['title']??'Unassigned';}
+ if($matches>1){$r['status']='Review needed';$r['note']='Overlapping shift assignments';return $r;}
+ if(!empty($employee['joining_date'])&&$day<$employee['joining_date']){$r['status']='Not started';return $r;}
+ if(!empty($employee['deleted_at'])&&$day>=substr($employee['deleted_at'],0,10)&&!$p){$r['status']='Not active';return $r;}
+ $holiday=isset($ctx['holidays'][$day]);$off=chr_weekoff($shift,$day);$leave=(float)($ctx['leave'][$id][$day]??0);
+ if($holiday){$r['status']='Holiday';$r['holidays']=1;$r['late_count']=$r['late_minutes']=$r['early_minutes']=0;return $r;}if($off){$r['status']='Week Off';$r['week_offs']=1;$r['late_count']=$r['late_minutes']=$r['early_minutes']=0;return $r;}
+ $r['working_days']=$shift?1:0;
+ if($leave>=1){$r['status']='Leave';$r['leave']=1;$r['late_count']=$r['late_minutes']=$r['early_minutes']=0;if($p)$r['note']='Punch recorded during approved leave; review';return $r;}
+ if($leave>0){if(($ctx['leave_parts'][$id][$day]??'')==='First Half')$r['late_count']=$r['late_minutes']=0;else $r['early_minutes']=0;$r['status']='Half Day Leave';$r['leave']=0.5;$r['half_days']=1;if($p&&$p['check_out'])$r['present']=0.5;elseif($day<date('Y-m-d')&&$shift&&!$p)$r['absent']=0.5;if($p&&!$p['check_out'])$r['note']='Check-out pending';return $r;}
+ if($p){$r['status']=$p['status'];if($p['check_out']){$r['present']=$p['status']==='Half Day'?0.5:1;$r['half_days']=$p['status']==='Half Day'?1:0;if($shift&&$p['status']==='Half Day')$r['absent']=0.5;}return $r;}
+ if($day>=date('Y-m-d')){$r['status']='Pending';return $r;}
+ if($shift){$r['status']='Absent';$r['absent']=1;}return $r;
+}
+function chr_report(PDO $db,string $from,string $to,array $filters=[]):array {
+ $dates=chr_dates($from,$to);$where=['1=1'];$args=[];if(!empty($filters['employee_id'])){$where[]='e.user_id=?';$args[]=(int)$filters['employee_id'];}if(!empty($filters['department_id'])){$where[]='e.department_id=?';$args[]=(int)$filters['department_id'];}if(!empty($filters['search'])){$where[]='(u.name LIKE ? OR e.employee_code LIKE ?)';$args[]='%'.$filters['search'].'%';$args[]='%'.$filters['search'].'%';}
+ $q=$db->prepare('SELECT e.*,u.name,d.name department_name FROM employees e JOIN users u ON u.id=e.user_id LEFT JOIN departments d ON d.id=e.department_id WHERE '.implode(' AND ',$where).' ORDER BY u.name');$q->execute($args);$employees=$q->fetchAll(PDO::FETCH_ASSOC);if(count($employees)*count($dates)>200000)throw new InvalidArgumentException('Narrow the employee, department or date filter for this report.');$ctx=chr_report_context($db,$from,$to);$rows=[];
+ foreach($employees as $e)foreach($dates as $day){$r=chr_day($ctx,$e,$day);if(!empty($filters['status'])&&$filters['status']!==$r['status'])continue;if(!empty($filters['shift_id'])&&(int)$filters['shift_id']!==(int)$r['shift_id'])continue;$rows[]=$r;}return $rows;
+}
+function chr_monthly(array $rows):array {
+ $summary=[];$keys=['working_days','present','absent','leave','holidays','week_offs','late_count','half_days','working_minutes','overtime_minutes'];foreach($rows as $r){$id=$r['employee_id'];if(!isset($summary[$id])){$summary[$id]=array_intersect_key($r,array_flip(['employee_id','name','employee_code','department']));foreach($keys as $k)$summary[$id][$k]=0;}foreach($keys as $k)$summary[$id][$k]+=$r[$k];}return array_values($summary);
+}

@@ -33,3 +33,6 @@ jobs:
           php tests/foundation.php
           python3 tests/http_checks.py
           APP_ENV=testing python3 tests/foundation_http.py
+          php tests/core_hr_calculations.php
+          php tests/core_hr.php
+          python3 tests/core_hr_http.py
