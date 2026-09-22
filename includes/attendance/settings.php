@@ -1,0 +1,21 @@
+<?php
+function att_ready(PDO $db):bool{try{return (bool)$db->query("SELECT name FROM hr_migrations WHERE name='006-attendance-bridge'")->fetchColumn();}catch(Throwable $e){return false;}}
+function att_install(PDO $db):void {
+ if(!chr_ready($db))throw new InvalidArgumentException('Enable Core HR first.');
+ if(!$db->query("SELECT GET_LOCK('peopleflow_attendance_upgrade',10)")->fetchColumn())throw new RuntimeException('Upgrade already in progress.');
+ try{if(att_ready($db))return;foreach(explode(';',file_get_contents(dirname(__DIR__,2).'/database/006-attendance-bridge.sql')) as $sql)if(trim($sql)!=='')$db->exec($sql);
+ foreach(['hr_bridge_tokens'=>'id,device_id,token_hash,active,expires_at,last_used_at,created_by','hr_bridge_health'=>'device_id,last_seen,last_success,device_online,last_device_timestamp,last_error,sync_requested_at,test_requested_at','hr_bridge_sync'=>'id,device_id,started_at,completed_at,received,imported,duplicates,failed,status,error_message','hr_punch_processing'=>'punch_id,device_id,employee_id,attendance_date,status,error_message,raw_payload,fingerprint,processed_at','hr_manual_punch_events'=>'id,employee_id,attendance_date,action,punched_at,source,actor_id,notes,request_key'] as $table=>$cols)$db->query('SELECT '.$cols.' FROM '.$table.' LIMIT 0');
+ $db->beginTransaction();foreach(['attendance'=>['manual','import','approve'],'time_policies'=>['view','manage'],'biometric'=>['view','manage','sync'],'calendar'=>['view','manage']] as $module=>$actions)foreach($actions as $a)$db->prepare('INSERT IGNORE INTO permissions(code,label) VALUES(?,?)')->execute([$module.'.'.$a,ucfirst($a).' '.str_replace('_',' ',$module)]);$db->exec("INSERT INTO hr_migrations(name) VALUES('006-attendance-bridge')");$db->commit();
+ }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}finally{$db->query("SELECT RELEASE_LOCK('peopleflow_attendance_upgrade')");}
+}
+function att_config(PDO $db):array{$r=chr_rows($db,'attendance_settings')[0]??null;return array_merge(['mode'=>'Manual Attendance','biometric_enabled'=>false],$r['values']??[]);}
+function att_biometric_enabled(PDO $db):bool{return att_ready($db)&&!empty(att_config($db)['biometric_enabled']);}
+function att_require_biometric(PDO $db):void{if(!att_biometric_enabled($db))throw new InvalidArgumentException('Biometric attendance is disabled. Manual attendance remains available.');}
+function att_record_write(PDO $db,array $actor,string $module,array $in,array $values,?int $owner=null,string $status='Active'):int {
+ // Caller holds a transaction and the Core HR configuration lock.
+ $id=(int)($in['id']??0);if($id){$old=chr_record($db,$module,$id);if(!$old||(int)$old['version']!==(int)($in['version']??0))throw new InvalidArgumentException('This record changed. Refresh before saving.');$db->prepare('UPDATE hr_records SET title=?,status=?,employee_id=?,data=?,version=version+1 WHERE id=?')->execute([ftext($in,'title',190,true),$status,$owner,json_encode($values),$id]);}else{$db->prepare('INSERT INTO hr_records(module,employee_id,title,status,data,created_by) VALUES(?,?,?,?,?,?)')->execute([$module,$owner,ftext($in,'title',190,true),$status,json_encode($values),$actor['id']]);$id=(int)$db->lastInsertId();}faudit($db,$actor,'attendance.'.$module.'.saved',$id);return $id;
+}
+function att_save_settings(PDO $db,array $actor,array $in):void {
+ if(!can($db,$actor,'settings.edit'))throw new InvalidArgumentException('Settings editing is not permitted.');$mode=$in['mode']??'';if(!in_array($mode,['Manual Attendance','Manual + Biometric'],true))throw new InvalidArgumentException('Choose an attendance mode.');$enabled=!empty($in['biometric_enabled']);if($enabled&&$mode!=='Manual + Biometric')throw new InvalidArgumentException('Select Manual + Biometric to enable devices.');
+ $db->beginTransaction();try{chr_lock($db);$existing=chr_rows($db,'attendance_settings')[0]??null;if($existing&&(int)($in['version']??0)!==(int)$existing['version'])throw new InvalidArgumentException('Settings changed. Refresh before saving.');att_record_write($db,$actor,'attendance_settings',['id'=>$existing['id']??0,'version'=>$existing['version']??0,'title'=>'Attendance settings'],array_merge($existing['values']??[],['mode'=>$mode,'biometric_enabled'=>$enabled]));$db->commit();}catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+}

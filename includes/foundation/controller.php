@@ -5,6 +5,7 @@ $pages=['overview'=>['Dashboard','dashboard.view'],'employees'=>['All employees'
 require_once dirname(__DIR__).'/core-hr/controller.php';$pages=array_merge($pages,$corePages);
 if(!isset($pages[$page])){http_response_code(404);exit('Page not found.');}
 if($pages[$page][1])need($pdo,$user,$pages[$page][1]);
+if(in_array($page,['devices','mapping','sync','raw_logs'],true)&&!att_biometric_enabled($pdo)){http_response_code(403);exit('Biometric attendance is disabled. Manual attendance remains available.');}
 if($page==='employee-view'&&($_GET['tab']??'')==='documents')need($pdo,$user,'documents.view');
 $error='';$notice=$_SESSION['foundation_notice']??'';unset($_SESSION['foundation_notice']);
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
@@ -14,7 +15,8 @@ $docTypes=['Aadhaar Card','PAN Card','Resume','Offer Letter','Appointment Letter
 if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();$action=(string)($_POST['action']??'');
  try{
-  if(str_starts_with($action,'core_')){$notice=chr_handle_post($pdo,$user,$action,$_POST,$_FILES);
+  if(str_starts_with($action,'att_')){$notice=att_handle_post($pdo,$user,$action,$_POST,$_FILES);
+  }elseif(str_starts_with($action,'core_')){$notice=chr_handle_post($pdo,$user,$action,$_POST,$_FILES);
   }elseif($action==='install_foundation'){
    if($user['role']!=='super_admin')throw new InvalidArgumentException('Super Admin access required.');foundation_migrate($pdo);faudit($pdo,$user,'foundation.installed');$notice='Phase 1 database installed. Existing records were preserved.';
   }else{

@@ -8,3 +8,11 @@ document.addEventListener('click',e=>{if(nav?.classList.contains('open')&&!nav.c
 document.querySelectorAll('form[data-confirm]').forEach(form=>form.addEventListener('submit',e=>{if(!confirm(form.dataset.confirm))e.preventDefault();}));
 const department=document.querySelector('[name=department_id][data-dependent]'),designation=document.querySelector('[name=designation_id]');
 if(department&&designation){const update=()=>{[...designation.options].forEach(o=>{const valid=!o.dataset.department||o.dataset.department===department.value;o.hidden=!valid;o.disabled=!valid;});if(designation.selectedOptions[0]?.disabled)designation.value='';};department.addEventListener('change',update);update();}
+
+// Accessible native attendance punch dialog.
+document.addEventListener('click', event => {
+ const open = event.target.closest('[data-open-dialog]');
+ if (open) document.getElementById(open.dataset.openDialog)?.showModal();
+ const close = event.target.closest('[data-close-dialog]');
+ if (close) close.closest('dialog')?.close();
+});

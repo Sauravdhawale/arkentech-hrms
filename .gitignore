@@ -17,3 +17,13 @@ config/biometric.local.php
 *.csv
 
 config/mail.local.php
+
+__pycache__/
+*.pyc
+/bridge/config/config.json
+/bridge/data/*
+/bridge/logs/*
+/bridge/build/
+/bridge/dist/
+/bridge/*.exe
+/bridge/*.spec

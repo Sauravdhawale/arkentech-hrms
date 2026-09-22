@@ -1,0 +1,48 @@
+name: Attendance packages
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, codex/attendance-bridge-upgrade]
+permissions:
+  contents: read
+jobs:
+  windows-bridge:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test durable queue
+        run: python tests/bridge_queue.py
+      - name: Build Windows executable
+        shell: pwsh
+        run: ./bridge/scripts/build.ps1
+      - name: Verify executable and package
+        shell: pwsh
+        run: |
+          ./bridge/sHRMSBridge.exe --help
+          if ($LASTEXITCODE -ne 0) { throw 'Executable smoke test failed' }
+          New-Item -ItemType Directory -Force package/sHRMSBridge | Out-Null
+          Copy-Item bridge/sHRMSBridge.exe,bridge/README.md,bridge/requirements-build.txt package/sHRMSBridge/
+          Copy-Item bridge/config,bridge/scripts,bridge/src -Recurse package/sHRMSBridge/
+          New-Item -ItemType Directory -Force package/sHRMSBridge/data,package/sHRMSBridge/logs,package/sHRMSBridge/lib | Out-Null
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sHRMSBridge-Windows
+          path: package/
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble PHP server
+        run: |
+          mkdir -p /tmp/server-package
+          git archive HEAD | tar -x -C /tmp/server-package
+          rm -rf /tmp/server-package/bridge /tmp/server-package/tests /tmp/server-package/.github
+          cp docs/ATTENDANCE-UPGRADE.md /tmp/server-package/DEPLOYMENT.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sHRMS-Server
+          path: /tmp/server-package/
+          include-hidden-files: true

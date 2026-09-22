@@ -19,7 +19,7 @@ try:
  a=login('test.admin','Admin-Changed-2026!')
  for page in ['overview','employees','settings','departments','designations','roles','shifts','roster','holidays','attendance','attendance_history','monthly','leaves','leave_history','leave_policy','balances']:
   _,h=get(a,'super-admin.php?page='+page);assert all(x not in h for x in ['Fatal error','Warning:','Parse error']),page
- _,h=get(a,'super-admin.php?page=shifts');assert 'WORK CONFIGURATION' in h and 'Company Settings' in h
+ _,h=get(a,'super-admin.php?page=shifts');assert 'ATTENDANCE' in h and 'Company Settings' in h
  _,h=get(a,'super-admin.php?page=leaves');assert 'CI request' in h
  f=json.load(open('/tmp/core-hr-fixture.json'))
  _,h=get(a,'super-admin.php?page=monthly&month=2026-01&employee_id='+str(f['employee']))

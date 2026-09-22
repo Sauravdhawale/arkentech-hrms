@@ -1,0 +1,11 @@
+{
+  "server_url": "https://employeeportal.arkentechsolutions.com",
+  "api_token": "REPLACE_WITH_DEVICE_TOKEN",
+  "device_serial": "REPLACE_WITH_DEVICE_SERIAL",
+  "adapter": "essl",
+  "test_mode": false,
+  "device_host": "192.168.1.201",
+  "device_port": 4370,
+  "sync_interval_seconds": 60,
+  "mock_file": "config/mock-punches.json"
+}

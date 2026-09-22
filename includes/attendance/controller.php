@@ -1,0 +1,12 @@
+<?php
+require_once __DIR__.'/manual.php';
+require_once __DIR__.'/calendar.php';
+require_once __DIR__.'/requests.php';
+require_once __DIR__.'/bridge.php';
+$attPages=['attendance_settings'=>['Attendance settings','settings.view'],'shift_defaults'=>['Default shift assignments','shifts.view'],'time_policies'=>['Time policies','time_policies.view'],'biometric_integration'=>['Biometric integration','biometric.manage'],'attendance_dashboard'=>['Attendance dashboard','attendance.view'],'attendance_requests'=>['Attendance requests','attendance.view'],'daily_work_status'=>['Daily work status','attendance.view'],'punch_log'=>['Check-in / check-out log','attendance.view'],'attendance_exceptions'=>['Late arrival & early departure','attendance.view'],'company_calendar'=>['Company calendar','calendar.view'],'devices'=>['Biometric devices','biometric.view'],'mapping'=>['Biometric employee mapping','biometric.view'],'sync'=>['Biometric sync logs','biometric.view'],'raw_logs'=>['Raw biometric logs','biometric.view']];
+$corePages=array_merge($corePages,$attPages);
+function att_handle_post(PDO $db,array $actor,string $action,array $in,array $files):string {
+ if($action==='att_install'){if($actor['role']!=='super_admin')throw new InvalidArgumentException('Super Admin required.');att_install($db);faudit($db,$actor,'attendance.upgraded');return 'Attendance upgrade enabled. Existing data preserved.';}
+ if(!att_ready($db))throw new InvalidArgumentException('Enable the attendance upgrade first.');
+ switch($action){case 'att_device':att_save_device($db,$actor,$in);break;case 'att_mapping':att_save_mapping($db,$actor,$in);break;case 'att_device_action':att_device_action($db,$actor,$in);return 'Device action saved. Sync/test commands will be picked up by the office bridge.';case 'att_review_request':att_review_request($db,$actor,$in);break;case 'att_event':att_save_event($db,$actor,$in);break;case 'att_punch':att_manual_punch($db,$actor,$in);break;case 'att_import_preview':att_import_preview($db,$actor,$files['attendance_csv']??[]);return 'Preview ready. Review every row before importing.';case 'att_import_commit':$count=att_import_commit($db,$actor,$in);return $count.' attendance rows imported.';case 'att_settings':att_save_settings($db,$actor,$in);break;case 'att_default':att_save_default($db,$actor,$in);break;case 'att_policy':att_save_policy($db,$actor,$in);break;default:throw new InvalidArgumentException('Unknown attendance action.');}return 'Saved successfully.';
+}

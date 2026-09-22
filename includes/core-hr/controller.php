@@ -23,3 +23,5 @@ function chr_report_range(string $page,array $in):array {
  if($page==='monthly'){$month=$in['month']??date('Y-m');if(!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/',$month))throw new InvalidArgumentException('Choose a valid month.');$from=chr_date($month.'-01');return [$from,date('Y-m-t',strtotime($from))];}
  if($page==='attendance_history')return [chr_date($in['from']??date('Y-m-01')),chr_date($in['to']??date('Y-m-d'))];$day=chr_date($in['date']??date('Y-m-d'));return [$day,$day];
 }
+
+require_once dirname(__DIR__).'/attendance/controller.php';

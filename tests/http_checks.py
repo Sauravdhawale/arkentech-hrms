@@ -19,6 +19,10 @@ try:
  admin,_,_=login('test.admin')
  pages=['overview','employees','employment','devices','mapping','shifts','roster','holidays','balances','leave_policy','restricted','salary','contracts','advances','components','payroll','jobs','recruitment','interviews','offers','onboarding','exit_tasks','performance','reviews','pip','assets','access','policies','tasks','documents','expenses','settings','departments','designations','attendance','monthly','raw_logs','sync','reports','leaves','regularisation','helpdesk','announcements','offboarding','system']
  for page in pages:
+  if page in ['devices','mapping','raw_logs','sync']:
+   try:get(admin,'super-admin.php?page='+page);raise AssertionError('Biometric OFF route accessible')
+   except urllib.error.HTTPError as e:assert e.code==403
+   continue
   _,h=get(admin,'super-admin.php?page='+page)
   assert 'Fatal error' not in h and 'Parse error' not in h,page
  emp,_,_=login('test.one');_,h=get(emp,'employee.php?page=employment');assert 'Private One' in h and 'Private Two' not in h

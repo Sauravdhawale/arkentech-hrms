@@ -36,3 +36,7 @@ jobs:
           php tests/core_hr_calculations.php
           php tests/core_hr.php
           python3 tests/core_hr_http.py
+          php tests/attendance_rules.php
+          php tests/attendance_upgrade.php
+          python3 tests/attendance_http.py
+          python3 tests/bridge_queue.py

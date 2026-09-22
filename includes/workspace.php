@@ -13,6 +13,7 @@ $pdo=db(); $notice=''; $error=''; $ready=true;
 try { $pdo->query('SELECT id FROM hr_requests LIMIT 1'); $pdo->query('SELECT id FROM hr_announcements LIMIT 1'); $pdo->query('SELECT id FROM hr_audit LIMIT 1'); } catch(Throwable $e) { $ready=false; }
 function audit_action(PDO $pdo,int $actor,string $action,int $record): void { $pdo->prepare('INSERT INTO hr_audit(actor_id,action,record_id) VALUES(?,?,?)')->execute([$actor,$action,$record]); }
 function field_text(string $key,int $max,bool $required=true): string { $s=trim((string)($_POST[$key] ?? '')); if (($required && $s==='') || strlen($s)>$max) throw new InvalidArgumentException('Please complete all fields within their character limits.'); return $s; }
+require_once __DIR__.'/core-hr/service.php';if(!att_biometric_enabled($pdo))foreach(['devices','mapping','sync','raw_logs','device_attendance','device_monthly'] as $biometricPage)unset($nav[$biometricPage]);
 require __DIR__.'/suite.php';
 require_once __DIR__.'/leave-balances.php';
 $coreReady=chr_ready($pdo);

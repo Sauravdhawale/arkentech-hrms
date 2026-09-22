@@ -19,6 +19,7 @@ function save_employee(PDO $pdo,array $actor,array $in,array $files):int {
  $pdo->beginTransaction();try{
   $pdo->query("SELECT id FROM users WHERE role='super_admin' ORDER BY id LIMIT 1 FOR UPDATE")->fetchColumn();
   if($id){$q=$pdo->prepare('SELECT version FROM employees WHERE user_id=? FOR UPDATE');$q->execute([$id]);if((int)$q->fetchColumn()!==(int)($in['version']??0))throw new InvalidArgumentException('This profile changed. Reload it before saving.');}
+  if($old&&(int)$old['department_id']!==$department&&function_exists('att_ready')&&att_ready($pdo))att_record_write($pdo,$actor,'department_history',['title'=>'Department change'],['date'=>date('Y-m-d'),'before'=>(int)$old['department_id'],'after'=>$department],$id);
   if($username==='')$username=$old['username']??unique_username($pdo,$name);
   if($id){$pdo->prepare('UPDATE users SET name=?,email=?,username=? WHERE id=?')->execute([$name,$email,$username,$id]);$sets=implode(',',array_map(fn($k)=>"$k=?",array_keys($values)));$pdo->prepare("UPDATE employees SET $sets,version=version+1 WHERE user_id=?")->execute([...array_values($values),$id]);}
   else{$pdo->prepare("INSERT INTO users(name,email,username,password_hash,role,must_change_password) VALUES(?,?,?,?,'employee',1)")->execute([$name,$email,$username,password_hash($password?:'User@123',PASSWORD_DEFAULT)]);$id=(int)$pdo->lastInsertId();$cols=implode(',',array_keys($values));$marks=implode(',',array_fill(0,count($values),'?'));$pdo->prepare("INSERT INTO employees(user_id,$cols) VALUES(?,$marks)")->execute([$id,...array_values($values)]);}
