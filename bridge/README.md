@@ -28,7 +28,7 @@ HTTPS certificate verification is mandatory. Redirects are rejected to prevent f
 - `once`: one read/upload/status cycle; `run`: foreground loop; `service`: Windows Service entry point.
 - Bridge heartbeat and device reachability are separate in HRMS. A recent heartbeat does not prove device connectivity.
 - Connection test and Sync buttons queue commands for the bridge; shared hosting never connects to a private LAN IP.
-- Unknown employee mappings keep raw punches for review. Manual corrections are protected. Resolve mappings then replay/reprocess through a reviewed maintenance process; automated historical replay is not included in this version.
+- Unknown employee mappings keep raw punches for review. Manual corrections are protected. Resolve mappings, then use Retry pending raw punches on the HRMS raw log or sync page.
 
 ## Build
 Windows with Python 3.12: run `scripts/build.ps1`. Requirements are pinned in requirements-build.txt. The GitHub Windows job builds and packages the executable. The build test verifies CLI startup; actual Windows Service installation and physical eSSL connectivity require testing on the target office PC.

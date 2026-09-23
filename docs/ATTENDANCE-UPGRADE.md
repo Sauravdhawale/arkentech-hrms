@@ -28,10 +28,10 @@ Raw punches are retained before mapping/calculation. Unique source keys and fing
 
 ## Current boundaries
 - Actual eSSL SDK integration is pending the vendor SDK/model; no hardware success is simulated.
-- Historical unmatched-punch reprocessing is not yet exposed as a self-service action.
-- CSV imports require actual punch times; absence-only status imports are not supported.
-- Department defaults are assigned one department at a time.
-- Request validation saves a reviewed daily correction; multi-day corrections must be checked individually.
+- Pending raw punches can be retried in batches of 100 after correcting their mapping or shift.
+- Absence-only CSV rows use status Absent, blank punch times and a mandatory reason in notes.
+- Department defaults support multiple departments in one atomic operation.
+- Request validation saves a reviewed daily correction; multi-day requests must be split into daily requests for individual validation.
 - Calendar events retain department/employee audiences; this release targets the Super Admin workspace, not employee calendar delivery.
 
 ## Validation

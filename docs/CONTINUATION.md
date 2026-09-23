@@ -1,29 +1,13 @@
-# Continuation checkpoint — 22 September 2026
+# Attendance upgrade continuation — September 2026
 
-Follow `PHASE-2-SPEC.md`. Preserve the existing PHP/MySQL application and production records. Reply in English. Do not reset/reseed the database or recreate the UI project.
+Project: Sauravdhawale/arkentech-hrms. Review branch: codex/attendance-bridge-upgrade. PHP/MySQL, existing users and data preserved. User approved public repository publication; no repeat approval needed.
 
-## Repository and work
+Specs: ATTENDANCE-UPGRADE-SPEC.md and BRIDGE-SPEC.md. Deployment instructions: ATTENDANCE-UPGRADE.md; bridge instructions: ../bridge/README.md.
 
-- GitHub: `Sauravdhawale/arkentech-hrms`.
-- Review branch: `codex/phase-2-core-hr`.
-- Verified implementation commit: `7e66262b6ea4b6e343d8ef81266fa2c64167dfc7`.
-- Full validation run passed: https://github.com/Sauravdhawale/arkentech-hrms/actions/runs/35736625704
-- This notes-only update accompanies promotion of that tested code to main. Fetch the actual latest main before further changes.
-- Original directory `arkentech-hrms` is files-only. The isolated local checkout `phase2-review-repo` has local commits differing from GitHub because publication used the GitHub app. Do not force-push the local history over the remote.
-- Hostinger root: `public_html/employeeportal`, subdomain `employeeportal.arkentechsolutions.com`. No live hosting/database access was established.
+Implementation includes Company Settings attendance configuration, default-OFF server/menu/API gate, dated employee→department→company shift selection, time policies, manual punches and absence, atomic CSV preview/import, reports, calendar, requests, device mappings/scoped hashed tokens, raw punch processing/protection/retry, and Windows durable SQLite bridge/service/build scripts.
 
-## Completed
+Full PHP/MySQL/HTTP checks passed for commit 3efa122e1b5ed4741ab8206b4677673da408b20a in run 35917776901. Windows executable and server packages built in run 35917773741. Later absence/retry/offline-queue improvements require the final workflow checks. Fetch latest branch/main/run state to determine completion.
 
-Company Settings consolidation plus Phase 2 shifts/dated assignments, holidays, attendance calculations/history/monthly reports, leave types/balances/half days/approvals/cancellation/private attachments. Existing device reports and employee leave submission remain available. Details, routes, files, accounting choices and limitations are in `PHASE-2.md`.
+Local checkout is attendance-upgrade, based on 2b1cf707ee448dd4cc01636b149964a85dbd5bb1. GitHub publication uses the GitHub app, so local uncommitted diff and remote commits overlap. Do not force-push local history. Files tracked by GitHub must not also be saved in Library.
 
-Validation passed: PHP syntax, pure calculation regression, MySQL migration preservation/idempotence, database CRUD, overlap/balance/permission guards, authenticated HTTP and the entire existing Phase 1 regression suite. Local template rendering used disposable SQLite fixtures; browser visual QA is still outstanding.
-
-## Publication approval resolved
-
-GitHub access initially failed, then automatic approval review required public-publication confirmation. The user explicitly replied “apporved”. Publication succeeded after that approval. Do not request the same permission again for this authorized work.
-
-## Remaining
-
-Verify actual Hostinger deployment and optionally complete browser/mobile visual review. Enable Core HR once from its Super Admin screen to run additive migration 005 only after deployment. No live migration, employee import or new login creation was performed here. Preserve existing users/passwords and data.
-
-Fetch main and the latest workflow state before continuing. Native PHP/MySQL are unavailable locally; temporary `/tmp/hrms-php-validation/node_modules/.bin/php-wasm-cli` can run pure calculations, while GitHub Actions supplies MySQL integration. Tests are restricted to disposable `peopleflow_ci`.
+No Hostinger deployment or production migration has been performed. Correct root: public_html/employeeportal. No eSSL vendor SDK was provided. The default adapter fails explicitly until integrated; mock mode requires explicit test_mode=true. Do not claim hardware tests. User requests English replies.

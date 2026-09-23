@@ -45,9 +45,6 @@ def load():
     return config,adapter,queue,Api(config)
 
 def cycle(config,adapter,queue,api):
-    ping=api.call('ping')
-    if ping.get('device_serial')!=config['device_serial']: raise ValueError('Token/device serial mismatch')
-    commands=ping.get('commands',{})
     online=False
     last=None
     error=''
@@ -65,6 +62,9 @@ def cycle(config,adapter,queue,api):
         logging.error(error)
     finally:
         adapter.disconnect()
+    ping=api.call('ping')
+    if ping.get('device_serial')!=config['device_serial']: raise ValueError('Token/device serial mismatch')
+    commands=ping.get('commands',{})
     pending=queue.pending()
     if pending:
         result=api.call('punches',{'device_serial':config['device_serial'],'events':pending})
