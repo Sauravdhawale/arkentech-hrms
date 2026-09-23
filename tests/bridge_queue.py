@@ -15,12 +15,14 @@ class QueueTests(unittest.TestCase):
    self.assertEqual(len(q.pending()),1)
    q.acknowledge(pending,{'persisted':True,'duplicates':['1']});self.assertEqual(q.pending(),[])
    with self.assertRaises(ValueError):q.bind('D2','mock')
+   q.db.close()
  def test_atomic_conflict(self):
   with tempfile.TemporaryDirectory() as d:
    q=Queue(Path(d)/'q.db');e={'biometric_id':'1','punched_at':'2026-01-01 09:00:00','event_key':'1'}
    q.enqueue('D',[e],'1')
    with self.assertRaises(ValueError):q.enqueue('D',[dict(e,punched_at='2026-01-01 10:00:00')],'2')
    self.assertEqual(q.cursor(),'1')
+   q.db.close()
  def test_sdk_not_faked(self):
   with self.assertRaises(RuntimeError):EsslAdapter().connect()
   with self.assertRaises(ValueError):MockAdapter({'test_mode':False},'.')
