@@ -25,7 +25,7 @@ function att_import_rows(PDO $db,array $rows):array {
  if($out!==''&&preg_match($clock,$out)){$outDay=$day;if(substr($out,0,5)<=substr($in,11,5)){if(!$shift||$shift['values']['end']>$shift['values']['start'])throw new InvalidArgumentException('Earlier check-out requires an assigned overnight shift.');$outDay=(new DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d');}$out=$outDay.' '.$out;}$out=$out===''?null:chr_datetime($out);
  if($in>date('Y-m-d H:i:s')||($out&&$out>date('Y-m-d H:i:s')))throw new InvalidArgumentException('Future punches are not allowed.');$metrics=chr_calculate($day,$in,$out,$shift['values']??null);
  if(!empty($r['shift'])&&trim($r['shift'])!==($shift['title']??''))throw new InvalidArgumentException('Shift differs from effective assignment.');if(!empty($r['status'])&&trim($r['status'])!==$metrics['status'])throw new InvalidArgumentException('Status differs from calculated status: '.$metrics['status']);
- $item['data']=['employee_id'=>$id,'attendance_date'=>$day,'check_in'=>$in,'check_out'=>$out,'source'=>'CSV Import','notes'=>mb_substr(trim((string)($r['notes']??'')),0,3000)];
+ $item['data']=['employee_id'=>$id,'attendance_date'=>$day,'check_in'=>$in,'check_out'=>$out,'source'=>'CSV Import','notes'=>ftext($r,'notes',3000)];
  }catch(InvalidArgumentException $e){$item['error']=$e->getMessage();}$result[]=$item;}return $result;
 }
 function att_import_preview(PDO $db,array $actor,array $file):void {
