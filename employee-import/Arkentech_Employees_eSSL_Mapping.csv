@@ -1,0 +1,108 @@
+Sr.No,Employee ID,Name,Designation,DOB,Phone Number,Blood Group,Emergency No,Status,eSSL ID,Proposed Username
+1,AT00001,Mehul Purohit,Senior Operations Manager,01/08/1992,9145517146,B+,9413132899,Problem,1,mehul.purohit
+2,AT00003,Sameer Hawale,Team Leader Database Administrator,17/05/1991,8600102627,AB+,9860282886,Done,3,sameer.hawale
+3,AT00004,Suraj Yadav,Assitant Manager,24/03/1993,7276274487,O+,9420221048,Done,4,suraj.yadav
+4,AT00009,Vikram Dongre,Senior Quality Team lead,18/09/1992,9850940213,O+,9527040383,Done,9,vikram.dongre
+5,AT00011,Nikhil Lawand,Team Lead Email Marketing,30/05/1993,9403021568,B+,7276274487,Done,11,nikhil.lawand
+6,AT00046,Bhoomi Bandodkar,Hr Manager,28/11/1997,8668514452,O+,9637921805,Done,46,bhoomi.bandodkar
+6,AT00061,Janhavi Roy,Sr.Team Leader Operations,08/06/2000,9673188620,O+,8600102627,Done,61,janhavi.roy
+7,AT00117,Ritesh Kolewad,Email Marketing Executive,20/07/1996,7387308043,O+,8087297941,Done,117,ritesh.kolewad
+8,AT00141,Daniel Gurung,Sr.Team Leader Operations,4-May-1990,7028449276,B+,9960455672,Done,141,daniel.gurung
+9,AT00146,Rohit Morankar,Email Marketing Executive,12/07/2002,7447559946,O+,7057770131,Done,146,rohit.morankar
+10,AT00154,Shubham Gajbhar,Research Analyst,10-Dec-1995,7385840301,AB+,7217847399,Done,154,shubham.gajbhar
+11,AT00159,Apeksha Kapile,Research Analyst,7-Mar-2001,9607799306,A-,9921770824,Done,159,apeksha.kapile
+12,AT00163,Rohit Lanke,Research Analyst,9-Oct-2001,9130736706,B+,8261000750,Done,163,rohit.lanke
+13,AT00165,Laxmi Sharma,Research Analyst,03/09/2003,9307548451,B-,8329672056,Done,165,laxmi.sharma
+14,AT00176,Sonam Bhosale,Research Analyst,2-Oct-1991,8830883576,B+,9922356048,Done,176,sonam.bhosale
+15,AT00177,Saurav Dhawale,Team Lead  Digital Marketing ,22/07/2003,7410712803,O-,9822665916,Done,177,saurav.dhawale
+16,AT00179,Digvijay Mohite,Team leader - Operations,23-May-1997,7558317255,O+,9763817255,Done,179,digvijay.mohite
+17,AT00181,Clinton Joseph,Email Marketing Executive,13/03/1993,7387792176,A+,9665095086,Done,181,clinton.joseph
+18,AT00183,Ritika Pal,Team leader - Operations,23-Aug-2002,8630341286,O+,8080750857,Problem,183,ritika.pal
+20,AT00191,Mandar Patil,Web Developer,13/05/2000,7507515232,O+,7745893000,Done,191,mandar.patil
+21,AT00193,Ruchika Meshram,Quality analyst,31/08/1996,7083531807,O+,9168266494,Done,193,ruchika.meshram
+22,AT00196,Shubham Parthe,Research Analyst,16/08/2000,7040467693,O+,7045716271,Done,196,shubham.parthe
+23,AT00197,Rushikesh Zende,Team leader - Operations,07/07/1997,7045716271,A+,7040467693,Problem,197,rushikesh.zende
+24,AT00198,Harshvardan Raut,Email Marketing Executive,02/09/1995,9503902019,B+,9130487766,Done,198,harshvardan.raut
+25,AT00200,Ashish Ghule,Email Marketing Executive,22/05/1999,9284337998,O-,8459493258,Done,200,ashish.ghule
+26,AT00201,Tejas Pedvekar,Research Analyst,16/07/2006,9273777761,A+,7020372757,Done,201,tejas.pedvekar
+27,AT00206,Prema Adiwal,Client Success Manager,07/06/1993,8421469604,B+,7276192545,Done,206,prema.adiwal
+28,AT00211,Yaimi Vasah,Business Development Representative,12-Dec-95,8208872176,A+,7820983205,Done,211,yaimi.vasah
+29,AT00217,Sanket Chikane,Database Administrator,24/02/2000,9518721981,B+,7498375966,Done,217,sanket.chikane
+30,AT00219,Saurabh Khandare,Email Marketing Executive,22/01/1997,8830929716,O+,9175857844,Done,219,saurabh.khandare
+31,AT00222,Pratiksha Wagh,Research Analyst,22-Dec-2000,8805729972,O+,8605373642,Done,222,pratiksha.wagh
+32,AT00223,Prashant Shinde,IT Support Engineer,13/04/1992,8983060210,A+,9545251013,Done,223,prashant.shinde
+33,AT00224,Vijaysingh Thakur,Quality analyst,07/10/1990,8329767282,AB+,8421949318,Done,224,vijaysingh.thakur
+34,AT00234,Shrikant Gavali,Quality Manager,20/05/1982,9766790005,B+,7387081500,Done,234,shrikant.gavali
+35,AT00236,Tanvi Patil,Quality analyst,27/09/2002,9890709854,O+,9890685617,Done,236,tanvi.patil
+36,AT00240,Aarti Gaur,Research Analyst,30/07/1993,9307411067,B+,9011247123,Done,240,aarti.gaur
+37,AT00247,Sumit Daware,Research Analyst,14/04/1999,8698031070,O+,9822797362,Done,247,sumit.daware
+38,AT00249,Mayuri Patil,Research Analyst,25/03/1998,7498417047,O+,9421130575,Done,249,mayuri.patil
+39,AT00250,Alex Claso,Demand Generation Executive,10-Oct-01,9175782423,B+,8888311431,Done,250,alex.claso
+40,AT00251,Onkar Kurkarni,Sales Development Representative,08/10/1981,9307073454,O+,8329446596,Done,251,onkar.kurkarni
+42,AT00254,Lokesh Sarode,Web Developer,04/08/2002,7972142499,O+,9561020752,Done,254,lokesh.sarode
+43,AT00259,Nikhil Chaudhari,Quality analyst,03/07/2001,7447296691,O+,9767074710,Done,259,nikhil.chaudhari
+44,AT00260,Rajdeep Yadav,Business Development Representative,15-11-1997,9850174997,B+,7798227551,Done,260,rajdeep.yadav
+45,AT00263,Suryakant machale,Research Analyst,29-Jul-2002,8668527828,O+,8668527828,Done,263,suryakant.machale
+46,AT00265,Shivangi Choudhary,Research Analyst,12-Aug-1994,8770315652,O+,9425829498,Done,265,shivangi.choudhary
+47,AT00269,Rushab bansode,Email Marketing Executive,18/05/1996,7040466120,O+,9420319375,Done,269,rushab.bansode
+48,AT00271,Nandagopal Nambiar,Client Success Manager,10/12/1990,8600330999,B+,9921770330,Done,271,nandagopal.nambiar
+49,AT00274,Aditya paikine,Senior Team Lead Database Administrator,07/08/1995,7744931426,O+,9850262480,Done,274,aditya.paikine
+50,AT00275,Shruti Joshi,Demand Generation Executive,06-Feb-90,9970666905,B+,9890065632,Done,275,shruti.joshi
+51,AT00278,Viraj Sonawane,Database Administrator,12/11/2000,9146663353,A+,9518721981,Done,278,viraj.sonawane
+52,AT00279,Akshay pardeshi,Business Development Manager,09/12/1993,8329526056,O+,9890914210,Done,279,akshay.pardeshi
+53,AT00280,Hardeep Singh,Digital marketing manager,14/11/1989,9784234906,B+,7410712803,Done,280,hardeep.singh
+54,AT00281,Ritesh Patil,Quality analyst,29/04/2001,7038839551,A+,7972645495,Done,281,ritesh.patil
+55,AT00282,Kartik Kusale,Research Analyst,07/12/2005,8080552589,B-,9359741839,Done,282,kartik.kusale
+56,AT00283,Devendra Khollam,Research Analyst,13-Nov-2005,9309264110,O+,9975159697,Done,283,devendra.khollam
+57,AT00285,Harshwardhan Wankhede,Research Analyst,22/10/1999,7887949138,O+,7249187663,Done,285,harshwardhan.wankhede
+58,AT00288,Varun Kamal,Business Development Manager,22/09/1991,8262843974,A-,7028592646,Done,288,varun.kamal
+59,AT00289,Joel Anthony,Sales and Account Manager,09/03/1990,8007720093,A+,9960081471,Done,289,joel.anthony
+60,AT00290,Shruti Dhadse,Digital Marketing Intern,14/12/2006,9098647679,B+,,Done,290,shruti.dhadse
+61,AT00292,Bharti Kharat,Research Analyst,15/11/1990,8766910339,O+,7775098174,Done,292,bharti.kharat
+62,AT00293,Vivekanand Sharma,Director Strategic Operations  ,27/01/1979,9762530248,B+,7709322066,Done,293,vivekanand.sharma
+63,AT00294,Sujit Huddar,Database Administrator Manager,25/11/1988,9158867159,O+,7992416710,Done,294,sujit.huddar
+64,AT00295,Kashinath Pawar,Business Development Manager,26/01/1992,9921036206,AB+,9359225425,Done,295,kashinath.pawar
+65,AT00296,Damini Deshmukh,Digital Marketing Intern,03/07/2002,7020650194,B+,7507177169,Done,296,damini.deshmukh
+66,AT00297,Vaishnavi Pawar,Research Analyst,06/05/1997,7744857473,A+,8208182516,Done,297,vaishnavi.pawar
+67,AT00298,Onkar Thombare,Email Marketing Executive,29/04/1994,8600650903,B+,8793474891,Done,298,onkar.thombare
+68,AT00299,Ramu Wadmare,Database Administrator,04/04/1994,9921562533,B+,7057350304,Done,299,ramu.wadmare
+69,AT00300,Akansha Ohal,Research Analyst,15-Nov-2000,9011794787,O+,7020427460,Done,300,akansha.ohal
+70,AT00301,Gopi Mudliyar,Database Administrator,05/08/2001,9075578975,B+,9359750627,Done,301,gopi.mudliyar
+71,AT00302,Akshada Sathe,accountant,21/02/2001,9096851317,AB+,7.84E+09,Done,302,akshada.sathe
+72,AT00303,Mahesh Mane,Research Analyst,11-Sep-1996,9172984553,B+,9370745117,Done,303,mahesh.mane
+73,AT00304,Anay Jadhav,Research Analyst,17-May-1999,7972958335,A+,8237307934,Done,304,anay.jadhav
+74,AT00305,Naveen Thanniru,Quality analyst,22/02/2001,6302704834,B+,9848471280,Done,305,naveen.thanniru
+75,AT00306,Anisa Jattagi,Research Analyst,14-Oct-1999,9067569868,A+,9503737866,Done,306,anisa.jattagi
+76,AT00307,Brijesh Ram,Quality analyst,24/10/1988,9767131839,B+,8446755615,Done,307,brijesh.ram
+77,AT00308,Pavan Deshmukh,Research Analyst,13-Apr-1994,7774885205,A+,7774885205,Done,308,pavan.deshmukh
+78,AT00309,Yogita Bodade,Research Analyst,27-May-2002,7030150826,B+,9604422061,Done,309,yogita.bodade
+79,AT00310,Shruti Tawde,Research Analyst,8-Feb-2001,9637946567,B+,7676902525,Done,310,shruti.tawde
+80,AT00311,Prashant Kamble,Research Analyst,10-Mar-1993,7768094902,A+,8888672310,Done,311,prashant.kamble
+81,AT00312,Shubhani Ghanwat,Research Analyst,12-Oct-1998,9011759235,O+,9604307208,Done,312,shubhani.ghanwat
+82,AT00313,Suraj Rayamane,Research Analyst,09/05/1995,8483015193,O+,7026065975,Done,313,suraj.rayamane
+83,AT00314,Kaushik Dam,Demand Generation Executive,10-05-1975,9326820262,A+,7045584582,Done,314,kaushik.dam
+84,AT00315,Nathbaba Patole,Research Analyst,16-May-2001,8788746075,O+,9175358462,Done,315,nathbaba.patole
+85,AT00316,Akshay Mowade,Database Administrator,04/04/1996,8007586652,B+,7798392761,Done,316,akshay.mowade
+86,AT00012,Ajay Gaikwad,Office Boy,01-06-1989,9075899903,B+,9028909903,Done,12,ajay.gaikwad
+87,AT00320,Hrishikesh Padwal,Database Administrator,22-Nov-98,9028238397,O-,7276342024,Done,320,hrishikesh.padwal
+88,AT00319,Shivani Tiwari,Research Analyst,1/12/2000,7350451851,AB+,8237776107,Problem,319,shivani.tiwari
+89,AT00318,Gulsanowber Darakhshan ,Research Analyst,09/02/1995,8830251723,O+,8956724909,Problem,318,gulsanowber.darakhshan
+90,AT00325,Atul Bhalekar,Email Marketing Executive,15/10/1993,9803041717,A+,9356728705,Problem,325,atul.bhalekar
+91,AT00328,Gopal Gawade,Email Marketing Executive,12/11/1994,8655511906,O+,9969876180,Problem,328,gopal.gawade
+92,AT00321,Sayali More,Research Analyst,15/3/1993,9545248781,AB+,9028233031,Problem,321,sayali.more
+93,AT00317,Haresh Kurade,Team Leader - Demand Generation,22/09/1992,9765095357,O+,8788963099,Problem,317,haresh.kurade
+94,AT00327,Amit Kolewad,Quality Analyst,29/11/1991,8087297941,B+,9307639017,Problem,327,amit.kolewad
+95,AT00324,yogini patil,web Developer,01/04/2005,9518516047,B+,9021973807,Problem,324,yogini.patil
+96,AT00341,Akanksha Barkate,web Developer,16/08/2004,9156313578,A+,9881313578,Problem,341,akanksha.barkate
+97,AT00331,Nayan Kadam,Research Analyst,31/12/1992,8552998987,A+,7304212121,Problem,331,nayan.kadam
+98,AT00329,Ajinkya Chavan,Research Analyst,15/03/2004,7769070071,A+,9373680841,Problem,329,ajinkya.chavan
+99,AT00335,Shivprasad Dandu,Research Analyst,14/08/1995,9975641404,B+,9623244561,Problem,335,shivprasad.dandu
+100,AT00339,Kajal Waydande,Research Analyst,03/10/2001,7218218855,O+,9822080241,Problem,339,kajal.waydande
+101,AT00340,Prathmesh Gaikwad,Research Analyst,22/07/2002,7276642215,o+,8796619087,Problem,340,prathmesh.gaikwad
+102,AT00343,sanjana shinde,Web Developer Inern,14/04/2002,9822641207,,7038963854,Problem,343,sanjana.shinde
+104,AT00338,Amarsing Maher,Quality analyst,,,,,Problem,338,amarsing.maher
+105,AT00337,Rahul Sheravat,Research Analyst ,16/11/2002,7709160645,O+,9067688481,Problem,337,rahul.sheravat
+106,AT00336,Vijay Sawant,Research Analyst ,07/03/1997,9021382446,A+,9158126870,Problem,336,vijay.sawant
+107,AT00334,Atul Padale,Research Analyst ,06/08/1988,7719046668,A+,,Problem,334,atul.padale
+108,AT00333,Somnath Wandhekar,Research Analyst ,10/11/1998,9665704520,O+,9112729604,Problem,333,somnath.wandhekar
+109,AT00322,Samuel Chopde,Team Lead -BCL,,,,,Problem,322,samuel.chopde
