@@ -27,6 +27,11 @@ namespace Axzkemkeeper {
             if (!IsHandleCreated) { failure=-902; return false; }
             if (host != "192.0.2.1") { failure=-903; return false; }
             if (port != 4370) { failure=-904; return false; }
+            if (System.IO.File.Exists(System.IO.Path.Combine(Environment.CurrentDirectory,"expect-background"))) {
+                var form = FindForm();
+                if (form == null || form.ShowInTaskbar || form.Opacity > 0.01) { failure=-905; return false; }
+                System.IO.File.WriteAllText(System.IO.Path.Combine(Environment.CurrentDirectory,"background-verified"),"ok");
+            }
             return true;
         }
         public bool GetSerialNumber(int machine, ref string serial) { serial="TEST"; return true; }
@@ -37,7 +42,7 @@ namespace Axzkemkeeper {
 '@
     Add-Type -TypeDefinition $source -ReferencedAssemblies System.Windows.Forms,System.Drawing -OutputAssembly (Join-Path $fixture 'AxInterop.zkemkeeper.DLL')
     Copy-Item (Join-Path $fixture 'AxInterop.zkemkeeper.DLL') (Join-Path $fixture 'Interop.zkemkeeper.DLL')
-    Copy-Item bridge/sHRMSBridge.exe $fixture
+    Copy-Item bridge/sHRMSBridge.exe,bridge/sHRMSBridgeBackground.exe $fixture
     New-Item -ItemType Directory (Join-Path $fixture 'config') | Out-Null
     $config = @{adapter='essl';sdk_transport='activex';sdk_directory=$fixture;device_host='192.0.2.1';device_port=4370;device_serial='TEST';api_token=('0'*64);server_url='https://invalid.example'}
     $config | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $fixture 'config/config.json')
@@ -47,6 +52,12 @@ namespace Axzkemkeeper {
         if (Test-Path $state) { Get-Content $state }
         throw 'Frozen ActiveX helper regression failed'
     }
+    New-Item -ItemType File (Join-Path $fixture 'expect-background') | Out-Null
+    $child = Start-Process -FilePath (Join-Path $fixture 'sHRMSBridgeBackground.exe') -ArgumentList @('test-device','--background-ui') -PassThru -Wait
+    if ($child.ExitCode -ne 0 -or -not (Test-Path (Join-Path $fixture 'background-verified'))) {
+        throw 'Background executable/hidden ActiveX host regression failed'
+    }
+
 } finally {
     Remove-Item -LiteralPath $fixture -Recurse -Force
 }

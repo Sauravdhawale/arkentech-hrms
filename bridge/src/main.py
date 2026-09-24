@@ -12,6 +12,7 @@ from adapters import EsslAdapter, MockAdapter
 from essl_sdk import DeviceError
 from essl_activex import EsslActiveXAdapter
 from storage import Queue
+from instance import single_instance
 
 ROOT=Path(sys.executable).parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parents[1]
 STOP=threading.Event()
@@ -37,8 +38,9 @@ class Api:
         with self.opener.open(request,timeout=30) as response:
             return json.loads(response.read(1000000))
 
-def load():
+def load(background=False):
     config=json.loads((ROOT/'config/config.json').read_text(encoding='utf-8-sig'))
+    config['background_ui']=background
     kind=config.get('adapter','essl')
     if kind not in ('essl','mock'): raise ValueError('Unsupported adapter')
     transport=config.get('sdk_transport', 'activex')
@@ -78,11 +80,16 @@ def cycle(config,adapter,queue,api):
         'last_device_timestamp':last,'error':error,'ack_commands':commands if online else {}})
     if error: raise RuntimeError(error)
 
-def run():
+def run(background=False):
+    with single_instance(ROOT):
+        run_loop(background)
+
+def run_loop(background=False):
     (ROOT/'logs').mkdir(parents=True,exist_ok=True)
     handler=RotatingFileHandler(ROOT/'logs/bridge.log',maxBytes=2_000_000,backupCount=5)
     logging.basicConfig(level=logging.INFO,handlers=[handler],format='%(asctime)s %(levelname)s %(message)s')
-    config,adapter,queue,api=load()
+    config,adapter,queue,api=load(background)
+    logging.info('Bridge started (%s)', 'background' if background else 'foreground')
     interval=max(10,int(config.get('sync_interval_seconds',60)))
     delay=interval
     while not STOP.is_set():
@@ -97,7 +104,7 @@ def run():
 def service():
     config=json.loads((ROOT/'config/config.json').read_text(encoding='utf-8-sig'))
     if config.get('adapter','essl')=='essl' and config.get('sdk_transport','activex')=='activex':
-        raise DeviceError('ActiveX mode requires a logged-in Windows desktop. Use run; unattended Windows Service mode is not yet verified.')
+        raise DeviceError('ActiveX mode requires a logged-in Windows desktop. Use background startup; unattended Windows Service mode is not yet verified.')
     import win32serviceutil,win32service,win32event,servicemanager
     class BridgeService(win32serviceutil.ServiceFramework):
         _svc_name_='sHRMSBridge'
@@ -116,27 +123,30 @@ def service():
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser()
-    parser.add_argument('command',choices=['run','once','test-api','test-device','service'],default='run',nargs='?')
-    command=parser.parse_args().command
+    parser.add_argument('command',choices=['run','background','once','test-api','test-device','service'],default='run',nargs='?')
+    parser.add_argument('--background-ui',action='store_true',help='Test the invisible ActiveX host from a signed-in desktop')
+    args=parser.parse_args()
+    command=args.command
     try:
         if command=='service': service()
-        elif command=='run': run()
+        elif command in ('run','background'): run(command=='background' or args.background_ui)
         else:
-            config,adapter,queue,api=load()
-            if command=='test-api':
-                result=api.call('ping')
-                if result.get('device_serial')!=config['device_serial']: raise ValueError('Token/device mismatch')
-                print('HTTPS API connected; token matches configured device.')
-            elif command=='test-device':
-                try:
-                    adapter.connect()
-                    if not adapter.testConnection() or adapter.getSerialNumber()!=config['device_serial']:
-                        raise RuntimeError('Device verification failed')
-                    print('Device test passed ('+config['adapter']+' adapter).')
-                finally: adapter.disconnect()
-            else:
-                cycle(config,adapter,queue,api)
-                print('Sync cycle completed. Pending queued punches (up to 500): '+str(len(queue.pending())))
+            with single_instance(ROOT):
+                config,adapter,queue,api=load(args.background_ui)
+                if command=='test-api':
+                    result=api.call('ping')
+                    if result.get('device_serial')!=config['device_serial']: raise ValueError('Token/device mismatch')
+                    print('HTTPS API connected; token matches configured device.')
+                elif command=='test-device':
+                    try:
+                        adapter.connect()
+                        if not adapter.testConnection() or adapter.getSerialNumber()!=config['device_serial']:
+                            raise RuntimeError('Device verification failed')
+                        print('Device test passed ('+config['adapter']+' adapter).')
+                    finally: adapter.disconnect()
+                else:
+                    cycle(config,adapter,queue,api)
+                    print('Sync cycle completed. Pending queued punches (up to 500): '+str(len(queue.pending())))
     except KeyboardInterrupt: STOP.set()
     except Exception as exc:
         message = str(exc) if isinstance(exc, DeviceError) else type(exc).__name__ + '. Check configuration and logs.'

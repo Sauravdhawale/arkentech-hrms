@@ -54,6 +54,7 @@ class ActiveXTransport:
                    ('Interop.zkemkeeper.DLL', 'AxInterop.zkemkeeper.DLL')):
             raise DeviceError('eTimeTrackLite SDK wrappers not found. Set sdk_directory to the installed eTimeTrackLite folder.')
         request = dict(action=action, sdk_directory=str(folder),
+                       background_ui=self.config.get('background_ui') is True,
                        device_host=str(self.config.get('device_host', '')).strip(),
                        device_port=int(self.config.get('device_port', 4370)),
                        device_password=int(self.config.get('device_password', 0)),

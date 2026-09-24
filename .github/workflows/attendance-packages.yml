@@ -18,6 +18,7 @@ jobs:
           python tests/bridge_queue.py
           python tests/bridge_sdk.py
           python tests/bridge_activex.py
+          python tests/bridge_instance.py
       - name: Parse ActiveX helper with Windows PowerShell
         shell: powershell
         run: |
@@ -25,6 +26,10 @@ jobs:
           $errors = $null
           [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path bridge/src/essl_activex.ps1), [ref]$tokens, [ref]$errors)
           if ($errors.Count) { throw ($errors | Out-String) }
+          Get-ChildItem bridge/scripts/*background.ps1 | ForEach-Object {
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors.Count) { throw ($errors | Out-String) }
+          }
       - name: Build Windows executable
         shell: pwsh
         run: ./bridge/scripts/build.ps1
@@ -37,7 +42,7 @@ jobs:
           ./bridge/sHRMSBridge.exe --help
           if ($LASTEXITCODE -ne 0) { throw 'Executable smoke test failed' }
           New-Item -ItemType Directory -Force package/sHRMSBridge | Out-Null
-          Copy-Item bridge/sHRMSBridge.exe,bridge/README.md,bridge/requirements-build.txt package/sHRMSBridge/
+          Copy-Item bridge/sHRMSBridge.exe,bridge/sHRMSBridgeBackground.exe,bridge/README.md,bridge/requirements-build.txt package/sHRMSBridge/
           Copy-Item bridge/config,bridge/scripts,bridge/src -Recurse package/sHRMSBridge/
           New-Item -ItemType Directory -Force package/sHRMSBridge/data,package/sHRMSBridge/logs,package/sHRMSBridge/lib | Out-Null
       - uses: actions/upload-artifact@v4

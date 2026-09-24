@@ -5,3 +5,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed' }
 python -m PyInstaller --clean --noconfirm --onefile --name sHRMSBridge --add-data "src/essl_activex.ps1;." --hidden-import pythoncom --hidden-import win32com.client --hidden-import win32com.client.dynamic --hidden-import win32timezone --hidden-import win32serviceutil --hidden-import win32service --hidden-import win32event --hidden-import servicemanager src/main.py
 if ($LASTEXITCODE -ne 0) { throw 'Windows executable build failed' }
 Copy-Item dist/sHRMSBridge.exe ./sHRMSBridge.exe
+
+python -m PyInstaller --clean --noconfirm --onefile --noconsole --name sHRMSBridgeBackground --add-data "src/essl_activex.ps1;." --hidden-import pythoncom --hidden-import win32com.client --hidden-import win32com.client.dynamic --hidden-import win32timezone --hidden-import win32serviceutil --hidden-import win32service --hidden-import win32event --hidden-import servicemanager src/main.py
+if ($LASTEXITCODE -ne 0) { throw 'Background executable build failed' }
+Copy-Item dist/sHRMSBridgeBackground.exe ./sHRMSBridgeBackground.exe
