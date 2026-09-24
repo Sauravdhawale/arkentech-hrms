@@ -53,6 +53,8 @@ namespace Axzkemkeeper {
         throw 'Frozen ActiveX helper regression failed'
     }
     New-Item -ItemType File (Join-Path $fixture 'expect-background') | Out-Null
+    & (Join-Path $fixture 'sHRMSBridge.exe') test-device --background-ui
+    if ($LASTEXITCODE -ne 0) { throw 'Hidden ActiveX host console diagnostic failed' }
     $child = Start-Process -FilePath (Join-Path $fixture 'sHRMSBridgeBackground.exe') -ArgumentList @('test-device','--background-ui') -PassThru -Wait
     if ($child.ExitCode -ne 0 -or -not (Test-Path (Join-Path $fixture 'background-verified'))) {
         throw 'Background executable/hidden ActiveX host regression failed'
