@@ -17,6 +17,14 @@ jobs:
         run: |
           python tests/bridge_queue.py
           python tests/bridge_sdk.py
+          python tests/bridge_activex.py
+      - name: Parse ActiveX helper with Windows PowerShell
+        shell: powershell
+        run: |
+          $tokens = $null
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path bridge/src/essl_activex.ps1), [ref]$tokens, [ref]$errors)
+          if ($errors.Count) { throw ($errors | Out-String) }
       - name: Build Windows executable
         shell: pwsh
         run: ./bridge/scripts/build.ps1

@@ -8,11 +8,17 @@ The package includes a Windows executable built from the source in this folder.
 2. Register the exact device serial under Attendance → Biometric Devices. Map each device user ID to the correct HR employee.
 3. Generate a device token. Copy `config/config.example.json` to `config/config.json` and set the HTTPS server URL, token and exact device serial.
 4. Run `sHRMSBridge.exe test-api` in an elevated terminal.
-5. Copy your licensed, matching **64-bit** `zkemkeeper.dll`, `zkemsdk.dll`, `plcommpro.dll` and `commpro.dll` into `lib/`. In 64-bit Administrator PowerShell run `./scripts/register-sdk.ps1`, then `./sHRMSBridge.exe test-device`. This registers the SDK for 64-bit applications; on an existing attendance PC use the vendor-approved DLL set. Keep the original eTimeTrackLite files unchanged.
-6. Run `scripts/install.ps1` as Administrator, then `scripts/start.ps1`. Startup is automatic. Stop/remove using the supplied scripts.
+5. Keep eTimeTrackLite installed. The default `sdk_transport` is now `activex`, which uses its existing `Interop.zkemkeeper.DLL` and `AxInterop.zkemkeeper.DLL`. The default `sdk_directory` is `C:\Program Files (x86)\essl\eTimeTrackLite`; set this optional configuration field if installed elsewhere. Do not re-register or replace DLLs for this update.
+6. From a logged-in Windows desktop, run `./sHRMSBridge.exe test-device`, then `./sHRMSBridge.exe once`. Verify HRMS Raw Punch Logs and Biometric Sync Logs. Run `./sHRMSBridge.exe run` for repeated sync, keeping the laptop awake and terminal open.
 
-## Hardware limitation
-**The ZKEM COM integration is implemented, but physical device compatibility is not yet verified.** Vendor DLLs are not redistributed in the public repository or build artifact. Use your licensed matching 64-bit SDK set. The adapter reads serial and attendance logs only: it does not clear punches, enroll users, read biometric templates, change the device clock or disable the device. User export is deliberately unavailable. Test on the office LAN before enabling automatic operation.
+## ActiveX update and hardware verification
+The office X2008 connected successfully using a Windows Forms ActiveX control in PowerShell. This release uses that initialization approach with a fresh STA helper process per operation. The installed vendor application is not launched. The helper receives device connection settings only, never the HRMS token, and checks the physical serial before reading attendance.
+
+Windows PowerShell 5.1 and the installed SDK wrappers are required. The helper is embedded in the EXE. It does not change the PowerShell execution policy, SDK registration or installed files. Machine connection has been demonstrated in the diagnostic test; attendance reads in this packaged build still require an office test.
+
+ActiveX mode currently supports foreground `run` on a logged-in desktop. Windows Service mode is explicitly blocked until session-zero operation is verified. Do not run install/start service scripts for ActiveX mode. Existing installations requiring direct COM may select `"sdk_transport": "com"`; that retains the original adapter.
+
+The adapter reads serial and attendance logs only: it does not clear punches, enroll users, read biometric templates, change the clock or disable the device. Vendor files are not redistributed.
 
 ## Explicit test mode
 Use a separate test device/token and data directory. Set `adapter` to `mock` and `test_mode` to `true`. Add synthetic events to `config/mock-punches.json` (an array of biometric_id, punched_at in company-local `YYYY-MM-DD HH:MM:SS`, direction in/out/unknown and stable event_key). Mock mode never represents live device connectivity. Do not use a production employee mapping for mock punches.

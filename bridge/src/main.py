@@ -10,6 +10,7 @@ import urllib.request
 from urllib.parse import urlparse
 from adapters import EsslAdapter, MockAdapter
 from essl_sdk import DeviceError
+from essl_activex import EsslActiveXAdapter
 from storage import Queue
 
 ROOT=Path(sys.executable).parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parents[1]
@@ -37,10 +38,12 @@ class Api:
             return json.loads(response.read(1000000))
 
 def load():
-    config=json.loads((ROOT/'config/config.json').read_text(encoding='utf-8'))
+    config=json.loads((ROOT/'config/config.json').read_text(encoding='utf-8-sig'))
     kind=config.get('adapter','essl')
     if kind not in ('essl','mock'): raise ValueError('Unsupported adapter')
-    adapter=MockAdapter(config,ROOT) if kind=='mock' else EsslAdapter(config, ROOT)
+    transport=config.get('sdk_transport', 'activex')
+    if transport not in ('activex','com'): raise ValueError('Unsupported sdk_transport')
+    adapter=MockAdapter(config,ROOT) if kind=='mock' else (EsslActiveXAdapter(config, ROOT) if transport=='activex' else EsslAdapter(config, ROOT))
     queue=Queue(ROOT/'data/queue.sqlite3')
     queue.bind(config['device_serial'],kind)
     return config,adapter,queue,Api(config)
@@ -59,7 +62,7 @@ def cycle(config,adapter,queue,api):
         if events: last=events[-1]['punched_at']
     except Exception as exc:
         # Log error type only: SDK exceptions can contain configuration secrets.
-        error='Device read failed: '+type(exc).__name__
+        error=str(exc) if isinstance(exc, DeviceError) else 'Device read failed: '+type(exc).__name__
         logging.error(error)
     finally:
         adapter.disconnect()
@@ -92,6 +95,9 @@ def run():
         STOP.wait(delay)
 
 def service():
+    config=json.loads((ROOT/'config/config.json').read_text(encoding='utf-8-sig'))
+    if config.get('adapter','essl')=='essl' and config.get('sdk_transport','activex')=='activex':
+        raise DeviceError('ActiveX mode requires a logged-in Windows desktop. Use run; unattended Windows Service mode is not yet verified.')
     import win32serviceutil,win32service,win32event,servicemanager
     class BridgeService(win32serviceutil.ServiceFramework):
         _svc_name_='sHRMSBridge'
@@ -128,7 +134,9 @@ if __name__=='__main__':
                         raise RuntimeError('Device verification failed')
                     print('Device test passed ('+config['adapter']+' adapter).')
                 finally: adapter.disconnect()
-            else: cycle(config,adapter,queue,api)
+            else:
+                cycle(config,adapter,queue,api)
+                print('Sync cycle completed. Pending queued punches (up to 500): '+str(len(queue.pending())))
     except KeyboardInterrupt: STOP.set()
     except Exception as exc:
         message = str(exc) if isinstance(exc, DeviceError) else type(exc).__name__ + '. Check configuration and logs.'
