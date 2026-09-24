@@ -103,6 +103,8 @@ if($_SERVER['REQUEST_METHOD']==='POST' && str_starts_with((string)($_POST['actio
     $data=suite_data($def,$_POST);
     if($page==='settings'&&!in_array($data['timezone'],DateTimeZone::listIdentifiers(),true))throw new InvalidArgumentException('Use a timezone such as Asia/Kolkata.');
     if($page==='payroll'){
+     require_once __DIR__.'/payroll/config.php';
+     if(pay_ready($pdo)){$newPayroll=$pdo->prepare("SELECT e.id FROM hr_payroll_entries e JOIN hr_payroll_runs r ON r.id=e.run_id WHERE e.employee_id=? AND r.month=? AND r.status IN ('Finalized','Paid') LIMIT 1");$newPayroll->execute([$employee,$data['month']]);if($newPayroll->fetchColumn())throw new InvalidArgumentException('This employee already has finalized payroll for the month. Use its existing payslip.');}
      if(suite_net($data)<0)throw new InvalidArgumentException('Net pay cannot be negative.');
      if(!$old && $status!=='Draft')throw new InvalidArgumentException('Create a payroll draft before approving it.');
      if($old){$previous=json_decode($old['data'],true);if($old['status']==='Published')throw new InvalidArgumentException('Published payslips are locked. Create a separate adjustment next month.');if($status==='Published'&&($old['status']!=='Approved'||$data!==$previous||(int)$old['employee_id']!==$employee))throw new InvalidArgumentException('Approve the unchanged payroll before publishing it.');if($old['status']==='Approved'&&$data!==$previous&&$status!=='Draft')throw new InvalidArgumentException('Return to Draft to change approved payroll.');}

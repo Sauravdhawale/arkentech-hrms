@@ -43,6 +43,8 @@ $adjust[0]['approved_by']=1;$adjust[1]['amount']=400000;$capped=pay_calculate_em
 $settings['proration']='Working Days';$working=pay_calculate_employee($e,$days,$salaries,$settings,[],[],30);pc($working['lop']===100000,'Working day LOP');
 $days[0]['status']='Not started';$partial=pay_calculate_employee($e,$days,$salaries,$settings,[],[],30);pc($partial['gross']===2900000,'Joining-date proration');
 $settings['proration']='Calendar Days';
+$days[0]['status']='Present';$days[0]['note']='';$days[2]['status']='Absent';$days[2]['absent']=1;$days[2]['present']=0;$days[2]['note']='Admin approved absence';
+$manualAbsence=pay_calculate_employee($e,$days,$salaries,$settings,[],[],30);pc(!$manualAbsence['exceptions'],'Ordinary absence note incorrectly blocks payroll');
 $conf=pay_setting_defaults();$conf=array_merge($conf,['module'=>'pay_settings','title'=>'CI payroll rules','effective_from'=>'2025-01-01','active'=>1]);pay_save_config($db,$admin,$conf);
 $db->prepare("INSERT INTO users(name,username,password_hash,role,active) VALUES(?,?,?,'employee',1)")->execute(['Payroll Test','payroll.ci',password_hash('Payroll-CI-2026!',PASSWORD_DEFAULT)]);$employee=(int)$db->lastInsertId();
 $db->prepare("INSERT INTO employees(user_id,first_name,last_name,employee_code,joining_date,employment_status) VALUES(?,?,?,?,?,'Active')")->execute([$employee,'Payroll','Test','PAY-CI-001','2025-01-01']);
@@ -67,6 +69,7 @@ $in=array_merge($in,['effective_from'=>'2025-03-01','salary_amount'=>'40000','pr
 pc($db->query('SELECT snapshot FROM hr_payroll_entries WHERE id='.$locked['id'])->fetchColumn()===$locked['snapshot'],'Historical payslip changed after salary revision');
 pc($db->query('SELECT effective_to FROM hr_salary_assignments WHERE id='.$assignment)->fetchColumn()==='2025-02-28','Salary period overlap');
 $transition('paid');pc(pay_run($db,$run)['status']==='Paid','Payment state');
+$legacy=['month'=>'2025-05'];$db->prepare("INSERT INTO hr_records(module,employee_id,title,status,data,created_by) VALUES('payroll',?,'CI legacy preservation','Published',?,?)")->execute([$employee,pay_json($legacy),$admin['id']]);pd(fn()=>pay_create_run($db,$admin,'2025-05',[$employee]),'Legacy duplicate payroll allowed');
 file_put_contents('/tmp/payroll-fixture.json',pay_json(['employee'=>$employee,'run'=>$run,'entry'=>$locked['id'],'structure'=>$structure]));
 require dirname(__DIR__).'/includes/payroll/pdf.php';$pdf=pay_pdf(['Payslip','Gross 100.00','Net 90.00']);pc(str_starts_with($pdf,'%PDF-1.4')&&str_contains($pdf,'startxref'),'PDF output');
 echo "PASS: Payroll additive migration, components, formulas, balancing, CTC, statutory configuration, LOP, OT approval, variable limits, proration, permissions, concurrency, workflow, finalization locks, salary history, snapshot stability and PDF.\n";

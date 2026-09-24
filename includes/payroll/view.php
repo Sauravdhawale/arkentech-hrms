@@ -5,7 +5,11 @@ function pay_select(string $key,string $label,$value,array $options):void {echo 
 function pay_check(string $key,string $label,array $v):void {echo '<label class="pay-check"><input type="checkbox" name="'.h($key).'" value="1" '.(!empty($v[$key])?'checked':'').'>'.h($label).'</label>';}
 function pay_text(string $key,string $label,array $v,string $type='text',bool $required=false):void {field($key,$label,$v,$type,$required,2000);}
 function pay_options(array $values):array{return array_combine($values,$values);}
-function pay_breakup_table(array $parts):void {echo '<div class="pay-table"><table><thead><tr><th>Component</th><th>Type</th><th>Monthly</th><th>Annual</th></tr></thead><tbody>';foreach($parts as $c)echo '<tr><td>'.h($c['name']??$c['code']).'</td><td>'.h($c['category']).'</td><td class="pay-money">'.pay_amount($c['amount']).'</td><td class="pay-money">'.pay_amount($c['amount']*12).'</td></tr>';echo '</tbody></table></div>';}
+function pay_breakup_table(array $parts,bool $annual=true):void {
+ echo '<div class="pay-table"><table><thead><tr><th>Component</th><th>Type / section</th><th>Calculation</th><th>'.($annual?'Monthly':'Amount').'</th>'.($annual?'<th>Annual</th>':'').'</tr></thead><tbody>';
+ foreach($parts as $c){$method=$c['calculation']??($c['type']??'Calculated');$rule=$method==='Percentage'?($c['value'].'% of '.$c['basis']):($method==='Formula'?($c['formula']??''):($method==='Balance'?'Remaining gross':$method));echo '<tr><td>'.h($c['name']??$c['code']).'</td><td>'.h($c['category'].' / '.($c['section']??'Fixed')).'</td><td>'.h($rule).'</td><td class="pay-money">'.pay_amount($c['amount']).'</td>'.($annual?'<td class="pay-money">'.pay_amount($c['amount']*12).'</td>':'').'</tr>';}
+ echo '</tbody></table></div>';
+}
 if(!pay_ready($pdo)):?>
 <section class="card pay-card"><h2>Enable Payroll</h2><p>Add salary revisions and payroll snapshots to the existing workspace. Existing salaries and published payslips stay available.</p><?php if($user['role']==='super_admin'){pay_form('pay_install');echo '<button class="button primary">Install Payroll upgrade</button></form>';}else echo '<p>Ask your Super Admin to install the Payroll upgrade.</p>';?></section>
 <?php return;endif;
@@ -24,6 +28,8 @@ $q=$pdo->prepare('SELECT r.*,COUNT(e.id) employees,COALESCE(SUM(e.gross),0) gros
 if($page==='payroll_dashboard'){
  $r=$runs[0]??[];$stats=['Employees in payroll'=>$r['employees']??0,'Gross payroll'=>pay_amount((int)($r['gross']??0)),'Deductions'=>pay_amount((int)($r['deductions']??0)),'Net payroll'=>pay_amount((int)($r['net']??0)),'Exceptions'=>$r['exceptions']??0,'Payslips generated'=>$r['published']??0];
  echo '<div class="pay-grid">';foreach($stats as $label=>$value)echo '<section class="card pay-card"><span>'.h($label).'</span><strong class="pay-stat">'.h((string)$value).'</strong></section>';echo '</div>';
+ $q=$pdo->prepare("SELECT e.snapshot,e.net FROM hr_payroll_entries e JOIN hr_payroll_runs r ON r.id=e.run_id WHERE r.month=?");$q->execute([$month]);$distribution=[];foreach($q as $entry){$snapshot=json_decode($entry['snapshot'],true);$department=$snapshot['employee']['department_name']??'Unassigned / not calculated';$distribution[$department]=($distribution[$department]??0)+(int)$entry['net'];}
+ echo '<section class="card pay-card"><h2>Net payroll by department</h2><div class="pay-grid">';foreach($distribution as $department=>$net)echo '<div>'.h($department).'<strong class="pay-stat">'.pay_amount($net).'</strong></div>';if(!$distribution)echo '<p>No payroll calculation yet.</p>';echo '</div></section>';
  $q=$pdo->prepare("SELECT u.name,e.employee_code FROM employees e JOIN users u ON u.id=e.user_id WHERE e.deleted_at IS NULL AND e.employment_status='Active' AND u.active=1 AND NOT EXISTS(SELECT 1 FROM hr_salary_assignments s WHERE s.employee_id=e.user_id AND s.effective_from<=? AND (s.effective_to IS NULL OR s.effective_to>=?)) ORDER BY u.name");$q->execute([$month.'-01',$month.'-01']);
  echo '<details class="card pay-card"><summary>Employees missing salary at month start</summary><ul>';foreach($q as $e)echo '<li>'.h($e['name'].' · '.$e['employee_code']).'</li>';echo '</ul></details>';
 }

@@ -23,6 +23,7 @@ function pay_create_run(PDO $db,array $actor,string $month,array $employeeIds=[]
   $q=$db->prepare('SELECT id FROM hr_payroll_runs WHERE month=?');$q->execute([$month]);if($q->fetchColumn())throw new InvalidArgumentException('A run already exists for this month. Open that run.');
   $db->prepare('INSERT INTO hr_payroll_runs(month,settings_snapshot,created_by) VALUES(?,?,?)')->execute([$month,pay_json($snapshot),$actor['id']]);$id=(int)$db->lastInsertId();
   $q=$db->prepare("SELECT e.user_id FROM employees e JOIN users u ON u.id=e.user_id WHERE e.deleted_at IS NULL AND u.active=1 AND e.employment_status='Active' AND (e.joining_date IS NULL OR e.joining_date<=?)");$q->execute([$to]);$eligible=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));$employeeIds=array_values(array_unique(array_map('intval',$employeeIds)));if(array_diff($employeeIds,$eligible))throw new InvalidArgumentException('Choose eligible active employees.');$selected=$employeeIds?:$eligible;if(!$selected)throw new InvalidArgumentException('No eligible employees.');
+  foreach($selected as $selectedId)pay_legacy_check($db,$selectedId,$month);
   foreach(array_map(fn($id)=>['user_id'=>$id],$selected) as $e)$db->prepare("INSERT INTO hr_payroll_entries(run_id,employee_id,snapshot,exceptions) VALUES(?,?,'{}','Not calculated')")->execute([$id,$e['user_id']]);
   pay_event($db,$actor,'run.created',$id);$db->commit();return $id;
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
@@ -146,7 +147,7 @@ function pay_transition(PDO $db,array $actor,array $in):void {
     if(!$next||$run['status']!==$next[0])throw new InvalidArgumentException('Invalid payroll workflow transition.');
     $q=$db->prepare("SELECT COUNT(*) FROM hr_payroll_entries WHERE run_id=? AND (exceptions<>'' OR status IN ('Draft','On Hold'))");$q->execute([$id]);if($q->fetchColumn())throw new InvalidArgumentException('Resolve all exceptions and holds, then recalculate.');
     $q=$db->prepare('SELECT COUNT(*) FROM hr_payroll_entries WHERE run_id=?');$q->execute([$id]);if(!$q->fetchColumn())throw new InvalidArgumentException('Cannot process an empty run.');
-    if($action==='finalize'){[, $to]=pay_month($run['month']);$closing=(new DateTimeImmutable($to))->modify('+'.(int)$settings['payroll']['closing_day'].' days')->format('Y-m-d');if(date('Y-m-d')<$closing)throw new InvalidArgumentException('Payroll can be finalized from '.$closing.' after the month closes.');}
+    if($action==='finalize'){$existing=$db->prepare('SELECT employee_id FROM hr_payroll_entries WHERE run_id=?');$existing->execute([$id]);foreach($existing as $entry)pay_legacy_check($db,(int)$entry['employee_id'],$run['month']);[, $to]=pay_month($run['month']);$closing=(new DateTimeImmutable($to))->modify('+'.(int)$settings['payroll']['closing_day'].' days')->format('Y-m-d');if(date('Y-m-d')<$closing)throw new InvalidArgumentException('Payroll can be finalized from '.$closing.' after the month closes.');}
     $db->prepare('UPDATE hr_payroll_runs SET status=? WHERE id=?')->execute([$next[1],$id]);$db->prepare('UPDATE hr_payroll_entries SET status=? WHERE run_id=?')->execute([$next[1],$id]);
     if($action==='finalize'){$db->prepare('UPDATE hr_payroll_runs SET finalized_at=NOW() WHERE id=?')->execute([$id]);if(!empty($settings['payroll']['auto_payslip']))pay_publish($db,$run);}
    }
@@ -158,4 +159,15 @@ function pay_publish(PDO $db,array $run):void {
  $settings=json_decode($run['settings_snapshot'],true);$format=$settings['payslip']['number_format'];
  $q=$db->prepare('SELECT id FROM hr_payroll_entries WHERE run_id=? AND published_at IS NULL');$q->execute([$run['id']]);
  foreach($q as $entry){$number=strtr($format,['{YYYY}'=>substr($run['month'],0,4),'{MM}'=>substr($run['month'],5,2),'{ID}'=>(string)$entry['id']]);$db->prepare('UPDATE hr_payroll_entries SET payslip_number=?,published_at=NOW() WHERE id=?')->execute([$number,$entry['id']]);}
+}
+
+function pay_add_employees(PDO $db,array $actor,array $in):void {
+ pay_allow($db,$actor,'payroll.process.manage');$db->beginTransaction();try{chr_lock($db);$run=pay_run($db,(int)$in['run_id'],true);pay_mutable($run);pay_version($run,$in);if(!in_array($run['status'],['Draft','Calculated'],true))throw new InvalidArgumentException('Return to Draft before adding employees.');
+ [, $to]=pay_month($run['month']);$sql="SELECT e.user_id FROM employees e JOIN users u ON u.id=e.user_id WHERE e.deleted_at IS NULL AND u.active=1 AND e.employment_status='Active' AND (e.joining_date IS NULL OR e.joining_date<=?)";$args=[$to];if(!empty($in['employee_id'])){$sql.=' AND e.user_id=?';$args[]=(int)$in['employee_id'];}$q=$db->prepare($sql);$q->execute($args);$ids=$q->fetchAll(PDO::FETCH_COLUMN);$added=0;
+ foreach($ids as $id){$exists=$db->prepare('SELECT id FROM hr_payroll_entries WHERE run_id=? AND employee_id=?');$exists->execute([$run['id'],$id]);if($exists->fetchColumn())continue;pay_legacy_check($db,(int)$id,$run['month']);$db->prepare("INSERT INTO hr_payroll_entries(run_id,employee_id,snapshot,exceptions) VALUES(?,?,'{}','Not calculated')")->execute([$run['id'],$id]);$added++;}
+ if(!$added)throw new InvalidArgumentException('No new eligible employees to add.');$db->prepare("UPDATE hr_payroll_runs SET status='Draft',version=version+1 WHERE id=?")->execute([$run['id']]);pay_event($db,$actor,'employees.added',(int)$run['id'],null,(string)$added.' employees added');$db->commit();
+ }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+}
+function pay_legacy_check(PDO $db,int $employee,string $month):void {
+ $q=$db->prepare("SELECT data FROM hr_records WHERE module='payroll' AND employee_id=? AND status='Published'");$q->execute([$employee]);foreach($q as $row)if((json_decode($row['data'],true)['month']??'')===$month)throw new InvalidArgumentException('An existing published payroll already covers employee #'.$employee.' for '.$month.'. Keep its original payslip; do not pay this month twice.');
 }

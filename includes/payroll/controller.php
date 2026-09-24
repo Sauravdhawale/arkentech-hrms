@@ -26,6 +26,7 @@ function pay_handle_post(PDO $db,array $actor,string $action,array $in):string {
   case 'pay_assign':pay_assign($db,$actor,$in);unset($_SESSION['pay_preview']);return 'Salary revision saved. Earlier salary history retained.';
   case 'pay_create':$id=pay_create_run($db,$actor,(string)($in['month']??''),!empty($in['employee_id'])?[(int)$in['employee_id']]:[]);$_SESSION['pay_redirect']=$id;return 'Draft payroll created.';
   case 'pay_calculate':pay_calculate_run($db,$actor,$in);return 'Payroll calculated. Review exceptions and totals.';
+  case 'pay_add_employees':pay_add_employees($db,$actor,$in);return 'Employees added. Recalculate payroll.';
   case 'pay_adjust':pay_adjust($db,$actor,$in);return 'Adjustment recorded. Recalculate this run.';
   case 'pay_transition':pay_transition($db,$actor,$in);return 'Payroll workflow updated.';
   default:throw new InvalidArgumentException('Unknown payroll action.');
@@ -40,12 +41,15 @@ function pay_report_rows(PDO $db,array $in):array {
  if(!empty($in['department_id']))$rows=array_values(array_filter($rows,fn($r)=>(int)(json_decode($r['snapshot'],true)['employee']['department_id']??$r['department_id'])===(int)$in['department_id']));
  return $rows;
 }
+function pay_csv_cell($value){return is_string($value)&&preg_match('/^[=+@\\-\\t\\r]/',$value)?"'".$value:$value;}
 function pay_export(PDO $db,array $actor,array $in):void {
  pay_allow($db,$actor,'payroll.reports');if(!pay_ready($db))return;
  $rows=pay_report_rows($db,$in);header('Content-Type: text/csv; charset=utf-8');header('Content-Disposition: attachment; filename="payroll-'.($in['month']??date('Y-m')).'.csv"');header('Cache-Control: no-store');
- $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");fputcsv($out,['Month','Employee ID','Employee','Department','Status','Currency','Gross','Deductions','Net','Employer Contributions','LOP','Variable Pay','Approved OT Hours','OT Amount']);
+ $componentColumns=[];foreach($rows as $row){$snapshot=json_decode($row['snapshot'],true);foreach($snapshot['components']??[] as $component){$key=$component['code'];$componentColumns[$key]=$component['category'].' | '.($component['name']??$key);}}
+ $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");fputcsv($out,['Month','Employee ID','Employee','Department','Status','Currency','Gross','Deductions','Net','Employer Contributions','LOP','Variable Pay','Approved OT Hours','OT Amount',...array_map('pay_csv_cell',array_values($componentColumns))]);
  foreach($rows as $r){$s=json_decode($r['snapshot'],true);$e=$s['employee']??[];$currency=json_decode($r['settings_snapshot'],true)['payroll']['currency'];$ot=0;foreach($s['components']??[] as $c)if(($c['type']??'')==='Overtime')$ot+=$c['amount'];
   $row=[$r['month'],$e['employee_code']??$r['employee_code'],$e['name']??$r['name'],$e['department_name']??'',$r['status'],$currency,pay_amount((int)$r['gross']),pay_amount((int)$r['deductions']),pay_amount((int)$r['net']),pay_amount((int)$r['employer_cost']),pay_amount((int)($s['lop']??0)),pay_amount((int)($s['variable']??0)),$s['ot_hours']??0,pay_amount($ot)];
+  $byCode=array_column($s['components']??[],'amount','code');foreach($componentColumns as $code=>$label)$row[]=pay_amount((int)($byCode[$code]??0));
   fputcsv($out,array_map(fn($v)=>is_string($v)&&preg_match('/^[=+@\-\t\r]/',$v)?"'".$v:$v,$row));
  }fclose($out);exit;
 }
