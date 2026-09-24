@@ -1,0 +1,28 @@
+name: Employee SQL import checks
+on:
+  push:
+    branches: [employee-import-download]
+permissions:
+  contents: read
+jobs:
+  database:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        database: ['mysql:8.0', 'mariadb:10.11']
+    services:
+      database:
+        image: ${{ matrix.database }}
+        env:
+          MYSQL_ROOT_PASSWORD: ci-only-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pci-only-password"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test clients
+        run: sudo apt-get update && sudo apt-get install -y mariadb-client php-cli
+      - name: Verify transactional employee SQL import
+        run: python3 tests/employee_sql_import.py
