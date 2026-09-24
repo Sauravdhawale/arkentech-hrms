@@ -15,13 +15,17 @@ namespace Axzkemkeeper {
         public void BeginInit() {}
         public void EndInit() {}
         public bool SetCommPassword(int key) { return key == 0; }
+        private int failure=0;
         public bool Connect_Net(string host, int port) {
             // The frozen EXE normally passes its DLL directory to this child.
-            return GetDllDirectory(0, null) == 0 && IsHandleCreated &&
-                   host == "192.0.2.1" && port == 4370;
+            if (GetDllDirectory(0, null) != 0) { failure=-901; return false; }
+            if (!IsHandleCreated) { failure=-902; return false; }
+            if (host != "192.0.2.1") { failure=-903; return false; }
+            if (port != 4370) { failure=-904; return false; }
+            return true;
         }
         public bool GetSerialNumber(int machine, ref string serial) { serial="TEST"; return true; }
-        public void GetLastError(ref int error) { error=-201; }
+        public void GetLastError(ref int error) { error=failure; }
         public void Disconnect() {}
     }
 }
