@@ -71,14 +71,29 @@ def cycle(config,adapter,queue,api):
     ping=api.call('ping')
     if ping.get('device_serial')!=config['device_serial']: raise ValueError('Token/device serial mismatch')
     commands=ping.get('commands',{})
-    pending=queue.pending()
-    if pending:
+    # Drain up to 10,000 durable records without repeating a full SDK read.
+    for _ in range(20):
+        pending=queue.pending()
+        if not pending: break
         result=api.call('punches',{'device_serial':config['device_serial'],'events':pending})
         count=queue.acknowledge(pending,result)
         logging.info('Acknowledged %d of %d queued punches',count,len(pending))
+        if count < len(pending): break
     api.call('sync-status',{'device_serial':config['device_serial'],'device_online':online,
         'last_device_timestamp':last,'error':error,'ack_commands':commands if online else {}})
     if error: raise RuntimeError(error)
+
+def heartbeat_loop(config, stopped):
+    # Separate HTTP client; this worker never touches SQLite or the device SDK.
+    api=Api(config)
+    while not stopped.is_set() and not STOP.is_set():
+        try:
+            response=api.call('ping')
+            if response.get('device_serial')!=config['device_serial']:
+                raise ValueError('Token/device serial mismatch')
+        except Exception as exc:
+            logging.warning('Heartbeat failed (%s)',type(exc).__name__)
+        stopped.wait(60)
 
 def run(background=False):
     with single_instance(ROOT):
@@ -92,14 +107,21 @@ def run_loop(background=False):
     logging.info('Bridge started (%s)', 'background' if background else 'foreground')
     interval=max(10,int(config.get('sync_interval_seconds',60)))
     delay=interval
-    while not STOP.is_set():
-        try:
-            cycle(config,adapter,queue,api)
-            delay=interval
-        except Exception as exc:
-            logging.error('Sync failed (%s); queue retained; retry in %ds',type(exc).__name__,delay)
-            delay=min(900,max(interval,delay*2))
-        STOP.wait(delay)
+    heartbeat_stop=threading.Event()
+    heartbeat=threading.Thread(target=heartbeat_loop,args=(config,heartbeat_stop),daemon=True)
+    heartbeat.start()
+    try:
+        while not STOP.is_set():
+            try:
+                cycle(config,adapter,queue,api)
+                delay=interval
+            except Exception as exc:
+                logging.error('Sync failed (%s); queue retained; retry in %ds',type(exc).__name__,delay)
+                delay=min(900,max(interval,delay*2))
+            STOP.wait(delay)
+    finally:
+        heartbeat_stop.set()
+        heartbeat.join(timeout=35)
 
 def service():
     config=json.loads((ROOT/'config/config.json').read_text(encoding='utf-8-sig'))

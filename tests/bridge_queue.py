@@ -39,6 +39,55 @@ class QueueTests(unittest.TestCase):
    self.assertEqual(len(q.pending()),1)
    self.assertEqual(q.cursor(),'1')
    q.db.close()
+ def test_backlog_drains_without_repeated_device_read(self):
+  class Adapter:
+   reads=0
+   def connect(self):pass
+   def disconnect(self):pass
+   def getSerialNumber(self):return 'D'
+   def testConnection(self):return True
+   def fetchPunches(self,cursor):
+    self.reads+=1
+    return [],cursor
+  class Server:
+   batches=0
+   def call(self,endpoint,data=None):
+    if endpoint=='ping':return {'device_serial':'D','commands':{}}
+    if endpoint=='punches':
+     self.batches+=1
+     return {'persisted':True,'accepted':[e['event_key'] for e in data['events']]}
+    return {'ok':True}
+  with tempfile.TemporaryDirectory() as d:
+   q=Queue(Path(d)/'q.db')
+   events=[{'biometric_id':'1','punched_at':'2026-01-01 09:00:00','event_key':str(i)} for i in range(1201)]
+   q.enqueue('D',events,'cursor')
+   adapter=Adapter();server=Server()
+   cycle({'device_serial':'D'},adapter,q,server)
+   self.assertEqual(adapter.reads,1)
+   self.assertEqual(server.batches,3)
+   self.assertEqual(q.pending(),[])
+   q.db.close()
+ def test_partial_ack_stops_drain_and_retains_pending(self):
+  class Adapter:
+   def connect(self):pass
+   def disconnect(self):pass
+   def getSerialNumber(self):return 'D'
+   def testConnection(self):return True
+   def fetchPunches(self,cursor):return [],cursor
+  class Server:
+   batches=0
+   def call(self,endpoint,data=None):
+    if endpoint=='ping':return {'device_serial':'D','commands':{}}
+    if endpoint=='punches':
+     self.batches+=1
+     return {'persisted':True,'accepted':[]}
+    return {'ok':True}
+  with tempfile.TemporaryDirectory() as d:
+   q=Queue(Path(d)/'q.db');q.enqueue('D',[{'biometric_id':'1','punched_at':'2026-01-01 09:00:00'}],'1')
+   server=Server();cycle({'device_serial':'D'},Adapter(),q,server)
+   self.assertEqual(server.batches,1)
+   self.assertEqual(len(q.pending()),1)
+   q.db.close()
  def test_sdk_not_faked(self):
   with self.assertRaises(RuntimeError):EsslAdapter().connect()
   with self.assertRaises(ValueError):MockAdapter({'test_mode':False},'.')
