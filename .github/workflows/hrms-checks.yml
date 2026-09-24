@@ -40,3 +40,5 @@ jobs:
           php tests/attendance_upgrade.php
           python3 tests/attendance_http.py
           python3 tests/bridge_queue.py
+
+          php tests/employee_bulk.php

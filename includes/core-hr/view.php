@@ -9,6 +9,9 @@ $historyEmployeeOptions=[];foreach($pdo->query('SELECT e.user_id,u.name,e.employ
 $shiftOptions=[];foreach(chr_rows($pdo,'shifts') as $s)$shiftOptions[$s['id']]=$s['title'].($s['status']!=='Active'?' (inactive)':'');
 $departmentOptions=[];foreach($pdo->query('SELECT id,name FROM departments ORDER BY name') as $d)$departmentOptions[$d['id']]=$d['name'];
 $leaveOptions=[];foreach(chr_rows($pdo,'leave_policy') as $l)$leaveOptions[$l['values']['type']??'']=$l['title'].' · '.($l['values']['type']??'');
-$group=in_array($page,['leaves','leave_history','leave_policy','balances'],true)?['leaves','leave_policy','balances','leave_history']:['attendance','attendance_history','monthly','holidays','roster'];
-if($page!=='shifts'):?><nav class="tabs" aria-label="Core HR sections"><?php foreach($group as $key)if(can($pdo,$user,$pages[$key][1])):?><a href="?page=<?=h($key)?>" <?=$key===$page?'aria-current="page" class="active"':''?>><?=h($pages[$key][0])?></a><?php endif;?></nav><?php endif;
+$leavePages=['leaves','leave_history','leave_policy','balances'];
+$dailyPages=['attendance_dashboard','daily_work_status','punch_log','attendance_exceptions','monthly','attendance','attendance_history','attendance_requests'];
+$group=in_array($page,$leavePages,true)?['leaves','leave_policy','balances','leave_history']:[];
+if($group):?><nav class="tabs" aria-label="Leave sections"><?php foreach($group as $key)if(can($pdo,$user,$pages[$key][1])):?><a href="?page=<?=h($key)?>" <?=$key===$page?'aria-current="page"':''?>><?=h($pages[$key][0])?></a><?php endif;?></nav><?php endif;
+if(in_array($page,$dailyPages,true)):?><nav class="attendance-tools" aria-label="Attendance actions"><?php foreach(['attendance'=>'Record attendance','attendance_requests'=>'Requests','attendance_history'=>'History'] as $key=>$label)if(can($pdo,$user,$pages[$key][1])):?><a class="button small" href="?page=<?=h($key)?>" <?=$page===$key?'aria-current="page"':''?>><?=h($label)?></a><?php endif;?></nav><?php endif;
 if(isset($attPages[$page]))require dirname(__DIR__).'/attendance/view.php';elseif(in_array($page,['shifts','roster','holidays','leave_policy','balances'],true))require __DIR__.'/configuration-view.php';elseif(in_array($page,['attendance','attendance_history','monthly'],true))require __DIR__.'/attendance-view.php';else require __DIR__.'/leave-view.php';

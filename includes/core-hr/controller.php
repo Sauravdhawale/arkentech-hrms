@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__.'/service.php';
-$corePages=['shifts'=>['Shifts','shifts.view'],'roster'=>['Shift assignments','shifts.view'],'holidays'=>['Holidays','holidays.view'],'attendance'=>['Daily attendance','attendance.view'],'attendance_history'=>['Attendance history','attendance.view'],'monthly'=>['Monthly attendance report','attendance.reports'],'leaves'=>['Leave requests','leave.view'],'leave_history'=>['Leave history','leave.view'],'leave_policy'=>['Leave types','leave.view'],'balances'=>['Leave balances','leave.view']];
+$corePages=['shifts'=>['Shifts','shifts.view'],'roster'=>['Shift assignments','shifts.view'],'holidays'=>['Holidays','holidays.view'],'attendance'=>['Daily attendance','attendance.view'],'attendance_history'=>['Attendance history','attendance.view'],'monthly'=>['Monthly Summary','attendance.reports'],'leaves'=>['Leave requests','leave.view'],'leave_history'=>['Leave history','leave.view'],'leave_policy'=>['Leave types','leave.view'],'balances'=>['Leave balances','leave.view']];
 function chr_handle_post(PDO $db,array $user,string $action,array $in,array $files):string {
  if($action==='core_install'){if($user['role']!=='super_admin')throw new InvalidArgumentException('Super Admin access required.');chr_install($db);faudit($db,$user,'core.installed');return 'Core HR is ready. Existing records were preserved.';}
  if(!chr_ready($db))throw new InvalidArgumentException('Install Core HR first.');

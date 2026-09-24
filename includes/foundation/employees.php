@@ -39,3 +39,34 @@ function import_foundation(PDO $pdo,array $actor,array $rows):array {
   }$pdo->commit();return [$created,$skipped];
  }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
+
+function foundation_bulk_employees(PDO $db,array $actor,array $in):string {
+ if(($actor['role']??'')!=='super_admin')throw new InvalidArgumentException('Only Super Admin can perform bulk employee actions.');
+ $raw=$in['employee_ids']??[];
+ if(!is_array($raw)||!$raw||count($raw)>100)throw new InvalidArgumentException('Select between 1 and 100 employees.');
+ $ids=[];foreach($raw as $value){if(!is_scalar($value)||!ctype_digit((string)$value)||(int)$value<1)throw new InvalidArgumentException('Invalid employee selection.');$ids[]=(int)$value;}$ids=array_values(array_unique($ids));sort($ids);
+ $operation=$in['operation']??'';if(!in_array($operation,['delete','assign'],true))throw new InvalidArgumentException('Choose a bulk action.');
+ if(($in['confirmed']??'')!=='1')throw new InvalidArgumentException('Confirm the selected employee changes.');
+ $department=(int)($in['bulk_department']??0);$designation=(int)($in['bulk_designation']??0);$role=(int)($in['bulk_role']??0);
+ if($operation==='assign'&&!$department&&!$designation&&!$role)throw new InvalidArgumentException('Choose a department, designation or role to assign.');
+ $db->beginTransaction();try {
+  $db->query("SELECT id FROM users WHERE role='super_admin' ORDER BY id LIMIT 1 FOR UPDATE")->fetchColumn();
+  $q=$db->prepare('SELECT e.*,u.role FROM employees e JOIN users u ON u.id=e.user_id WHERE e.user_id IN ('.implode(',',array_fill(0,count($ids),'?')).') ORDER BY e.user_id FOR UPDATE');$q->execute($ids);$employees=$q->fetchAll(PDO::FETCH_ASSOC);
+  if(count($employees)!==count($ids))throw new InvalidArgumentException('An employee no longer exists. Refresh the directory.');
+  foreach($employees as $e){$id=(int)$e['user_id'];if($e['deleted_at']||$e['role']==='super_admin'||$id===(int)$actor['id'])throw new InvalidArgumentException('Protected or archived accounts cannot be included.');if((int)($in['versions'][$id]??-1)!==(int)$e['version'])throw new InvalidArgumentException('An employee changed. Refresh the directory and select again.');}
+  if($operation==='assign') {
+   foreach(['departments'=>$department,'designations'=>$designation,'roles'=>$role] as $table=>$id)if($id){$q=$db->prepare("SELECT id FROM $table WHERE id=? AND active=1");$q->execute([$id]);if(!$q->fetchColumn())throw new InvalidArgumentException('Choose active assignments.');}
+   foreach($employees as $e){$dep=$department?:$e['department_id'];$des=$designation?:$e['designation_id'];if($des){$q=$db->prepare('SELECT department_id FROM designations WHERE id=?');$q->execute([$des]);$bound=$q->fetchColumn();if($bound&&((int)$bound!==(int)$dep))throw new InvalidArgumentException('A designation belongs to another department. Choose a compatible designation for this selection.');}}
+  }
+  foreach($employees as $e){$id=(int)$e['user_id'];
+   if($operation==='delete'){$db->prepare('UPDATE employees SET deleted_at=NOW(),version=version+1 WHERE user_id=?')->execute([$id]);$db->prepare('UPDATE users SET active=0,session_version=session_version+1 WHERE id=?')->execute([$id]);}
+   else {
+    if($department&&(int)$e['department_id']!==$department&&function_exists('att_ready')&&att_ready($db))att_record_write($db,$actor,'department_history',['title'=>'Department change'],['date'=>date('Y-m-d'),'before'=>(int)$e['department_id'],'after'=>$department],$id);
+    $sets=['version=version+1'];$args=[];if($department){$sets[]='department_id=?';$args[]=$department;}if($designation){$sets[]='designation_id=?';$args[]=$designation;}$args[]=$id;$db->prepare('UPDATE employees SET '.implode(',',$sets).' WHERE user_id=?')->execute($args);
+    if($role){$db->prepare('INSERT INTO user_roles(user_id,role_id) VALUES(?,?) ON DUPLICATE KEY UPDATE role_id=VALUES(role_id)')->execute([$id,$role]);$db->prepare('UPDATE users SET session_version=session_version+1 WHERE id=?')->execute([$id]);}
+   }
+   faudit($db,$actor,'employee.bulk_'.$operation,$id);
+  }
+  $db->commit();return count($ids).($operation==='delete'?' employees deleted from the directory. Logins disabled; historical records retained.':' employee assignments updated.');
+ }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+}
