@@ -21,10 +21,10 @@ using System.Runtime.InteropServices;
 public static class BridgeNativeSearch {
     [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool SetDllDirectory(string path);
+    public static extern bool SetDllDirectory(IntPtr path);
 }
 '@
-    if (-not [BridgeNativeSearch]::SetDllDirectory($null)) { throw 'DLL search reset failed' }
+    if (-not [BridgeNativeSearch]::SetDllDirectory([IntPtr]::Zero)) { throw 'DLL search reset failed' }
     Add-Type -AssemblyName System.Windows.Forms
     [void][Reflection.Assembly]::LoadFrom((Join-Path $folder 'Interop.zkemkeeper.DLL'))
     [void][Reflection.Assembly]::LoadFrom((Join-Path $folder 'AxInterop.zkemkeeper.DLL'))
