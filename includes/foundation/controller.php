@@ -5,7 +5,7 @@ $pages=['overview'=>['Dashboard','dashboard.view'],'employees'=>['All employees'
 require_once dirname(__DIR__).'/core-hr/controller.php';$pages=array_merge($pages,$corePages);
 if(!isset($pages[$page])){http_response_code(404);exit('Page not found.');}
 if($pages[$page][1])need($pdo,$user,$pages[$page][1]);
-if(in_array($page,['devices','mapping','sync','raw_logs'],true)&&!att_biometric_enabled($pdo)){http_response_code(403);exit('Biometric attendance is disabled. Manual attendance remains available.');}
+if(in_array($page,['devices','mapping','punch_log','sync','raw_logs'],true)&&!att_biometric_enabled($pdo)){http_response_code(403);exit('Biometric attendance is disabled. Manual attendance remains available.');}
 if($page==='employee-view'&&($_GET['tab']??'')==='documents')need($pdo,$user,'documents.view');
 $error='';$notice=$_SESSION['foundation_notice']??'';unset($_SESSION['foundation_notice']);
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];

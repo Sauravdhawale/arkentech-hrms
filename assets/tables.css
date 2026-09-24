@@ -19,3 +19,5 @@ main form.card.form-grid>label{flex:1 1 150px;min-width:130px}main form.card.for
 @media(max-width:600px){.app-table-scroll{max-height:60vh}.bulk-toolbar .toolbar{align-items:stretch}}
 
 .attendance-dialog{max-height:90vh;overflow:auto}.attendance-dialog .app-table-scroll{max-height:55vh!important}.settings-content{min-width:0}
+
+.biometric-navigation>summary::before{content:'▸';font-size:12px}.biometric-navigation[open]>summary::before{content:'▾'}.biometric-navigation>summary{font-weight:600}.biometric-navigation>div{margin-left:8px}.punch-detail{display:block;white-space:normal;max-width:260px}

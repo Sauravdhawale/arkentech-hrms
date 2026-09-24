@@ -30,7 +30,14 @@ function att_import_rows(PDO $db,array $rows):array {
 }
 function att_import_preview(PDO $db,array $actor,array $file):void {
  if(!can($db,$actor,'attendance.import')||!can($db,$actor,'attendance.manage'))throw new InvalidArgumentException('Attendance import and editing permissions are required.');
- if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||($file['size']??0)>2097152||!is_uploaded_file($file['tmp_name']??''))throw new InvalidArgumentException('Upload a CSV file up to 2 MB.');
+ if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK||($file['size']??0)>2097152||!is_uploaded_file($file['tmp_name']??''))throw new InvalidArgumentException('Upload a CSV or XLSX file up to 2 MB.');
+ $extension=strtolower(pathinfo($file['name']??'',PATHINFO_EXTENSION));
+ if($extension==='xlsx'){
+  require_once __DIR__.'/xlsx.php';$rows=att_xlsx_rows($file['tmp_name']);
+  $_SESSION['attendance_import']=['actor'=>$actor['id'],'expires'=>time()+1800,'nonce'=>bin2hex(random_bytes(32)),'rows'=>$rows,'preview'=>att_import_rows($db,$rows)];
+  return;
+ }
+ if($extension!=='csv')throw new InvalidArgumentException('Choose a CSV or XLSX file.');
  $handle=fopen($file['tmp_name'],'r');try{$header=fgetcsv($handle,0,',','"','');if(!$header)throw new InvalidArgumentException('Empty CSV file.');$header=array_map(fn($v)=>strtolower(trim(ltrim($v,"\xEF\xBB\xBF"))),$header);if(count($header)!==count(array_unique($header))||array_diff(['employee_id','date','check_in','check_out'],$header))throw new InvalidArgumentException('Required CSV columns: employee_id,date,check_in,check_out.');$rows=[];while(($row=fgetcsv($handle,0,',','"',''))!==false){if($row===[null])continue;if(count($rows)>=1000)throw new InvalidArgumentException('Maximum 1,000 rows per import.');if(count($row)!==count($header))throw new InvalidArgumentException('CSV column count differs on line '.(count($rows)+2));$rows[]=array_combine($header,$row);}if(!$rows)throw new InvalidArgumentException('No attendance rows found.');
  $_SESSION['attendance_import']=['actor'=>$actor['id'],'expires'=>time()+1800,'nonce'=>bin2hex(random_bytes(32)),'rows'=>$rows,'preview'=>att_import_rows($db,$rows)];
  }finally{fclose($handle);}
