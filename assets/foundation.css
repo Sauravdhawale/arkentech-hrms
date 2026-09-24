@@ -16,9 +16,13 @@
 
 .company-calendar{display:grid;grid-template-columns:repeat(7,minmax(100px,1fr));gap:6px;overflow:auto}.calendar-day{min-height:100px;border:1px solid #dce3d5;border-radius:8px;padding:8px}.calendar-day.today{background:#efffd0}.calendar-day small{display:block;font-size:10px}.calendar-day p{font-size:12px}
 
-/* Attendance tables retain page width, with both scrollbars inside the panel. */
-.attendance-table-scroll{max-height:480px;max-height:min(55vh,480px);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;border:1px solid var(--line);border-radius:8px}
-.attendance-table-scroll:focus-visible{outline:2px solid var(--text);outline-offset:2px}
-.attendance-table-scroll table.directory{border-collapse:separate;border-spacing:0;margin:0;width:100%}
-.attendance-table-scroll table.directory thead th{position:sticky;top:0;z-index:2;background:var(--bg);box-shadow:0 1px 0 var(--line)}
-.attendance-table-scroll table.directory th,.attendance-table-scroll table.directory td{padding:11px 14px}
+/* Fixed table viewport: headers stay in place while rows scroll inside. */
+:is(.attendance-table-scroll,.directory-table-scroll){width:100%;height:clamp(240px,55vh,440px);max-width:100%;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;border:1px solid var(--line);border-radius:8px;scrollbar-color:#a6afa1 var(--bg)}
+:is(.attendance-table-scroll,.directory-table-scroll):focus-visible{outline:2px solid var(--text);outline-offset:2px}
+:is(.attendance-table-scroll,.directory-table-scroll) table.directory{border-collapse:separate;border-spacing:0;margin:0;width:100%;min-width:900px}
+:is(.attendance-table-scroll,.directory-table-scroll) table.directory thead th{position:sticky;top:0;z-index:2;background:var(--bg);box-shadow:0 1px 0 var(--line);font-size:11px;letter-spacing:.3px;text-transform:none;font-weight:700;white-space:nowrap}
+:is(.attendance-table-scroll,.directory-table-scroll) table.directory th,:is(.attendance-table-scroll,.directory-table-scroll) table.directory td{padding:10px 13px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+:is(.attendance-table-scroll,.directory-table-scroll) table.directory tr>:last-child{border-right:0}
+:is(.attendance-table-scroll,.directory-table-scroll) table.directory tbody tr:hover{background:var(--bg)}
+.directory-table-scroll .avatar{width:34px;height:34px;font-size:13px}
+.directory-table-scroll .hint{margin:4px 0 0}
