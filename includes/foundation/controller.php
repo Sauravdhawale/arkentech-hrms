@@ -2,7 +2,7 @@
 require_once __DIR__.'/core.php';require_once __DIR__.'/employees.php';require_once __DIR__.'/migrate.php';
 $pdo=db();$installed=foundation_ready($pdo);$page=(string)($_GET['page']??'overview');if($page==='system')$page='account';
 $pages=['overview'=>['Dashboard','dashboard.view'],'employees'=>['All employees','employees.view'],'employee-add'=>['Add employee','employees.create'],'employee-edit'=>['Edit employee','employees.edit'],'employee-view'=>['Employee profile','employees.view'],'settings'=>['Company settings','settings.view'],'departments'=>['Departments','departments.view'],'designations'=>['Designations','designations.view'],'roles'=>['Roles & permissions','roles.view'],'account'=>['My account',null]];
-require_once dirname(__DIR__).'/core-hr/controller.php';$pages=array_merge($pages,$corePages);
+require_once dirname(__DIR__).'/core-hr/controller.php';$pages=array_merge($pages,$corePages);require_once dirname(__DIR__).'/payroll/controller.php';$pages=array_merge($pages,$payPages);
 if(!isset($pages[$page])){http_response_code(404);exit('Page not found.');}
 if($pages[$page][1])need($pdo,$user,$pages[$page][1]);
 if(in_array($page,['devices','mapping','punch_log','sync','raw_logs'],true)&&!att_biometric_enabled($pdo)){http_response_code(403);exit('Biometric attendance is disabled. Manual attendance remains available.');}
@@ -11,11 +11,13 @@ $error='';$notice=$_SESSION['foundation_notice']??'';unset($_SESSION['foundation
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
 if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
 if(isset($_GET['export'])&&in_array($page,['attendance','attendance_history','monthly'],true))chr_export($pdo,$user,$page);
+if(isset($_GET['export'])&&$page==='payroll_reports')pay_export($pdo,$user,$_GET);
 $docTypes=['Aadhaar Card','PAN Card','Resume','Offer Letter','Appointment Letter','Education Documents','Experience Letter','Relieving Letter','Passport','Other Documents'];
 if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();$action=(string)($_POST['action']??'');
  try{
-  if(str_starts_with($action,'att_')){$notice=att_handle_post($pdo,$user,$action,$_POST,$_FILES);
+  if(str_starts_with($action,'pay_')){$notice=pay_handle_post($pdo,$user,$action,$_POST);
+  }elseif(str_starts_with($action,'att_')){$notice=att_handle_post($pdo,$user,$action,$_POST,$_FILES);
   }elseif(str_starts_with($action,'core_')){$notice=chr_handle_post($pdo,$user,$action,$_POST,$_FILES);
   }elseif($action==='install_foundation'){
    if($user['role']!=='super_admin')throw new InvalidArgumentException('Super Admin access required.');foundation_migrate($pdo);faudit($pdo,$user,'foundation.installed');$notice='Phase 1 database installed. Existing records were preserved.';
@@ -78,7 +80,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $pdo->prepare('UPDATE users SET password_hash=?,must_change_password=0,session_version=session_version+1 WHERE id=?')->execute([password_hash($new,PASSWORD_DEFAULT),$user['id']]);faudit($pdo,$user,'password.changed',(int)$user['id']);$pdo->commit();$_SESSION['user']['session_version']=(int)$row['session_version']+1;$_SESSION['user']['must_change_password']=0;session_regenerate_id(true);$_SESSION['csrf']=bin2hex(random_bytes(32));$notice='Password changed. Other sessions have been signed out.';
    }else throw new InvalidArgumentException('Unknown action.');
   }
-  $_SESSION['foundation_notice']=$notice;$redirect='?page='.urlencode($page);if(isset($_GET['id']))$redirect.='&id='.(int)$_GET['id'];if(in_array($_GET['tab']??'',['overview','employment','documents'],true))$redirect.='&tab='.$_GET['tab'];header('Location: '.$redirect);exit;
+  $_SESSION['foundation_notice']=$notice;$redirect='?page='.urlencode($page);if(isset($payPages[$page])){if(isset($_SESSION['pay_redirect'])){$redirect='?page=payroll_processing&run='.(int)$_SESSION['pay_redirect'];unset($_SESSION['pay_redirect']);}elseif(isset($_GET['run']))$redirect.='&run='.(int)$_GET['run'];elseif(isset($_GET['employee_id']))$redirect.='&employee_id='.(int)$_GET['employee_id'];}if(isset($_GET['id']))$redirect.='&id='.(int)$_GET['id'];if(in_array($_GET['tab']??'',['overview','employment','documents'],true))$redirect.='&tab='.$_GET['tab'];header('Location: '.$redirect);exit;
  }catch(InvalidArgumentException $e){if($pdo->inTransaction())$pdo->rollBack();$error=$e->getMessage();}
  catch(PDOException $e){if($pdo->inTransaction())$pdo->rollBack();$code=(int)($e->errorInfo[1]??0);$error=$code===1062?'That name, code, username or email already exists.':($code===1451?'This record is assigned to an employee or another record. Reassign it or deactivate it instead.':'Database operation failed. Please check the migration and server log.');error_log('sHRMS foundation database code '.$code);}
  catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();$error='The operation could not be completed. Check the server log and try again.';error_log('sHRMS foundation operation failed: '.get_class($e));}
