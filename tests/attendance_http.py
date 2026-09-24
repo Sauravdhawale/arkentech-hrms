@@ -6,7 +6,11 @@ log=open('/tmp/peopleflow-core-http.log','w')
 server=subprocess.Popen(['php','-S','127.0.0.1:8089','-t','.'],stdout=log,stderr=log)
 def client():return urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 def get(c,path):
- with c.open(base+path) as r:return r.geturl(),r.read().decode()
+ try:
+  with c.open(base+path) as r:return r.geturl(),r.read().decode()
+ except urllib.error.HTTPError as e:
+  print('HTTP error',path,e.code)
+  raise
 def post(c,path,v):
  with c.open(base+path,urllib.parse.urlencode(v,doseq=True).encode()) as r:return r.geturl(),r.read().decode()
 def token(h):return re.search(r'name="csrf" value="([^"]+)"',h).group(1)
