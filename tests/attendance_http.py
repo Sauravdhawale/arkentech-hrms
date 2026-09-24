@@ -55,8 +55,10 @@ try:
  finally:biometric(True)
  _,h=get(a,'super-admin.php?page=punch_log')
  sidebar=h.split('<aside',1)[1].split('</aside>',1)[0]
- assert 'biometric-navigation' in sidebar and 'Employee Mapping' in sidebar and 'Sync Logs' in sidebar
- assert sidebar.index('Monthly Summary')<sidebar.index('Biometric Device')<sidebar.index('Check-In / Check-Out Log')
+ assert 'biometric-navigation' not in sidebar and 'Employee Mapping' not in sidebar and 'Sync Logs' not in sidebar
+ assert 'Employee Mapping' in h and 'Check-In / Check-Out Log' in h and 'Sync Logs' in h
+ assert sidebar.index('Monthly Summary')<sidebar.index('Biometric Device')
+ assert 'Check-In / Check-Out Log' not in sidebar
  print('PASS: attendance upgrade pages, manual import controls and calendar rendering.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()

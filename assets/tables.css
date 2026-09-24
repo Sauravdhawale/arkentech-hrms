@@ -20,4 +20,25 @@ main form.card.form-grid>label{flex:1 1 150px;min-width:130px}main form.card.for
 
 .attendance-dialog{max-height:90vh;overflow:auto}.attendance-dialog .app-table-scroll{max-height:55vh!important}.settings-content{min-width:0}
 
-.biometric-navigation>summary::before{content:'▸';font-size:12px}.biometric-navigation[open]>summary::before{content:'▾'}.biometric-navigation>summary{font-weight:600}.biometric-navigation>div{margin-left:8px}.punch-detail{display:block;white-space:normal;max-width:260px}
+.punch-detail{display:block;white-space:normal;max-width:260px}
+
+/* Biometric device overview: scoped to the device cards. */
+.biometric-card{padding:0;overflow:hidden}
+.biometric-card-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:24px 26px 20px}
+.biometric-kicker{font-size:10px;letter-spacing:1.2px;font-weight:700;color:var(--muted);margin:0 0 8px}
+.biometric-card-heading h2{font-size:21px;letter-spacing:-.4px}
+.biometric-meta{color:var(--muted);font-size:12px;margin:8px 0 0;overflow-wrap:anywhere}
+.biometric-health{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 26px 22px}
+.biometric-health>div{border:1px solid var(--line);border-radius:10px;padding:17px;background:var(--bg)}
+.biometric-label,.biometric-health small{display:block;color:var(--muted);font-size:12px}
+.biometric-state{display:flex;align-items:center;gap:8px;font-size:15px;margin:9px 0}
+.biometric-state::before{content:'';width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#ac7918}
+.biometric-state.is-connected::before{background:#32965b}
+.biometric-times{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:0;padding:0 26px 24px}
+.biometric-times dt{font-size:12px;color:var(--muted);margin-bottom:7px}.biometric-times dd{font-size:13px;font-weight:500;margin:0}
+.biometric-card>.alert{margin:0 26px 22px}
+.biometric-actions{border-top:1px solid var(--line);padding:18px 26px;background:var(--bg)}
+.biometric-primary-actions,.biometric-actions form{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0}
+.biometric-token-actions{margin-top:16px}.biometric-token-actions>summary{color:var(--muted);font-size:12px;font-weight:500}
+.biometric-token-actions[open]>summary{margin-bottom:8px}.biometric-token-actions .hint{margin:8px 0 12px}
+@media(max-width:600px){.biometric-card-heading{padding:20px}.biometric-health{grid-template-columns:1fr;padding:0 20px 20px;gap:10px}.biometric-times{grid-template-columns:1fr;padding:0 20px 20px;gap:16px}.biometric-actions{padding:16px 20px}.biometric-card>.alert{margin:0 20px 20px}.biometric-card-heading h2{font-size:19px}}

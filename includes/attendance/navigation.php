@@ -9,8 +9,5 @@ if($visible||$biometricVisible):?>
 <details class="attendance-navigation" <?=isset($attendanceLinks[$page])||$page==='attendance_history'||$biometricOpen?'open':''?>>
 <summary>◷ <span>Attendance</span></summary><div>
 <?php foreach($visible as $key=>$label)fnav($key,$label);if($biometricVisible):?>
-<details class="attendance-navigation biometric-navigation" <?=$biometricOpen?'open':''?>>
-<summary><span>Biometric Device</span></summary><div>
-<?php foreach($biometricVisible as $key=>$label)fnav($key,$label);?>
-</div></details><?php endif;?></div></details><?php endif;
+<a href="?page=<?=h(array_key_first($biometricVisible))?>" <?=$biometricOpen?'class="selected" aria-current="page"':''?>>Biometric Device</a><?php endif;?></div></details><?php endif;
 foreach(['leaves','leave_history','leave_policy','balances'] as $key)if(can($pdo,$user,$pages[$key][1])){echo '<a href="?page='.h($key).'" '.(in_array($page,['leaves','leave_history','leave_policy','balances'],true)?'class="selected"':'').'><span>▦</span>Leave</a>';break;}
