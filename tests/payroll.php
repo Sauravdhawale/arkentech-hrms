@@ -6,7 +6,7 @@ set_error_handler(function($severity,$message,$file,$line){throw new ErrorExcept
 function pc($ok,string $why):void{if(!$ok)throw new RuntimeException($why);}
 function pd(callable $fn,string $why):void{try{$fn();}catch(InvalidArgumentException $e){return;}throw new RuntimeException($why);}
 $db=db();$admin=['id'=>1,'role'=>'super_admin'];$viewer=['id'=>3,'role'=>'employee'];
-$tables=['users','employees','hr_attendance','hr_records','hr_requests','hr_punches'];$before=[];foreach($tables as $t)$before[$t]=$db->query('SELECT * FROM '.$t)->fetchAll(PDO::FETCH_ASSOC);
+$tables=['users','employees','hr_attendance','hr_records','hr_requests','hr_leave_details','hr_leave_days','hr_files','hr_punches'];$before=[];foreach($tables as $t)$before[$t]=$db->query('SELECT * FROM '.$t)->fetchAll(PDO::FETCH_ASSOC);
 pay_install($db,$admin);pay_install($db,$admin);
 foreach($tables as $t)pc($before[$t]===$db->query('SELECT * FROM '.$t)->fetchAll(PDO::FETCH_ASSOC),'Migration changed existing '.$t);
 pd(fn()=>pay_install($db,$viewer),'Migration permission bypass');
@@ -53,7 +53,7 @@ $preview=pay_assignment_preview($db,$in);$in['preview_hash']=hash('sha256',pay_j
 pd(fn()=>pay_assign($db,$admin,$in),'Duplicate salary revision');pd(fn()=>pay_assign($db,$viewer,$in),'Salary permission bypass');
 $shift=chr_save_config($db,$admin,'shifts',['title'=>'Payroll CI Shift','code'=>'PAY-CI','start'=>'09:00','end'=>'17:00','required_hours'=>8,'half_day_hours'=>4,'grace'=>0,'early_grace'=>0,'break_minutes'=>0,'overtime_rule'=>'After both','week_off'=>[7],'active'=>1]);
 chr_save_config($db,$admin,'roster',['title'=>'Payroll CI roster','employee_id'=>$employee,'shift_id'=>$shift,'from'=>'2025-01-01','active'=>1]);
-$run=pay_create_run($db,$admin,'2025-02',[$employee]);pd(fn()=>pay_create_run($db,$admin,'2025-02',[$employee]),'Duplicate month');
+$run=pay_create_run($db,$admin,'2025-02',[$employee]);pd(fn()=>pay_add_employees($db,$admin,['run_id'=>$run,'version'=>1,'employee_id'=>$employee]),'Duplicate run membership accepted');pd(fn()=>pay_create_run($db,$admin,'2025-02',[$employee]),'Duplicate month');
 pd(fn()=>pay_create_run($db,$viewer,'2025-03',[$employee]),'Process permission bypass');
 $ri=['run_id'=>$run,'version'=>1];pay_calculate_run($db,$admin,$ri);pd(fn()=>pay_calculate_run($db,$admin,$ri),'Stale run write');
 $entry=$db->query('SELECT * FROM hr_payroll_entries WHERE run_id='.$run)->fetch(PDO::FETCH_ASSOC);pc($entry['exceptions']==='','Existing attendance integration exceptions: '.$entry['exceptions']);
@@ -69,6 +69,13 @@ $in=array_merge($in,['effective_from'=>'2025-03-01','salary_amount'=>'40000','pr
 pc($db->query('SELECT snapshot FROM hr_payroll_entries WHERE id='.$locked['id'])->fetchColumn()===$locked['snapshot'],'Historical payslip changed after salary revision');
 pc($db->query('SELECT effective_to FROM hr_salary_assignments WHERE id='.$assignment)->fetchColumn()==='2025-02-28','Salary period overlap');
 $transition('paid');pc(pay_run($db,$run)['status']==='Paid','Payment state');
+$oldRunSnapshot=pay_run($db,$run)['settings_snapshot'];$settingRow=chr_rows($db,'pay_settings')[0];$optional=array_merge($conf,['previous_id'=>$settingRow['id'],'effective_from'=>'2025-03-01','approval_required'=>false]);pay_save_config($db,$admin,$optional);
+foreach(['2025-06'=>false,'2025-07'=>true] as $month=>$approve){
+ $optionalRun=pay_create_run($db,$admin,$month,[$employee]);pay_calculate_run($db,$admin,['run_id'=>$optionalRun,'version'=>1]);
+ foreach(array_merge(['review'],$approve?['approve']:[],['finalize']) as $action){$state=pay_run($db,$optionalRun);pay_transition($db,$admin,['run_id'=>$optionalRun,'version'=>$state['version'],'transition'=>$action,'reason'=>'CI optional approval','confirm'=>1]);}
+ pc(pay_run($db,$optionalRun)['status']==='Finalized','Optional approval finalization');
+}
+pc(pay_run($db,$run)['settings_snapshot']===$oldRunSnapshot,'Historical settings snapshot changed');
 $legacy=['month'=>'2025-05'];$db->prepare("INSERT INTO hr_records(module,employee_id,title,status,data,created_by) VALUES('payroll',?,'CI legacy preservation','Published',?,?)")->execute([$employee,pay_json($legacy),$admin['id']]);pd(fn()=>pay_create_run($db,$admin,'2025-05',[$employee]),'Legacy duplicate payroll allowed');
 file_put_contents('/tmp/payroll-fixture.json',pay_json(['employee'=>$employee,'run'=>$run,'entry'=>$locked['id'],'structure'=>$structure]));
 require dirname(__DIR__).'/includes/payroll/pdf.php';$pdf=pay_pdf(['Payslip','Gross 100.00','Net 90.00']);pc(str_starts_with($pdf,'%PDF-1.4')&&str_contains($pdf,'startxref'),'PDF output');

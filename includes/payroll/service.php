@@ -143,7 +143,7 @@ function pay_transition(PDO $db,array $actor,array $in):void {
    }elseif($action==='draft'){$db->prepare("UPDATE hr_payroll_runs SET status='Draft' WHERE id=?")->execute([$id]);}
    else{
     $next=['review'=>['Calculated','Reviewed'],'approve'=>['Reviewed','Approved'],'finalize'=>['Approved','Finalized']][$action]??null;
-    $settings=json_decode($run['settings_snapshot'],true);if($action==='finalize'&&empty($settings['payroll']['approval_required']))$next=['Reviewed','Finalized'];
+    $settings=json_decode($run['settings_snapshot'],true);if($action==='finalize'&&empty($settings['payroll']['approval_required'])&&$run['status']==='Reviewed')$next=['Reviewed','Finalized'];
     if(!$next||$run['status']!==$next[0])throw new InvalidArgumentException('Invalid payroll workflow transition.');
     $q=$db->prepare("SELECT COUNT(*) FROM hr_payroll_entries WHERE run_id=? AND (exceptions<>'' OR status IN ('Draft','On Hold'))");$q->execute([$id]);if($q->fetchColumn())throw new InvalidArgumentException('Resolve all exceptions and holds, then recalculate.');
     $q=$db->prepare('SELECT COUNT(*) FROM hr_payroll_entries WHERE run_id=?');$q->execute([$id]);if(!$q->fetchColumn())throw new InvalidArgumentException('Cannot process an empty run.');

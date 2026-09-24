@@ -1,7 +1,7 @@
 <?php
 $module=$configModules[$page];$records=chr_rows($pdo,$module);$editing=null;foreach($records as $record)if((int)$record['id']===(int)($_GET['revision']??0)){$editing=$record;break;}
 $v=$editing?$editing['values']:[];$v['title']=$editing['title']??$pages[$page][0];$v['active']=$editing?$editing['status']==='Active':true;
-if(!$editing){$v['effective_from']=date('Y-m-01');if($module==='pay_settings')$v+=pay_setting_defaults();if($module==='pay_payslip')$v+=pay_slip_defaults();if($module==='pay_component')$v+=['category'=>'Earning','calculation'=>'Fixed','section'=>'Fixed','basis'=>'GROSS','value'=>'0','visible'=>true,'include_gross'=>true,'include_ctc'=>true];}
+if(!$editing){$v['effective_from']=date('Y-m-01');if($module==='pay_settings')$v+=pay_setting_defaults();if($module==='pay_payslip')$v+=pay_slip_defaults();if($module==='pay_structure')$v+=['variable_cap'=>'0'];if($module==='pay_statutory')$v+=['employee_value'=>'0','employer_value'=>'0','basis'=>'GROSS','method'=>'Percentage'];if($module==='pay_component')$v+=['category'=>'Earning','calculation'=>'Fixed','section'=>'Fixed','basis'=>'GROSS','value'=>'0','visible'=>true,'include_gross'=>true,'include_ctc'=>true];}
 else{$v['effective_from']=date('Y-m-d');$v['effective_to']='';}
 ?>
 <p class="pay-muted">Changes create dated revisions. Existing salary assignments and finalized payroll retain their snapshots. To change a saved code, open its latest revision below.</p>

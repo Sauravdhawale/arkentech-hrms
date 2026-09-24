@@ -11,7 +11,7 @@ $error='';$notice=$_SESSION['foundation_notice']??'';unset($_SESSION['foundation
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
 if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
 if(isset($_GET['export'])&&in_array($page,['attendance','attendance_history','monthly'],true))chr_export($pdo,$user,$page);
-if(isset($_GET['export'])&&$page==='payroll_reports')pay_export($pdo,$user,$_GET);
+if(isset($_GET['export'])&&$page==='payroll_reports'){try{pay_export($pdo,$user,$_GET);}catch(InvalidArgumentException $e){http_response_code(400);exit(h($e->getMessage()));}}
 $docTypes=['Aadhaar Card','PAN Card','Resume','Offer Letter','Appointment Letter','Education Documents','Experience Letter','Relieving Letter','Passport','Other Documents'];
 if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();$action=(string)($_POST['action']??'');

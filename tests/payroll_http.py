@@ -24,11 +24,16 @@ try:
   assert all(x not in h for x in ['Fatal error','Warning:','Parse error']),page
   assert 'Payroll' in h,page
  _,h=get(a,'super-admin.php?page=payroll_processing&run='+str(f['run']));assert 'Paid' in h and 'Payroll Test' in h
+ _,h=get(a,'super-admin.php?page=employee_salary&assignment=1');assert 'Open salary detail' in h and 'Print salary breakup' in h
+ _,h=get(a,'super-admin.php?page=employee_salary');_,h=post(a,'super-admin.php?page=employee_salary',{'csrf':token(h),'action':'pay_preview','employee_id':f['employee'],'structure_id':f['structure'],'salary_basis':'Monthly Gross','salary_amount':'45000','effective_from':'2025-04-01','employee_ot_rate':'','reason':'HTTP preview test'})
+ assert 'Salary preview' in h and '45000.00' in h and 'Fatal error' not in h and 'Warning:' not in h
  _,h=get(a,'payroll-slip.php?entry='+str(f['entry']));assert 'Payroll Test' in h and 'Net pay' in h
  with a.open(base+'payroll-slip.php?entry='+str(f['entry'])+'&download=pdf') as r:
   assert r.headers['Content-Type'].startswith('application/pdf') and r.read().startswith(b'%PDF-1.4')
  with a.open(base+'super-admin.php?page=payroll_reports&month=2025-02&export=csv') as r:
   assert 'text/csv' in r.headers['Content-Type'];assert 'PAY-CI-001' in r.read().decode()
+ owner=login('payroll.ci','Payroll-CI-2026!')
+ _,own=get(owner,'payroll-slip.php?entry='+str(f['entry']));assert 'Payroll Test' in own and 'Net pay' in own
  viewer=login('test.two','User@123')
  for page in pages:
   try:get(viewer,'super-admin.php?page='+page);raise AssertionError('Unauthorized payroll page '+page)

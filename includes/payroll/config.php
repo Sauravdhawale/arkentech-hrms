@@ -72,7 +72,7 @@ function pay_assignment_preview(PDO $db,array $in):array {
  $s['values']['statutory']=array_map(fn($r)=>$r['values']+['record_id'=>$r['id'],'record_version'=>$r['version']],array_values(pay_current($db,'pay_statutory',$from)));
  $manual=(array)($in['manual']??[]);$basis=pay_enum($in,'salary_basis',['Monthly Gross','Annual CTC'],'Monthly Gross');$amount=pay_money($in['salary_amount']??'0');if(!$amount)throw new InvalidArgumentException('Salary must be greater than zero.');
  $breakup=$basis==='Monthly Gross'?pay_breakup($s['values'],$amount,$manual):pay_from_ctc($s['values'],$amount,$manual);
- return ['employee'=>array_intersect_key($employee,array_flip(['user_id','name','employee_code','department_name','designation_name','joining_date'])),'structure_id'=>(int)$s['id'],'structure_name'=>$s['title'],'structure_version'=>(int)$s['version'],'effective_from'=>$from,'effective_to'=>$to,'structure'=>$s['values'],'breakup'=>$breakup,'manual'=>$manual,'ot_rate'=>pay_money($in['employee_ot_rate']??'0'),'bank_last4'=>ftext($in,'bank_last4',4),'pan_last4'=>ftext($in,'pan_last4',4)];
+ return ['employee'=>array_intersect_key($employee,array_flip(['user_id','name','employee_code','department_name','designation_name','joining_date'])),'structure_id'=>(int)$s['id'],'structure_name'=>$s['title'],'structure_version'=>(int)$s['version'],'effective_from'=>$from,'effective_to'=>$to,'structure'=>$s['values'],'breakup'=>$breakup,'manual'=>$manual,'ot_rate'=>pay_money(($in['employee_ot_rate']??'')?:'0'),'bank_last4'=>ftext($in,'bank_last4',4),'pan_last4'=>ftext($in,'pan_last4',4)];
 }
 function pay_assign(PDO $db,array $actor,array $in):int {
  pay_allow($db,$actor,'payroll.salary.manage');$reason=ftext($in,'reason',1000,true);
