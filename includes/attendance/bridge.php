@@ -39,7 +39,31 @@ function att_bridge_batch(PDO $db,array $device,array $events):array {
  $db->prepare('INSERT INTO hr_punches(device_code,biometric_id,event_key,punched_at,direction) VALUES(?,?,?,?,?)')->execute([$device['values']['device_code'],$e['biometric_id'],$e['event_key'],$e['punched_at'],$e['direction']]);$id=(int)$db->lastInsertId();$db->prepare('INSERT INTO hr_punch_processing(punch_id,device_id,raw_payload,fingerprint) VALUES(?,?,?,?)')->execute([$id,$device['id'],json_encode($e),$fingerprint]);try{att_process_punch($db,$device,$id,$e);}catch(InvalidArgumentException $err){$db->prepare("UPDATE hr_punch_processing SET status='Review needed',error_message=? WHERE punch_id=?")->execute([substr($err->getMessage(),0,500),$id]);}$accepted[]=$e['event_key'];}
  $db->prepare("INSERT INTO hr_bridge_sync(device_id,started_at,completed_at,received,imported,duplicates,status) VALUES(?,NOW(),NOW(),?,?,?,'Saved')")->execute([$device['id'],count($events),count($accepted),count($duplicates)]);$db->prepare('INSERT INTO hr_bridge_health(device_id,last_seen,last_success) VALUES(?,NOW(),NOW()) ON DUPLICATE KEY UPDATE last_seen=NOW(),last_success=NOW()')->execute([$device['id']]);$db->commit();return ['accepted'=>$accepted,'duplicates'=>$duplicates,'persisted'=>true];}catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
+/** Retry a bounded, device-scoped batch on every authenticated bridge heartbeat. */
+function att_retry_device_punches(PDO $db,array $device):int {
+ att_require_biometric($db);
+ $db->beginTransaction();
+ try {
+  chr_lock($db);
+  $current=att_device($db,(int)$device['id']);
+  if($current['status']!=='Enabled')throw new UnexpectedValueException('Device disabled');
+  if(isset($device['token_id'])){
+   $q=$db->prepare('SELECT id FROM hr_bridge_tokens WHERE id=? AND device_id=? AND active=1 AND (expires_at IS NULL OR expires_at>NOW())');
+   $q->execute([$device['token_id'],$device['id']]);
+   if(!$q->fetchColumn())throw new UnexpectedValueException('Device/token disabled');
+  }
+  // Oldest attempt first: unresolved mappings must not starve later records.
+  $q=$db->prepare("SELECT p.* FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id WHERE x.device_id=? AND x.status IN ('Needs mapping','Review needed','Inactive employee','Pending') ORDER BY x.processed_at,p.punched_at,p.id LIMIT 100 FOR UPDATE");
+  $q->execute([$device['id']]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);
+  foreach($rows as $r){
+   try{att_process_punch($db,$device,(int)$r['id'],$r);}
+   catch(InvalidArgumentException $e){$db->prepare("UPDATE hr_punch_processing SET status='Review needed',error_message=?,processed_at=NOW() WHERE punch_id=?")->execute([substr($e->getMessage(),0,500),$r['id']]);}
+  }
+  $db->commit();return count($rows);
+ }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+}
 function att_retry_punches(PDO $db,array $actor,array $in):int {
- att_require_biometric($db);if(!can($db,$actor,'biometric.sync'))throw new InvalidArgumentException('Biometric sync is not permitted.');$device=att_device($db,(int)($in['device_id']??0));$device['actor_id']=$actor['id'];
- $db->beginTransaction();try{chr_lock($db);$q=$db->prepare("SELECT p.*,x.status processing_status FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id WHERE x.device_id=? AND x.status IN ('Needs mapping','Review needed','Inactive employee','Pending') ORDER BY p.punched_at,p.id LIMIT 100 FOR UPDATE");$q->execute([$device['id']]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);foreach($rows as $r){try{att_process_punch($db,$device,(int)$r['id'],$r);}catch(InvalidArgumentException $e){$db->prepare("UPDATE hr_punch_processing SET status='Review needed',error_message=? WHERE punch_id=?")->execute([substr($e->getMessage(),0,500),$r['id']]);}}faudit($db,$actor,'biometric.raw.retry',(int)$device['id']);$db->commit();return count($rows);}catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+ att_require_biometric($db);if(!can($db,$actor,'biometric.sync'))throw new InvalidArgumentException('Biometric sync is not permitted.');
+ $device=att_device($db,(int)($in['device_id']??0));$device['actor_id']=$actor['id'];
+ $count=att_retry_device_punches($db,$device);faudit($db,$actor,'biometric.raw.retry',(int)$device['id']);return $count;
 }

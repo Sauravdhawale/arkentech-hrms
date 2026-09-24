@@ -15,3 +15,10 @@
 .attendance-hour-chart{display:flex;align-items:flex-end;gap:8px;overflow-x:auto;min-height:170px}.attendance-hour-chart>div{min-width:24px;flex:1;text-align:center}.attendance-hour-chart span{display:block;background:#adea32;border-radius:5px 5px 0 0}.attendance-hour-chart small{display:block}.card progress{width:100%;accent-color:#9dda22}
 
 .company-calendar{display:grid;grid-template-columns:repeat(7,minmax(100px,1fr));gap:6px;overflow:auto}.calendar-day{min-height:100px;border:1px solid #dce3d5;border-radius:8px;padding:8px}.calendar-day.today{background:#efffd0}.calendar-day small{display:block;font-size:10px}.calendar-day p{font-size:12px}
+
+/* Attendance tables retain page width, with both scrollbars inside the panel. */
+.attendance-table-scroll{max-height:480px;max-height:min(55vh,480px);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;border:1px solid var(--line);border-radius:8px}
+.attendance-table-scroll:focus-visible{outline:2px solid var(--text);outline-offset:2px}
+.attendance-table-scroll table.directory{border-collapse:separate;border-spacing:0;margin:0;width:100%}
+.attendance-table-scroll table.directory thead th{position:sticky;top:0;z-index:2;background:var(--bg);box-shadow:0 1px 0 var(--line)}
+.attendance-table-scroll table.directory th,.attendance-table-scroll table.directory td{padding:11px 14px}
