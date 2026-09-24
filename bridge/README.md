@@ -65,7 +65,7 @@ This is a Task Scheduler task for the signed-in office account, not a session-ze
    ```
 5. Close PowerShell. Check HRMS **Biometric Devices** for a recent heartbeat and **Raw Punch Logs** for a known new test punch. Local log: `C:\sHRMSBridge\logs\bridge.log`.
 
-The task runs the windowless EXE directly; no console or connection window should appear. The SDK control still creates its window handle with an invisible, non-activating form. Foreground diagnostics retain the original visible form. One bridge operation at a time is allowed per installation folder; stop background sync before running `once` or device tests.
+The task runs the windowless EXE directly; no console or connection window should appear. The SDK control still creates its window handle with an invisible, off-screen form. Foreground diagnostics retain the original visible form. One bridge operation at a time is allowed per installation folder; stop background sync before running `once` or device tests.
 
 Windows must remain **signed in and awake**. Locking the screen does not sign out. Sleep, hibernation, shutdown or logout interrupt syncing; the task starts again at the next login. On AC power, use Windows power settings to prevent sleep when continuous sync is required. Changing the lid action is optional; ensure ventilation. Do not select “Run whether user is logged on or not” or SYSTEM for this ActiveX task. No Windows password is saved. Use a Windows account with write access to the existing bridge folder.
 

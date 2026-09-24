@@ -28,16 +28,7 @@ public static class BridgeNativeSearch {
     Add-Type -AssemblyName System.Windows.Forms
     [void][Reflection.Assembly]::LoadFrom((Join-Path $folder 'Interop.zkemkeeper.DLL'))
     [void][Reflection.Assembly]::LoadFrom((Join-Path $folder 'AxInterop.zkemkeeper.DLL'))
-    if ($request.background_ui -eq $true) {
-        Add-Type -ReferencedAssemblies System.Windows.Forms,System.Drawing -TypeDefinition @'
-public class BridgeQuietForm : System.Windows.Forms.Form {
-    protected override bool ShowWithoutActivation { get { return true; } }
-}
-'@
-        $form = New-Object BridgeQuietForm
-    } else {
-        $form = New-Object System.Windows.Forms.Form
-    }
+    $form = New-Object System.Windows.Forms.Form
     $form.Text = 'sHRMS device connection'
     if ($request.background_ui -eq $true) {
         # Retain the real window/control initialization needed by the SDK.
