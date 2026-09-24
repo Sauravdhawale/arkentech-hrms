@@ -9,6 +9,7 @@ import threading
 import urllib.request
 from urllib.parse import urlparse
 from adapters import EsslAdapter, MockAdapter
+from essl_sdk import DeviceError
 from storage import Queue
 
 ROOT=Path(sys.executable).parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parents[1]
@@ -39,7 +40,7 @@ def load():
     config=json.loads((ROOT/'config/config.json').read_text(encoding='utf-8'))
     kind=config.get('adapter','essl')
     if kind not in ('essl','mock'): raise ValueError('Unsupported adapter')
-    adapter=MockAdapter(config,ROOT) if kind=='mock' else EsslAdapter()
+    adapter=MockAdapter(config,ROOT) if kind=='mock' else EsslAdapter(config, ROOT)
     queue=Queue(ROOT/'data/queue.sqlite3')
     queue.bind(config['device_serial'],kind)
     return config,adapter,queue,Api(config)
@@ -130,5 +131,6 @@ if __name__=='__main__':
             else: cycle(config,adapter,queue,api)
     except KeyboardInterrupt: STOP.set()
     except Exception as exc:
-        print('Bridge failed: '+type(exc).__name__+'. Check configuration and logs. eSSL requires the model-specific SDK.',file=sys.stderr)
+        message = str(exc) if isinstance(exc, DeviceError) else type(exc).__name__ + '. Check configuration and logs.'
+        print('Bridge failed: ' + message, file=sys.stderr)
         sys.exit(1)

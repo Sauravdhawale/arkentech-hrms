@@ -17,14 +17,7 @@ class DeviceAdapter(ABC):
     @abstractmethod
     def getSerialNumber(self): pass
 
-class EsslAdapter(DeviceAdapter):
-    def connect(self):
-        raise RuntimeError('ESSL_SDK_REQUIRED: install and integrate the vendor SDK for your exact model')
-    def disconnect(self): pass
-    def testConnection(self): return self.connect()
-    def fetchUsers(self): return self.connect()
-    def fetchPunches(self, cursor): return self.connect()
-    def getSerialNumber(self): return self.connect()
+from essl_sdk import EsslAdapter
 
 class MockAdapter(DeviceAdapter):
     def __init__(self, config, root):

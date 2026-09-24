@@ -2,7 +2,7 @@ name: Attendance packages
 on:
   workflow_dispatch:
   push:
-    branches: [main, codex/attendance-bridge-upgrade]
+    branches: [main, codex/attendance-bridge-upgrade, codex/essl-sdk-integration]
 permissions:
   contents: read
 jobs:
@@ -14,7 +14,9 @@ jobs:
         with:
           python-version: '3.12'
       - name: Test durable queue
-        run: python tests/bridge_queue.py
+        run: |
+          python tests/bridge_queue.py
+          python tests/bridge_sdk.py
       - name: Build Windows executable
         shell: pwsh
         run: ./bridge/scripts/build.ps1
