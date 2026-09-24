@@ -1,0 +1,4 @@
+PEOPLEFLOW DEPLOYMENT TEST
+Test ID: ARKENTECH-DEPLOY-CHECK-001
+If this file is visible in your employeeportal directory, this GitHub update reached that directory.
+This is a plain text test file. It does not change the database or application settings.
