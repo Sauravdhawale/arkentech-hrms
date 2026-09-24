@@ -18,7 +18,12 @@ namespace Axzkemkeeper {
         private int failure=0;
         public bool Connect_Net(string host, int port) {
             // The frozen EXE normally passes its DLL directory to this child.
-            if (GetDllDirectory(0, null) != 0) { failure=-901; return false; }
+            var directory = new StringBuilder(32768);
+            uint length = GetDllDirectory((uint)directory.Capacity, directory);
+            if (length != 0 || directory.Length != 0) {
+                System.IO.File.WriteAllText(System.IO.Path.Combine(Environment.CurrentDirectory,"fixture-dll-state.txt"), "Length="+length+" Directory="+directory.ToString());
+                failure=-901; return false;
+            }
             if (!IsHandleCreated) { failure=-902; return false; }
             if (host != "192.0.2.1") { failure=-903; return false; }
             if (port != 4370) { failure=-904; return false; }
@@ -37,7 +42,11 @@ namespace Axzkemkeeper {
     $config = @{adapter='essl';sdk_transport='activex';sdk_directory=$fixture;device_host='192.0.2.1';device_port=4370;device_serial='TEST';api_token=('0'*64);server_url='https://invalid.example'}
     $config | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $fixture 'config/config.json')
     & (Join-Path $fixture 'sHRMSBridge.exe') test-device
-    if ($LASTEXITCODE -ne 0) { throw 'Frozen ActiveX helper regression failed' }
+    if ($LASTEXITCODE -ne 0) {
+        $state = Join-Path $fixture 'fixture-dll-state.txt'
+        if (Test-Path $state) { Get-Content $state }
+        throw 'Frozen ActiveX helper regression failed'
+    }
 } finally {
     Remove-Item -LiteralPath $fixture -Recurse -Force
 }
