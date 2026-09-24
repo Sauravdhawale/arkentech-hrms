@@ -18,6 +18,18 @@ ERRORS = {
     'limit': 'Device record limit reached. No partial batch was queued.',
 }
 
+def helper_environment():
+    """Exclude frozen-app PATH entries; leave user and system paths intact."""
+    env = os.environ.copy()
+    bundle = getattr(sys, '_MEIPASS', None)
+    if bundle:
+        base = os.path.normcase(os.path.normpath(str(bundle)))
+        def bundled(entry):
+            path = os.path.normcase(os.path.normpath(entry.strip('"')))
+            return path == base or path.startswith(base + os.sep)
+        env['PATH'] = os.pathsep.join(p for p in env.get('PATH', '').split(os.pathsep) if not bundled(p))
+    return env
+
 class Ref:
     def __init__(self, value): self.value = value
 
@@ -59,7 +71,8 @@ class ActiveXTransport:
             proc = subprocess.run([str(powershell), '-NoLogo', '-NoProfile', '-NonInteractive',
                                    '-STA', '-Command', script],
                                   input=json.dumps(request) + '\n', capture_output=True,
-                                  encoding='utf-8', errors='replace', timeout=300,
+                                  encoding='utf-8', errors='replace', timeout=300, cwd=str(folder),
+                                  env=helper_environment(),
                                   creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
         except subprocess.TimeoutExpired:
             raise DeviceError('SDK operation timed out. No partial batch was queued; existing queued punches are retained.') from None
@@ -72,7 +85,11 @@ class ActiveXTransport:
         except (ValueError, TypeError):
             raise DeviceError('ActiveX SDK host failed to return a complete response. No partial batch was queued.') from None
         if result.get('ok') is not True:
-            raise DeviceError(ERRORS.get(result.get('error'), 'ActiveX SDK operation failed. No partial batch was queued.'))
+            message = ERRORS.get(result.get('error'), 'ActiveX SDK operation failed. No partial batch was queued.')
+            code = result.get('sdk_error')
+            if type(code) is int:
+                message += ' SDK error: ' + str(code)
+            raise DeviceError(message)
         if result.get('serial') != request['device_serial']:
             raise DeviceError(ERRORS['serial'])
         rows = result.get('rows')

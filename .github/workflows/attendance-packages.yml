@@ -28,6 +28,9 @@ jobs:
       - name: Build Windows executable
         shell: pwsh
         run: ./bridge/scripts/build.ps1
+      - name: Test packaged ActiveX process with synthetic control
+        shell: powershell
+        run: ./tests/bridge_frozen_activex.ps1
       - name: Verify executable and package
         shell: pwsh
         run: |

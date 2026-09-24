@@ -6,19 +6,30 @@ $form = $null
 $zk = $null
 $result = $null
 $failure = 'sdk_initialization'
+[int]$sdkError = 0
 try {
     $request = [Console]::ReadLine() | ConvertFrom-Json
     if ($request.action -notin @('test','read')) { throw 'Unsupported action' }
     $folder = [string]$request.sdk_directory
     Set-Location -LiteralPath $folder
     [Environment]::CurrentDirectory = $folder
+    # PyInstaller's SetDllDirectory state is inherited by this child process.
+    # Reset only this helper's DLL search path before loading the vendor SDK.
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class BridgeNativeSearch {
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool SetDllDirectory(string path);
+}
+'@
+    if (-not [BridgeNativeSearch]::SetDllDirectory($null)) { throw 'DLL search reset failed' }
     Add-Type -AssemblyName System.Windows.Forms
     [void][Reflection.Assembly]::LoadFrom((Join-Path $folder 'Interop.zkemkeeper.DLL'))
     [void][Reflection.Assembly]::LoadFrom((Join-Path $folder 'AxInterop.zkemkeeper.DLL'))
     $form = New-Object System.Windows.Forms.Form
-    $form.ShowInTaskbar = $false
-    $form.StartPosition = 'Manual'
-    $form.Location = New-Object System.Drawing.Point(-32000,-32000)
+    $form.Text = 'sHRMS device connection'
     $zk = New-Object Axzkemkeeper.AxCZKEM
     $zk.BeginInit()
     $form.Controls.Add($zk)
@@ -27,7 +38,10 @@ try {
     [System.Windows.Forms.Application]::DoEvents()
     $failure = 'connection'
     $null = $zk.SetCommPassword([int]$request.device_password)
-    if (-not $zk.Connect_Net([string]$request.device_host,[int]$request.device_port)) { throw 'Connection failed' }
+    if (-not $zk.Connect_Net([string]$request.device_host,[int]$request.device_port)) {
+        $null = $zk.GetLastError([ref]$sdkError)
+        throw 'Connection failed'
+    }
     $failure = 'serial'
     [string]$serial = ''
     if (-not $zk.GetSerialNumber([int]$request.machine_number,[ref]$serial)) { throw 'Serial unavailable' }
@@ -67,7 +81,7 @@ try {
     $result = @{ok=$true; serial=$serial; rows=$rows.ToArray()}
 } catch {
     # Never emit raw SDK exceptions, request values or a partial attendance batch.
-    $result = @{ok=$false; error=$failure}
+    $result = @{ok=$false; error=$failure; sdk_error=$sdkError}
 } finally {
     if ($null -ne $zk) { try { $zk.Disconnect() } catch {} }
     if ($null -ne $form) { $form.Dispose() }

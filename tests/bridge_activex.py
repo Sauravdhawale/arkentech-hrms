@@ -6,7 +6,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'bridge/src'))
-from essl_activex import ActiveXTransport, EsslActiveXAdapter
+from essl_activex import ActiveXTransport, EsslActiveXAdapter, helper_environment
+import os
 from essl_sdk import DeviceError
 
 CONFIG = dict(device_host='192.0.2.1', device_serial='TEST', api_token='SECRET_NOT_FOR_HELPER')
@@ -36,6 +37,17 @@ class Tests(unittest.TestCase):
             with self.assertRaises(DeviceError) as raised:
                 self.invoke(self.response(data))
             self.assertNotIn('SECRET',str(raised.exception))
+
+    def test_sdk_code_is_visible_without_raw_exception(self):
+        with self.assertRaisesRegex(DeviceError, 'SDK error: -201'):
+            self.invoke(self.response(dict(ok=False,error='connection',sdk_error=-201)))
+
+    def test_child_path_sanitization_preserves_parent(self):
+        bundle=str(Path('bundle').resolve())
+        original=os.pathsep.join([bundle,str(Path(bundle)/'pywin32_system32'),'system-tools'])
+        with patch.object(sys,'_MEIPASS',bundle,create=True),patch.dict(os.environ,{'PATH':original}):
+            self.assertEqual(helper_environment()['PATH'],'system-tools')
+            self.assertEqual(os.environ['PATH'],original)
 
     def test_timeout(self):
         with patch('essl_activex.sys.platform','win32'),patch.object(Path,'is_file',return_value=True),patch('essl_activex.subprocess.run',side_effect=subprocess.TimeoutExpired('test',300)):

@@ -14,7 +14,7 @@ The package includes a Windows executable built from the source in this folder.
 ## ActiveX update and hardware verification
 The office X2008 connected successfully using a Windows Forms ActiveX control in PowerShell. This release uses that initialization approach with a fresh STA helper process per operation. The installed vendor application is not launched. The helper receives device connection settings only, never the HRMS token, and checks the physical serial before reading attendance.
 
-Windows PowerShell 5.1 and the installed SDK wrappers are required. The helper is embedded in the EXE. It does not change the PowerShell execution policy, SDK registration or installed files. Machine connection has been demonstrated in the diagnostic test; attendance reads in this packaged build still require an office test.
+Windows PowerShell 5.1 and the installed SDK wrappers are required. The helper is embedded in the EXE. It resets its inherited DLL search override and starts in the vendor installation directory. A small connection window may briefly appear, matching the tested initialization sequence. Connection failures include the numeric SDK error. It does not change the PowerShell execution policy, SDK registration or installed files. Machine connection has been demonstrated in the diagnostic test; attendance reads in this packaged build still require an office test.
 
 ActiveX mode currently supports foreground `run` on a logged-in desktop. Windows Service mode is explicitly blocked until session-zero operation is verified. Do not run install/start service scripts for ActiveX mode. Existing installations requiring direct COM may select `"sdk_transport": "com"`; that retains the original adapter.
 
