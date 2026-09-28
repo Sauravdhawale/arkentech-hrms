@@ -1,1 +1,12 @@
 (()=>{'use strict';const clock=document.querySelector('[data-ess-clock]');if(clock){const started=performance.now(),epoch=Number(clock.dataset.time);const tick=()=>{clock.textContent=new Intl.DateTimeFormat('en-GB',{timeZone:clock.dataset.zone,hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date(epoch+performance.now()-started));};tick();setInterval(tick,1000);}document.querySelector('[data-ess-theme]')?.addEventListener('click',()=>document.getElementById('theme')?.click());document.addEventListener('click',event=>{document.querySelectorAll('.ess-bell[open]').forEach(el=>{if(!el.contains(event.target))el.open=false;});});document.addEventListener('keydown',event=>{if(event.key==='Escape')document.querySelectorAll('.ess-bell[open]').forEach(el=>el.open=false);});})();
+(()=>{'use strict';
+const theme=document.querySelector('[data-ess-theme]');
+const labelTheme=()=>{if(theme){const label=document.body.classList.contains('dark')?'Switch to light mode':'Switch to dark mode';theme.setAttribute('aria-label',label);theme.title=label;}};
+labelTheme();new MutationObserver(labelTheme).observe(document.body,{attributes:true,attributeFilter:['class']});
+document.querySelectorAll('[data-dialog-open]').forEach(button=>button.addEventListener('click',()=>{const dialog=document.getElementById(button.dataset.dialogOpen);if(dialog&&!dialog.open)dialog.showModal();}));
+document.querySelectorAll('[data-dialog-close]').forEach(button=>button.addEventListener('click',()=>button.closest('dialog').close()));
+document.querySelectorAll('dialog[data-open-on-load]').forEach(dialog=>dialog.showModal());
+document.querySelectorAll('.ess-dropdown').forEach(menu=>menu.addEventListener('toggle',()=>{if(menu.open)document.querySelectorAll('.ess-dropdown').forEach(other=>{if(other!==menu)other.open=false;});}));
+document.addEventListener('click',event=>document.querySelectorAll('.ess-dropdown[open]').forEach(menu=>{if(!menu.contains(event.target))menu.open=false;}));
+document.addEventListener('keydown',event=>{if(event.key==='Escape')document.querySelectorAll('.ess-dropdown[open]').forEach(menu=>menu.open=false);});
+})();

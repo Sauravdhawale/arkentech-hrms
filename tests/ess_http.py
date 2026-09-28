@@ -20,6 +20,21 @@ try:
  for page in ['roles','departments','designations','approvals','devices']:
   try:get(c,'employee.php?page='+page);raise AssertionError('Unscoped route '+page)
   except urllib.error.HTTPError as e:assert e.code==403
+
+ h=get(c,'employee.php?page=overview')
+ sidebar=h.split('<nav class="grouped-nav">',1)[1].split('</nav>',1)[0]
+ assert '?page=profile' not in sidebar and '?page=security' not in sidebar
+ assert '?page=attendance_sheet' not in sidebar and '?page=balances' not in sidebar
+ assert 'Profile & account' in h and 'data-ess-theme' in h and 'data-dialog-open="correction-dialog"' in h
+ h=get(c,'employee.php?page=attendance&month=2030-02')
+ assert 'February 2030' in h and 'Late arrivals' in h and 'Early departures' in h and 'id="correction-dialog"' in h
+ h=post(c,'employee.php?page=regularisation',{'csrf':token(h),'action':'request','category':'Missed punch','subject':'ESS popup correction','details':'Please check the missing punch','start_date':'2030-02-06','end_date':'2030-02-06'})
+ h=get(c,'employee.php?page=attendance&month=2030-02')
+ assert 'ESS popup correction' in h and 'Pending' in h
+ h=get(c,'employee.php?page=leaves&year=2030')
+ assert 'Leave balance · 2030' in h and 'ESS isolated request' in h and 'Approved' in h and 'id="leave-dialog"' in h
+ h=post(c,'employee.php?page=leaves',{'csrf':token(h),'action':'request','category':'INVALID','subject':'Retain my input','details':'Validation example','start_date':'2030-02-08','end_date':'2030-02-08'})
+ assert 'data-open-on-load' in h and 'Retain my input' in h
  h=get(c,'employee.php?page=profile');assert 'ESS-APPLICANT' in h and 'ESS-LEAD' not in h
  try:post(c,'employee.php?page=profile',{'csrf':'bad','action':'ess_profile','version':'1'});raise AssertionError('ESS CSRF bypass')
  except urllib.error.HTTPError as e:assert e.code==403

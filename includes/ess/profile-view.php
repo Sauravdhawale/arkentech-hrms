@@ -10,8 +10,7 @@ $initials=strtoupper(substr($employee['first_name']??'',0,1).substr($employee['l
 <nav class="ess-tabs" aria-label="My profile sections"><a href="?page=profile" aria-current="page">Overview</a><a href="?page=my_shift">My shift</a><a href="?page=documents">Documents</a><a href="?page=my_salary">Salary</a><a href="?page=reviews">Appraisals</a></nav>
 <div class="profile-grid">
 <section class="panel"><h2>Employment details</h2><dl class="ess-details"><?php foreach(['employee_code'=>'Employee ID','department_name'=>'Department','designation_name'=>'Designation','employment_type'=>'Employment type','joining_date'=>'Joining date'] as $key=>$label):?><div><dt><?=h($label)?></dt><dd><?=h($employee[$key]?:'Not entered')?></dd></div><?php endforeach;?></dl><p class="ess-hint">Employment details are managed by HR.</p></section>
-<section class="panel"><span class="ess-card-icon" aria-hidden="true">₹</span><h2>Salary & payslips</h2><p>View your salary details and download published payslips.</p><a class="ess-text-link" href="?page=my_salary">View my salary →</a><a class="ess-text-link" href="?page=payroll">Open payslips →</a></section>
-<section class="panel"><span class="ess-card-icon" aria-hidden="true">▤</span><h2>My documents</h2><p>Keep your personal documents together and review their verification status.</p><a class="ess-text-link" href="?page=documents">View my documents →</a></section>
+<?php require __DIR__.'/personal-cards.php';?>
 </div>
 <section class="panel profile-editor"><div class="ess-section-heading"><div><h2>Personal & emergency contact</h2><p>Keep your contact details up to date.</p></div><span class="badge">Personal information</span></div>
 <form method="post" enctype="multipart/form-data" class="work-form ess-profile-form"><?php token();?><input type="hidden" name="action" value="ess_profile"><input type="hidden" name="version" value="<?=(int)$employee['version']?>">
