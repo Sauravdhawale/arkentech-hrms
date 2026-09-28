@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/workflow.php';
+require_once dirname(__DIR__).'/attendance/manual.php';
 function ess_own_rows(PDO $db,int $owner,string $module):array {$q=$db->prepare('SELECT * FROM hr_records WHERE employee_id=? AND module=? ORDER BY id DESC LIMIT 500');$q->execute([$owner,$module]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);foreach($rows as &$r)$r['values']=json_decode($r['data'],true)?:[];return $rows;}
 function ess_hours($minutes):string{return sprintf('%02dh %02dm',intdiv((int)$minutes,60),(int)$minutes%60);}
 function ess_events(PDO $db,array $employee):array {$out=[];foreach(chr_rows($db,'company_events') as $r){$v=$r['values'];if($r['status']!=='Active')continue;$allowed=($v['audience']??'')==='Everyone'||(($v['audience']??'')==='Department'&&(int)$v['department_id']===(int)$employee['department_id'])||(($v['audience']??'')==='Selected Employees'&&in_array((int)$employee['user_id'],array_map('intval',$v['employee_ids']??[]),true));if($allowed)$out[]=['title'=>$r['title'],'start'=>$v['start'],'end'=>$v['end'],'description'=>$v['description']??''];}foreach(chr_rows($db,'holidays') as $r)if($r['status']==='Published')$out[]=['title'=>$r['title'],'start'=>$r['values']['date'],'end'=>$r['values']['date'],'description'=>'Holiday'];usort($out,fn($a,$b)=>strcmp($a['start'],$b['start']));return $out;}
@@ -26,7 +27,7 @@ function ess_web_punch(PDO $db,array $actor,array $in):void {
  $db->beginTransaction();try{chr_lock($db);$q=$db->prepare('SELECT id FROM hr_manual_punch_events WHERE request_key=?');$q->execute([$key]);if($q->fetchColumn())throw new InvalidArgumentException('This punch was already saved.');
  $q=$db->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND check_out IS NULL ORDER BY attendance_date DESC LIMIT 1 FOR UPDATE');$q->execute([$owner]);$open=$q->fetch(PDO::FETCH_ASSOC);
  if($action==='Check In'&&$open)throw new InvalidArgumentException('An open check-in already exists. Check out or request a correction.');if($action==='Check Out'&&(!$open||strtotime($at)-strtotime($open['check_in'])>36*3600))throw new InvalidArgumentException('No current open check-in. Request an attendance correction.');
- $day=$open['attendance_date']??date('Y-m-d');$note='Employee self-service '.$action;
+ $day=$open['attendance_date']??date('Y-m-d');if($action==='Check In'){$q=$db->prepare('SELECT id FROM hr_attendance WHERE employee_id=? AND attendance_date=?');$q->execute([$owner,$day]);if($q->fetchColumn())throw new InvalidArgumentException('Attendance already exists today. Request a correction.');}$note='Employee self-service '.$action;
  chr_save_attendance($db,$actor,['employee_id'=>$owner,'id'=>$open['id']??0,'version'=>$open['version']??0,'attendance_date'=>$day,'check_in'=>$open['check_in']??$at,'check_out'=>$action==='Check Out'?$at:null,'source'=>'Employee Web','notes'=>$note],true);
  $db->prepare('INSERT INTO hr_manual_punch_events(employee_id,attendance_date,action,punched_at,source,actor_id,notes,request_key) VALUES(?,?,?,?,?,?,?,?)')->execute([$owner,$day,$action,$at,'Employee Web',$owner,$note,$key]);$db->commit();
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}

@@ -21,6 +21,12 @@ try:
   try:get(c,'employee.php?page='+page);raise AssertionError('Unscoped route '+page)
   except urllib.error.HTTPError as e:assert e.code==403
  h=get(c,'employee.php?page=profile');assert 'ESS-APPLICANT' in h and 'ESS-LEAD' not in h
+ try:post(c,'employee.php?page=profile',{'csrf':'bad','action':'ess_profile','version':'1'});raise AssertionError('ESS CSRF bypass')
+ except urllib.error.HTTPError as e:assert e.code==403
  print('PASS: employee portal pages, private profile and forbidden routes.')
+except Exception:
+ log.flush()
+ print(open('/tmp/ess-http.log').read())
+ raise
 finally:
  server.terminate();server.wait();log.close()
