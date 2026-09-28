@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__.'/core.php';require_once __DIR__.'/organization.php';require_once __DIR__.'/employees.php';require_once __DIR__.'/migrate.php';
 $pdo=db();$installed=foundation_ready($pdo);$page=(string)($_GET['page']??'overview');if($page==='system')$page='account';
-$pages=['overview'=>['Dashboard','dashboard.view'],'employees'=>['All employees','employees.view'],'employee-add'=>['Add employee','employees.create'],'employee-edit'=>['Edit employee','employees.edit'],'employee-view'=>['Employee profile','employees.view'],'settings'=>['Company settings','settings.view'],'departments'=>['Departments','departments.view'],'designations'=>['Designations','designations.view'],'roles'=>['Roles & permissions','roles.view'],'account'=>['My account',null]];
+$pages=['leave_routes'=>['Leave Approval Routes','settings.edit'],'overview'=>['Dashboard','dashboard.view'],'employees'=>['All employees','employees.view'],'employee-add'=>['Add employee','employees.create'],'employee-edit'=>['Edit employee','employees.edit'],'employee-view'=>['Employee profile','employees.view'],'settings'=>['Company settings','settings.view'],'departments'=>['Departments','departments.view'],'designations'=>['Designations','designations.view'],'roles'=>['Roles & permissions','roles.view'],'account'=>['My account',null]];
 require_once dirname(__DIR__).'/core-hr/controller.php';$pages=array_merge($pages,$corePages);require_once dirname(__DIR__).'/payroll/controller.php';$pages=array_merge($pages,$payPages);
 if(!isset($pages[$page])){http_response_code(404);exit('Page not found.');}
 if($pages[$page][1])need($pdo,$user,$pages[$page][1]);
@@ -16,7 +16,8 @@ $docTypes=['Aadhaar Card','PAN Card','Resume','Offer Letter','Appointment Letter
 if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();$action=(string)($_POST['action']??'');
  try{
-  if($action==='organization_preview'){
+  if($action==='ess_route'){ess_save_route($pdo,$user,$_POST);$notice='Approval route saved for future applications.';
+  }elseif($action==='organization_preview'){
    org_authorize($pdo,$user);$_SESSION['organization_preview']=['actor'=>(int)$user['id'],'plan'=>org_plan(org_snapshot($pdo))];$notice='Organization preview ready. No records have changed.';
   }elseif($action==='organization_apply'){
    $preview=$_SESSION['organization_preview']??null;if(!$preview||$preview['actor']!==(int)$user['id']||!hash_equals($preview['plan']['fingerprint'],(string)($_POST['fingerprint']??'')))throw new InvalidArgumentException('Preview this organization update first.');

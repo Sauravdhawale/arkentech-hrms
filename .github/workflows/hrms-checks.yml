@@ -48,3 +48,6 @@ jobs:
           php tests/organization.php
           node tests/organization_filter.cjs
           python3 tests/organization_http.py
+
+          php tests/ess.php
+          python3 tests/ess_http.py

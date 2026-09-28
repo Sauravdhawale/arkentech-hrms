@@ -9,7 +9,7 @@ function chr_handle_post(PDO $db,array $user,string $action,array $in,array $fil
  case 'core_delete':chr_delete_config($db,$user,(string)($in['module']??''),(int)($in['id']??0));return 'Record deleted.';
  case 'core_attendance':chr_save_attendance($db,$user,$in);return 'Attendance saved and calculated.';
  case 'core_leave':chr_create_leave($db,$user,$in,$files['attachment']??[]);return 'Leave request submitted for approval.';
- case 'core_review':chr_review_leave($db,$user,(int)($in['id']??0),(string)($in['status']??''));return 'Leave decision saved.';
+ case 'core_review':chr_review_leave($db,$user,(int)($in['id']??0),(string)($in['status']??''),ftext($in,'decision_reason',3000));return 'Leave decision saved.';
  default:throw new InvalidArgumentException('Unknown Core HR action.');
  }
 }
