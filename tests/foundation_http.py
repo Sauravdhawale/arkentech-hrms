@@ -27,6 +27,16 @@ try:
   try:get(client(),'login.php');break
   except OSError:time.sleep(.1)
  a,_,_=login('test.admin')
+ _,h=get(a,'super-admin.php?page=account')
+ _,h=post(a,'super-admin.php?page=account',{'csrf':token(h),'action':'save_admin_identity','name':'CI Administrator','username':'test.one'})
+ assert 'already in use' in h
+ _,h=post(a,'super-admin.php?page=account',{'csrf':token(h),'action':'save_admin_identity','name':'CI Administrator','username':'ci.admin.renamed'})
+ assert 'Account name and username updated.' in h and 'ci.admin.renamed' in h
+ renamed,_,_=login('ci.admin.renamed')
+ _,h=get(a,'super-admin.php?page=account')
+ _,h=post(a,'super-admin.php?page=account',{'csrf':token(h),'action':'save_admin_identity','name':'Test Admin','username':'test.admin'})
+ assert 'Account name and username updated.' in h
+ assert 'login.php' in get(renamed,'super-admin.php')[0]
  for page in ['overview','employees','employee-add','employee-edit&id=2','employee-view&id=2','employee-view&id=2&tab=employment','employee-view&id=2&tab=documents','settings','departments','designations','roles','account']:
   _,h=get(a,'super-admin.php?page='+page);assert 'Fatal error' not in h and 'Warning:' not in h,page
  _,h=get(a,'super-admin.php?page=departments');_,h=post(a,'super-admin.php?page=departments',{'csrf':token(h),'action':'save_department','name':'HTTP Department','code':'HTTP','active':1});assert 'Saved successfully.' in h
@@ -48,6 +58,9 @@ try:
  _,h=get(e,'employee.php?page=security');assert 'login.php' not in get(e,'index.php')[0]
  denied(lambda:get(e,'super-admin.php?page=employees'))
  viewer,_,h=login('test.two');_,h=get(viewer,'super-admin.php?page=employees');assert 'All employees' in h
+ _,identity_html=get(viewer,'super-admin.php?page=account')
+ _,identity_html=post(viewer,'super-admin.php?page=account',{'csrf':token(identity_html),'action':'save_admin_identity','name':'Forbidden','username':'forbidden.admin'})
+ assert 'Only Super Admin' in identity_html
  denied(lambda:post(viewer,'super-admin.php?page=employees',{'csrf':token(h),'action':'delete_employee','id':uid}))
  denied(lambda:post(a,'super-admin.php?page=employees',{'csrf':'bad','action':'delete_employee','id':uid}))
  denied(lambda:get(viewer,'super-admin.php?page=employee-view&id='+uid+'&tab=documents'))

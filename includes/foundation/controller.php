@@ -81,6 +81,17 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     if($hasFile){$name=substr(preg_replace('/[^a-zA-Z0-9._ -]/','_',basename($file['name'])),0,190);$pdo->prepare('INSERT INTO hr_files(record_id,uploaded_by,filename,mime,content) VALUES(?,?,?,?,?)')->execute([$recordId,$user['id'],$name,$mime,file_get_contents($file['tmp_name'])]);}faudit($pdo,$user,'document.saved',$recordId);$pdo->commit();$notice='Document saved.';
    }elseif($action==='delete_document'){
     need($pdo,$user,'documents.delete');$id=(int)($_POST['document_id']??0);$pdo->beginTransaction();$q=$pdo->prepare("SELECT id FROM hr_records WHERE id=? AND module='documents' FOR UPDATE");$q->execute([$id]);if(!$q->fetchColumn())throw new InvalidArgumentException('Document not found.');$pdo->prepare('DELETE FROM hr_files WHERE record_id=?')->execute([$id]);$pdo->prepare('DELETE FROM hr_records WHERE id=?')->execute([$id]);faudit($pdo,$user,'document.deleted',$id);$pdo->commit();$notice='Document and its uploaded versions deleted.';
+   }elseif($action==='save_admin_identity'){
+    if($user['role']!=='super_admin')throw new InvalidArgumentException('Only Super Admin can edit this account identity.');
+    $name=ftext($_POST,'name',150,true);$username=strtolower(ftext($_POST,'username',190,true));
+    if(!preg_match('/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/',$username))throw new InvalidArgumentException('Enter a valid username.');
+    $pdo->beginTransaction();$q=$pdo->prepare("SELECT id,session_version FROM users WHERE id=? AND role='super_admin' FOR UPDATE");$q->execute([$user['id']]);$identity=$q->fetch(PDO::FETCH_ASSOC);
+    if(!$identity)throw new InvalidArgumentException('Super Admin account not found.');
+    $q=$pdo->prepare('SELECT id FROM users WHERE LOWER(username)=? AND id<>?');$q->execute([$username,$user['id']]);if($q->fetchColumn())throw new InvalidArgumentException('That username is already in use.');
+    $pdo->prepare("UPDATE users SET name=?,username=?,session_version=session_version+1 WHERE id=? AND role='super_admin'")->execute([$name,$username,$user['id']]);
+    faudit($pdo,$user,'account.identity_updated',(int)$user['id']);$pdo->commit();
+    $_SESSION['user']['name']=$name;$_SESSION['user']['username']=$username;$_SESSION['user']['session_version']=(int)$identity['session_version']+1;session_regenerate_id(true);
+    $notice='Account name and username updated. Use the new username with your existing password. Other sessions have been signed out.';
    }elseif($action==='change_password'){
     $old=(string)($_POST['current_password']??'');$new=(string)($_POST['new_password']??'');if(strlen($new)<12||strlen($new)>72||$new!==($_POST['confirm_password']??''))throw new InvalidArgumentException('Use matching new passwords of 12–72 characters.');
     $pdo->beginTransaction();$q=$pdo->prepare('SELECT password_hash,session_version FROM users WHERE id=? FOR UPDATE');$q->execute([$user['id']]);$row=$q->fetch(PDO::FETCH_ASSOC);if(!password_verify($old,$row['password_hash']))throw new InvalidArgumentException('Current password is incorrect.');
