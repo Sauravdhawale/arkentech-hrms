@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__.'/core.php';require_once __DIR__.'/employees.php';require_once __DIR__.'/migrate.php';
+require_once __DIR__.'/core.php';require_once __DIR__.'/organization.php';require_once __DIR__.'/employees.php';require_once __DIR__.'/migrate.php';
 $pdo=db();$installed=foundation_ready($pdo);$page=(string)($_GET['page']??'overview');if($page==='system')$page='account';
 $pages=['overview'=>['Dashboard','dashboard.view'],'employees'=>['All employees','employees.view'],'employee-add'=>['Add employee','employees.create'],'employee-edit'=>['Edit employee','employees.edit'],'employee-view'=>['Employee profile','employees.view'],'settings'=>['Company settings','settings.view'],'departments'=>['Departments','departments.view'],'designations'=>['Designations','designations.view'],'roles'=>['Roles & permissions','roles.view'],'account'=>['My account',null]];
 require_once dirname(__DIR__).'/core-hr/controller.php';$pages=array_merge($pages,$corePages);require_once dirname(__DIR__).'/payroll/controller.php';$pages=array_merge($pages,$payPages);
@@ -16,7 +16,12 @@ $docTypes=['Aadhaar Card','PAN Card','Resume','Offer Letter','Appointment Letter
 if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();$action=(string)($_POST['action']??'');
  try{
-  if(str_starts_with($action,'pay_')){$notice=pay_handle_post($pdo,$user,$action,$_POST);
+  if($action==='organization_preview'){
+   org_authorize($pdo,$user);$_SESSION['organization_preview']=['actor'=>(int)$user['id'],'plan'=>org_plan(org_snapshot($pdo))];$notice='Organization preview ready. No records have changed.';
+  }elseif($action==='organization_apply'){
+   $preview=$_SESSION['organization_preview']??null;if(!$preview||$preview['actor']!==(int)$user['id']||!hash_equals($preview['plan']['fingerprint'],(string)($_POST['fingerprint']??'')))throw new InvalidArgumentException('Preview this organization update first.');
+   $report=org_apply($pdo,$user,(string)$_POST['fingerprint']);unset($_SESSION['organization_preview']);$_SESSION['foundation_notice']=$report['changed'].' organization records updated. Existing employees and IDs preserved.';header('Location: ?page=departments&organization_report='.$report['report_id']);exit;
+  }elseif(str_starts_with($action,'pay_')){$notice=pay_handle_post($pdo,$user,$action,$_POST);
   }elseif(str_starts_with($action,'att_')){$notice=att_handle_post($pdo,$user,$action,$_POST,$_FILES);
   }elseif(str_starts_with($action,'core_')){$notice=chr_handle_post($pdo,$user,$action,$_POST,$_FILES);
   }elseif($action==='install_foundation'){
@@ -40,10 +45,12 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $pdo->query("SELECT id FROM users WHERE role='super_admin' ORDER BY id LIMIT 1 FOR UPDATE")->fetchColumn();
     if($id){$q=$pdo->prepare("SELECT * FROM $kind WHERE id=? FOR UPDATE");$q->execute([$id]);$existing=$q->fetch(PDO::FETCH_ASSOC);if(!$existing)throw new InvalidArgumentException('Record not found.');}
     if($kind==='departments'){
+     org_duplicate_check($pdo,'departments',$name,$id);
      $code=ftext($_POST,'code',40)?:null;$head=(int)($_POST['head_id']??0)?:null;if($head){$q=$pdo->prepare('SELECT id FROM users WHERE id=? AND active=1');$q->execute([$head]);if(!$q->fetchColumn())throw new InvalidArgumentException('Choose an active department head.');}
      if($id)$pdo->prepare('UPDATE departments SET name=?,code=?,description=?,head_id=?,active=? WHERE id=?')->execute([$name,$code,$description,$head,$active,$id]);else{$pdo->prepare('INSERT INTO departments(name,code,description,head_id,active) VALUES(?,?,?,?,?)')->execute([$name,$code,$description,$head,$active]);$id=(int)$pdo->lastInsertId();}
     }elseif($kind==='designations'){
      $department=(int)($_POST['department_id']??0)?:null;if($department){$q=$pdo->prepare('SELECT id FROM departments WHERE id=? AND active=1');$q->execute([$department]);if(!$q->fetchColumn())throw new InvalidArgumentException('Choose an active department.');}
+     org_duplicate_check($pdo,'designations',$name,$id,$department);
      $q=$pdo->prepare('SELECT id FROM designations WHERE name=? AND department_id <=> ? AND id<>?');$q->execute([$name,$department,$id]);if($q->fetchColumn())throw new InvalidArgumentException('This designation already exists in that department.');
      if($id&&$department){$q=$pdo->prepare('SELECT user_id FROM employees WHERE designation_id=? AND (department_id IS NULL OR department_id<>?) LIMIT 1');$q->execute([$id,$department]);if($q->fetchColumn())throw new InvalidArgumentException('Reassign affected employees before moving this designation to a different department.');}
      if($id)$pdo->prepare('UPDATE designations SET name=?,department_id=?,description=?,active=? WHERE id=?')->execute([$name,$department,$description,$active,$id]);else{$pdo->prepare('INSERT INTO designations(name,department_id,description,active) VALUES(?,?,?,?)')->execute([$name,$department,$description,$active]);$id=(int)$pdo->lastInsertId();}

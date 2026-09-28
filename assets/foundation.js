@@ -7,7 +7,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){nav?.classList.remo
 document.addEventListener('click',e=>{if(nav?.classList.contains('open')&&!nav.contains(e.target)&&!menu?.contains(e.target)){nav.classList.remove('open');menu?.setAttribute('aria-expanded','false');}});
 document.querySelectorAll('form[data-confirm]').forEach(form=>form.addEventListener('submit',e=>{if(!confirm(form.dataset.confirm))e.preventDefault();}));
 const department=document.querySelector('[name=department_id][data-dependent]'),designation=document.querySelector('[name=designation_id]');
-if(department&&designation){const update=()=>{[...designation.options].forEach(o=>{const valid=!o.dataset.department||o.dataset.department===department.value;o.hidden=!valid;o.disabled=!valid;});if(designation.selectedOptions[0]?.disabled)designation.value='';};department.addEventListener('change',update);update();}
+if(department&&designation){const update=()=>{[...designation.options].forEach(o=>{const valid=o.value===''||(department.value!==''&&o.dataset.department===department.value)||(o.hasAttribute('data-legacy-department')&&o.dataset.legacyDepartment===department.value);o.hidden=!valid;o.disabled=!valid;});if(designation.selectedOptions[0]?.disabled)designation.value='';};department.addEventListener('change',update);update();}
 
 // Accessible native attendance punch dialog.
 document.addEventListener('click', event => {

@@ -45,3 +45,6 @@ jobs:
           php tests/employee_bulk.php
           php tests/payroll.php
           python3 tests/payroll_http.py
+          php tests/organization.php
+          node tests/organization_filter.cjs
+          python3 tests/organization_http.py
