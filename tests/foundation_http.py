@@ -54,7 +54,13 @@ try:
  url,h=post(a,'super-admin.php?page=employee-add',data);assert 'Employee saved.' in h,h[-3000:];uid=re.search(r'id=(\d+)',url).group(1)
  _,h=get(a,'super-admin.php?page=departments');_,h=post(a,'super-admin.php?page=departments',{'csrf':token(h),'action':'delete_department','id':dep});assert 'assigned to an employee or another record' in h
  e,url,h=login('http.person');assert 'page=security' in url
- url,h=post(e,'employee.php?page=security',{'csrf':token(h),'action':'change_password','current_password':'User@123','new_password':'HTTP-Password-2026!','confirm_password':'HTTP-Password-2026!'});assert 'Saved successfully.' in h,h[-1500:]
+ assert 'Set your personal password to open your dashboard' in h
+ assert 'href="?page=overview"' not in h
+ for page in ['overview','attendance','leaves']:
+  url,h=get(e,'employee.php?page='+page);assert 'page=security' in url
+ try:post(e,'employee.php?page=security',{'csrf':token(h),'action':'ess_profile','version':'1'});raise AssertionError('Setup allowed employee write')
+ except urllib.error.HTTPError as error:assert error.code==403
+ url,h=post(e,'employee.php?page=security',{'csrf':token(h),'action':'change_password','current_password':'User@123','new_password':'HTTP-Password-2026!','confirm_password':'HTTP-Password-2026!'});assert 'Saved successfully.' in h,h[-1500:];assert 'page=overview' in url
  _,h=get(e,'employee.php?page=security');assert 'login.php' not in get(e,'index.php')[0]
  denied(lambda:get(e,'super-admin.php?page=employees'))
  viewer,_,h=login('test.two');_,h=get(viewer,'super-admin.php?page=employees');assert 'All employees' in h
