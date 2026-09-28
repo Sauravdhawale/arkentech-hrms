@@ -26,3 +26,21 @@
 :is(.attendance-table-scroll,.directory-table-scroll) table.directory tbody tr:hover{background:var(--bg)}
 .directory-table-scroll .avatar{width:34px;height:34px;font-size:13px}
 .directory-table-scroll .hint{margin:4px 0 0}
+
+/* Leave balance controls and allocation popup. */
+.balance-actions{display:flex;justify-content:flex-end;margin-bottom:16px}
+.balance-dialog{max-height:90vh;overflow:auto}
+.balance-dialog .card-heading{margin-bottom:12px}
+.balance-dialog .core-form{margin-bottom:0}
+.balance-filters{margin:20px 0}
+.balance-filters label:first-of-type{flex:0 0 130px}
+.balance-filters label:nth-of-type(2){flex:1;min-width:220px}
+.balance-table{max-height:60vh;border:1px solid var(--line);border-radius:10px}
+.balance-table table.directory{border-collapse:separate;border-spacing:0}
+.balance-table table.directory th,.balance-table table.directory td{padding:14px 16px;border-right:1px solid var(--line)}
+.balance-table table.directory thead th{text-transform:none;letter-spacing:0;font-size:12px}
+.balance-table table.directory tbody th{font-size:12px;color:var(--text)}
+.balance-table td>strong{font-size:19px;font-variant-numeric:tabular-nums}
+.balance-pagination{justify-content:flex-end;gap:8px;padding:16px 0 0;margin-top:16px}
+.balance-pagination [aria-current=page]{background:var(--lime);color:#18290e}
+@media(max-width:600px){.balance-dialog{padding:20px}.balance-actions .button{width:100%}.balance-filters label:first-of-type,.balance-filters label:nth-of-type(2){flex:1 1 100%;min-width:0}}

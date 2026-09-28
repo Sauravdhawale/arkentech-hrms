@@ -16,3 +16,6 @@ document.addEventListener('click', event => {
  const close = event.target.closest('[data-close-dialog]');
  if (close) close.closest('dialog')?.close();
 });
+
+// Reopen allocation edits and validation failures as modal forms.
+document.querySelectorAll('dialog[data-auto-open]').forEach(dialog => dialog.showModal());
