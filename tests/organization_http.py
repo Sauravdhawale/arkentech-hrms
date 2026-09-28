@@ -29,12 +29,10 @@ try:
  f=json.load(open('/tmp/organization-fixture.json'))
  for page in ['departments','designations','employee-add','employee-edit&id='+str(f['employee'])]:
   _,h=get(a,'super-admin.php?page='+page);assert all(x not in h for x in ['Fatal error','Warning:','Parse error']),page
- _,h=get(a,'super-admin.php?page=departments');assert 'ORGANIZATION' in h and 'Preview organization update' in h
- _,h=post(a,'super-admin.php?page=departments',{'csrf':token(h),'action':'organization_preview'})
- assert 'Proposed update' in h and '57 requested' in h and '16 requested' in h
- fp=re.search(r'name="fingerprint" value="([^"]+)"',h).group(1)
- _,h=post(a,'super-admin.php?page=departments',{'csrf':token(h),'action':'organization_apply','fingerprint':fp})
- assert 'Applied update report' in h and '0 records changed' in h
+ for page in ['departments','designations']:
+  _,h=get(a,'super-admin.php?page='+page)
+  assert 'ORGANIZATION' in h
+  assert 'Arkentech departments & designations' not in h and 'Preview organization update' not in h and 'Apply safe changes' not in h
  _,h=get(a,'super-admin.php?page=employee-add');p=Options();p.feed(h);assert all('disabled' in o for o in p.options if o.get('value'))
  _,h=get(a,'super-admin.php?page=employee-edit&id='+str(f['employee']));p=Options();p.feed(h)
  selected=[o for o in p.options if 'selected' in o];assert len(selected)==1 and selected[0]['value']==str(f['designation']) and 'disabled' not in selected[0]
@@ -44,8 +42,8 @@ try:
  viewer=login('test.two','User@123')
  _,h=get(viewer,'super-admin.php?page=overview');_,h=post(viewer,'super-admin.php?page=overview',{'csrf':token(h),'action':'organization_preview'})
  assert 'Organization update requires' in h and 'Proposed update' not in h
- try:post(a,'super-admin.php?page=departments',{'csrf':'bad','action':'organization_apply','fingerprint':fp});raise AssertionError('CSRF bypass')
+ try:post(a,'super-admin.php?page=departments',{'csrf':'bad','action':'organization_apply','fingerprint':'unused'});raise AssertionError('CSRF bypass')
  except urllib.error.HTTPError as e:assert e.code==403
- print('PASS: Organization preview/apply, exact result report, permission/CSRF checks, duplicate guard, and employee add/edit HTML filtering.')
+ print('PASS: Organization setup panel removed, permission/CSRF checks, duplicate guard, and employee add/edit HTML filtering.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
