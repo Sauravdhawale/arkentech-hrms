@@ -22,7 +22,7 @@ require_once __DIR__.'/leave-balances.php';
 $coreReady=chr_ready($pdo);
 require_once __DIR__.'/ess/service.php';
 if(!$admin&&$coreReady&&$page==='approvals'&&!can($pdo,$user,'leave.approve')){http_response_code(403);exit('Approval permission required.');}
-if(!$admin&&$coreReady&&$_SERVER['REQUEST_METHOD']==='POST'&&str_starts_with((string)($_POST['action']??''),'ess_')){$suiteHandledPost=true;csrf();try{ess_post($pdo,$user,$page,$_POST);header('Location: employee.php?page='.urlencode($page).'&saved=1');exit;}catch(InvalidArgumentException $e){$error=$e->getMessage();}catch(Throwable $e){$error='Unable to save. Please contact HR.';error_log('ESS: '.get_class($e));}}
+if(!$admin&&$coreReady&&$_SERVER['REQUEST_METHOD']==='POST'&&str_starts_with((string)($_POST['action']??''),'ess_')){$suiteHandledPost=true;csrf();try{ess_post($pdo,$user,$page,$_POST,$_FILES);header('Location: employee.php?page='.urlencode($page).'&saved=1');exit;}catch(InvalidArgumentException $e){$error=$e->getMessage();}catch(Throwable $e){$error='Unable to save. Please contact HR.';error_log('ESS: '.get_class($e));}}
 
 $coreLeaveTypes=['CL','SL','PL','LWP'];if($coreReady){$coreLeaveTypes=[];foreach(chr_rows($pdo,'leave_policy') as $policy)if($policy['status']==='Published')$coreLeaveTypes[]=$policy['values']['type'];$tz=$pdo->query('SELECT timezone FROM company_settings WHERE id=1')->fetchColumn();if($tz)date_default_timezone_set($tz);}
 if($coreReady&&!$admin&&$page==='leaves'&&$_SERVER['REQUEST_METHOD']==='POST'&&($_POST['action']??'')==='request'){

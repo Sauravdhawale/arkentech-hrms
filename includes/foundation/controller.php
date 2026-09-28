@@ -16,7 +16,7 @@ $docTypes=['Aadhaar Card','PAN Card','Resume','Offer Letter','Appointment Letter
 if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();$action=(string)($_POST['action']??'');
  try{
-  if($action==='ess_route'){ess_save_route($pdo,$user,$_POST);$notice='Approval route saved for future applications.';
+  if($action==='ess_preferences'){if($user['role']!=='super_admin')throw new InvalidArgumentException('Super Admin required.');$pdo->beginTransaction();chr_lock($pdo);$existing=chr_rows($pdo,'ess_settings')[0]??null;if((int)($existing['id']??0)!==(int)($_POST['id']??0))throw new InvalidArgumentException('Preferences changed. Reload first.');att_record_write($pdo,$user,'ess_settings',$_POST,['birthdays_enabled'=>!empty($_POST['birthdays_enabled'])]);$pdo->commit();$notice='Employee workspace preferences saved.';}elseif($action==='ess_route'){ess_save_route($pdo,$user,$_POST);$notice='Approval route saved for future applications.';
   }elseif($action==='organization_preview'){
    org_authorize($pdo,$user);$_SESSION['organization_preview']=['actor'=>(int)$user['id'],'plan'=>org_plan(org_snapshot($pdo))];$notice='Organization preview ready. No records have changed.';
   }elseif($action==='organization_apply'){
