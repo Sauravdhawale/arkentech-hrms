@@ -19,3 +19,13 @@ document.addEventListener('click', event => {
 
 // Reopen allocation edits and validation failures as modal forms.
 document.querySelectorAll('dialog[data-auto-open]').forEach(dialog => dialog.showModal());
+
+const notificationRoot=document.querySelector('.admin-notifications');
+if(notificationRoot){
+ const toggle=notificationRoot.querySelector('.notification-toggle'),panel=notificationRoot.querySelector('.notification-panel');
+ const closeNotifications=()=>{panel.hidden=true;toggle.setAttribute('aria-expanded','false');};
+ toggle.addEventListener('click',()=>{const opening=panel.hidden;panel.hidden=!opening;toggle.setAttribute('aria-expanded',String(opening));});
+ document.addEventListener('click',event=>{if(!notificationRoot.contains(event.target))closeNotifications();});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!panel.hidden){closeNotifications();toggle.focus();}});
+ notificationRoot.addEventListener('focusout',event=>{if(event.relatedTarget&&!notificationRoot.contains(event.relatedTarget))closeNotifications();});
+}

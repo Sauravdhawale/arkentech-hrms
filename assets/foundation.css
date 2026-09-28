@@ -44,3 +44,21 @@
 .balance-pagination{justify-content:flex-end;gap:8px;padding:16px 0 0;margin-top:16px}
 .balance-pagination [aria-current=page]{background:var(--lime);color:#18290e}
 @media(max-width:600px){.balance-dialog{padding:20px}.balance-actions .button{width:100%}.balance-filters label:first-of-type,.balance-filters label:nth-of-type(2){flex:1 1 100%;min-width:0}}
+
+/* Super Admin notification dropdown beside the theme switch. */
+.admin-notifications{position:relative}
+.notification-toggle{display:flex;align-items:center;justify-content:center;position:relative}
+.notification-count{position:absolute;top:-7px;right:-8px;background:var(--lime);color:#18290e;border:2px solid var(--card);border-radius:20px;min-width:20px;padding:1px 4px;font-size:10px;font-weight:700}
+.notification-panel{position:absolute;right:0;top:calc(100% + 14px);width:370px;max-width:calc(100vw - 32px);background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 48px #0002;z-index:60;overflow:hidden}
+.notification-panel[hidden]{display:none}
+.notification-heading{display:flex;justify-content:space-between;align-items:center;padding:18px;border-bottom:1px solid var(--line)}
+.notification-heading .hint{margin:4px 0 0;font-size:11px}
+.notification-items{max-height: min(390px,55vh);overflow:auto;overscroll-behavior:contain}
+.notification-item{display:flex;flex-direction:column;gap:5px;padding:14px 18px;border-bottom:1px solid var(--line);font-size:12px}
+.notification-item:hover{background:var(--bg);color:var(--text)}
+.notification-item small,.notification-item span{color:var(--muted)}
+.notification-footer{display:flex;gap:16px;padding:14px 18px;font-size:11px;font-weight:700}
+.notification-note{padding:0 18px 14px;margin:0;color:var(--muted);font-size:10px}
+.notification-panel .empty-state{padding:28px 18px}
+.notification-panel .empty-state p{font-size:12px;margin-bottom:0}
+@media(max-width:600px){.notification-panel{position:fixed;top:70px;right:16px;width:370px}.top-actions{gap:12px}}
