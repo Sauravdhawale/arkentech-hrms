@@ -7,7 +7,10 @@ $initials=strtoupper(substr($employee['first_name']??'',0,1).substr($employee['l
  <div><span class="eyebrow">EMPLOYEE PROFILE</span><h2><?=h($user['name'])?></h2><p><?=h($employee['designation_name']?:'Designation not assigned')?></p><span class="badge"><?=h($employee['employee_code']?:'ID not assigned')?></span></div></div>
  <dl class="profile-contact"><div><dt>Work email</dt><dd><?=h($employee['email']?:'Not added')?></dd></div><div><dt>Department</dt><dd><?=h($employee['department_name']?:'Not assigned')?></dd></div><div><dt>Joined</dt><dd><?=h($employee['joining_date']?:'Not entered')?></dd></div><div><dt>Employment status</dt><dd><span class="badge"><?=h($employee['employment_status'])?></span></dd></div></dl>
 </section>
-<nav class="ess-tabs" aria-label="My profile sections"><a href="?page=profile" aria-current="page">Overview</a><a href="?page=my_shift">My shift</a><a href="?page=documents">Documents</a><a href="?page=my_salary">Salary</a><a href="?page=reviews">Appraisals</a></nav>
+<nav class="ess-tabs" aria-label="My profile sections"><?php foreach(['overview'=>['profile','Overview'],'shift'=>['my_shift','My Shift'],'documents'=>['documents','My Documents'],'security'=>['security','Login & Security']] as $tab=>$item):?><a href="?page=profile&amp;tab=<?=$tab?>" <?=$page===$item[0]?'aria-current="page"':''?>><?=$item[1]?></a><?php endforeach;?></nav>
+<?php if($page==='documents'){suite_render($pdo,$user,'documents',$suite['documents'],$suiteReady);return;}
+if($page==='my_shift'){require __DIR__.'/profile-shift.php';return;}
+if($page==='security'){require __DIR__.'/profile-security.php';return;}?>
 <div class="profile-grid">
 <section class="panel"><h2>Employment details</h2><dl class="ess-details"><?php foreach(['employee_code'=>'Employee ID','department_name'=>'Department','designation_name'=>'Designation','employment_type'=>'Employment type','joining_date'=>'Joining date'] as $key=>$label):?><div><dt><?=h($label)?></dt><dd><?=h($employee[$key]?:'Not entered')?></dd></div><?php endforeach;?></dl><p class="ess-hint">Employment details are managed by HR.</p></section>
 <?php require __DIR__.'/personal-cards.php';?>

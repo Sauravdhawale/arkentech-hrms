@@ -35,6 +35,13 @@ try:
  assert 'Leave balance · 2030' in h and 'ESS isolated request' in h and 'Approved' in h and 'id="leave-dialog"' in h
  h=post(c,'employee.php?page=leaves',{'csrf':token(h),'action':'request','category':'INVALID','subject':'Retain my input','details':'Validation example','start_date':'2030-02-08','end_date':'2030-02-08'})
  assert 'data-open-on-load' in h and 'Retain my input' in h
+ for tab,marker in [('overview','Personal & emergency contact'),('shift','My effective shift'),('documents','Document file'),('security','Current password')]:
+  h=get(c,'employee.php?page=profile&tab='+tab)
+  assert 'aria-label="My profile sections"' in h and 'ESS-APPLICANT' in h and 'Fatal error' not in h and 'Warning:' not in h
+  if tab!='documents':assert marker in h,(tab,marker)
+ h=get(c,'employee.php?page=profile&tab=security')
+ h=post(c,'employee.php?page=profile&tab=security',{'csrf':token(h),'action':'change_password','current_password':'incorrect','new_password':'DifferentPassword123!','confirm_password':'DifferentPassword123!'})
+ assert 'Current password is incorrect.' in h and 'My profile sections' in h
  h=get(c,'employee.php?page=profile');assert 'ESS-APPLICANT' in h and 'ESS-LEAD' not in h
  try:post(c,'employee.php?page=profile',{'csrf':'bad','action':'ess_profile','version':'1'});raise AssertionError('ESS CSRF bypass')
  except urllib.error.HTTPError as e:assert e.code==403
