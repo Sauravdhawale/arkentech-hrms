@@ -27,9 +27,21 @@ try:
  _,h=get(a,'super-admin.php?page=company_calendar&month=2026-02');assert 'CI Event' in h
  # Read-only event view, rather than aggregated daily attendance.
  _,h=get(a,'super-admin.php?page=punch_log&from=2026-02-01&to=2026-02-28&punch_type=out')
- assert 'CI-1' in h and '06:00:00' in h and 'Biometric User ID' in h
+ assert 'CI-1' in h and '06:00:00 AM' in h and 'Biometric User ID' in h
+ # Continuous keyset traversal uses bounded batches without visible page numbers.
+ _,h=get(a,'super-admin.php?page=punch_log&from=2026-02-01&to=2026-02-28')
+ assert 'Punch log pages' not in h and 'data-punch-scroll' in h and 'Reprocess' in h
+ import html
+ next_url=html.unescape(re.search(r'data-punch-scroll data-next="([^"]+)"',h).group(1))
+ assert 'before_time=' in next_url and 'before_id=' in next_url
+ _,more=get(a,'super-admin.php'+next_url)
+ assert 'data-punch-scroll' in more and 'Fatal error' not in more
+ _,shiftform=get(a,'super-admin.php?page=shifts')
+ assert 'Overnight shift' in shiftform and 'Break duration' in shiftform and '06:00 PM' in shiftform
+ _,employeeform=get(a,'super-admin.php?page=employee-add')
+ assert 'Assigned Shift' in employeeform and 'Ends next day' in employeeform
  _,h=get(a,'super-admin.php?page=punch_log&from=2026-02-01&to=2026-02-28&processing_status=Unmapped')
- assert 'CI-WAIT-' in h and 'No unique active employee mapping' in h
+ assert 'CI-WAIT-' in h and 'has no unique active employee mapping' in h
  _,h=get(a,'super-admin.php?page=punch_log&from=2026-02-01&to=2026-02-28&device_code=NO-SUCH-DEVICE')
  assert 'No device punches in this date range' in h
  _,h=get(a,'super-admin.php?page=attendance');assert 'id="manual-punch"' not in h
