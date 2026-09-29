@@ -1,6 +1,6 @@
 <?php
 if(PHP_SAPI!=='cli'||getenv('DB_NAME')!=='peopleflow_ci')exit('Disposable CI database only.');
-require dirname(__DIR__).'/auth.php';require dirname(__DIR__).'/includes/core-hr/controller.php';
+require dirname(__DIR__).'/auth.php';require dirname(__DIR__).'/includes/core-hr/controller.php';require dirname(__DIR__).'/includes/foundation/employees.php';
 set_error_handler(function($severity,$message,$file,$line){throw new ErrorException($message,0,$severity,$file,$line);});
 function ensure(bool $ok,string $why):void{if(!$ok)throw new RuntimeException($why);}
 $db=db();$admin=['id'=>1,'role'=>'super_admin'];

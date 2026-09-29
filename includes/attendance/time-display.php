@@ -12,3 +12,5 @@ function att_time_input(string $name,string $label,array $values):void {
  $value=$values[$name]??'';
  echo '<label>'.h($label).'<input name="'.h($name).'" value="'.h($value?att_time_label($value):'').'" placeholder="09:00 AM" pattern="(0?[1-9]|1[0-2]):[0-5][0-9] [AaPp][Mm]" required><span class="hint">12-hour time · e.g. 06:00 PM</span></label>';
 }
+
+function att_is_overnight(array $values):bool {try{return chr_time($values,'end')<chr_time($values,'start');}catch(InvalidArgumentException $e){return false;}}
