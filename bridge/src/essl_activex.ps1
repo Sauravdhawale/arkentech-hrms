@@ -30,7 +30,7 @@ public static class BridgeNativeSearch {
     [void][Reflection.Assembly]::LoadFrom((Join-Path $folder 'AxInterop.zkemkeeper.DLL'))
     if ($request.background_ui -eq $true) {
         # Create a real SDK host without activation, taskbar or Alt-Tab presence.
-        Add-Type -ReferencedAssemblies System.Windows.Forms -TypeDefinition @'
+        Add-Type -ReferencedAssemblies System.Windows.Forms,System.Drawing -TypeDefinition @'
 public class BridgeSilentForm : System.Windows.Forms.Form {
     protected override bool ShowWithoutActivation { get { return true; } }
     protected override System.Windows.Forms.CreateParams CreateParams {
