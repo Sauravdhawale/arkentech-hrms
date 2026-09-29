@@ -70,8 +70,14 @@ try:
  denied(lambda:post(viewer,'super-admin.php?page=employees',{'csrf':token(h),'action':'delete_employee','id':uid}))
  denied(lambda:post(a,'super-admin.php?page=employees',{'csrf':'bad','action':'delete_employee','id':uid}))
  denied(lambda:get(viewer,'super-admin.php?page=employee-view&id='+uid+'&tab=documents'))
- docpath='super-admin.php?page=employee-view&id='+uid+'&tab=documents'
+ docpath='super-admin.php?page=employee-edit&id='+uid+'&tab=documents'
+ for tab in ['overview','employment','documents']:
+  _,view=get(a,'super-admin.php?page=employee-view&id='+uid+'&tab='+tab)
+  for action in ['save_document','delete_document','toggle_employee','reset_employee_password','core_config']:
+   assert 'name="action" value="'+action+'"' not in view,(tab,action)
  _,h=get(a,docpath)
+ for label in ['Account controls','Reset employee password','Attendance & Shift','Upload document']:
+  assert label in h,label
  _,h=upload(a,docpath,{'csrf':token(h),'action':'save_document','employee_id':uid,'title':'CI document','type':'Resume'},'document','ci.pdf',b'%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF','application/pdf')
  assert 'Document saved.' in h,h[-1800:]
  file_id=re.search(r'document.php\?id=(\d+)',h).group(1)
