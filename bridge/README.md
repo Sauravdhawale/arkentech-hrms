@@ -77,8 +77,7 @@ If `test-device --background-ui` fails, continue with the original foreground `t
 ### Silent update 1.1.0
 
 The background EXE now selects hidden SDK hosting even when double-clicked or
-called without the `background` argument. Its SDK host does not activate and
-is excluded from the taskbar and Alt-Tab. Startup failures go to logs/bridge.log.
+called without the `background` argument. Its SDK host stays transparent, off-screen and hidden from the taskbar. Startup failures go to logs/bridge.log.
 This is a signed-in Windows background task, not an unattended ActiveX service.
 
 To update, stop the existing bridge, back up the folder, and replace only
