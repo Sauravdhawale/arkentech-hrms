@@ -2,7 +2,7 @@ name: Attendance packages
 on:
   workflow_dispatch:
   push:
-    branches: [main, codex/attendance-bridge-upgrade, codex/essl-sdk-integration]
+    branches: [main, codex/attendance-bridge-upgrade, codex/essl-sdk-integration, codex/bridge-silent-v1]
 permissions:
   contents: read
 jobs:
@@ -19,6 +19,7 @@ jobs:
           python tests/bridge_sdk.py
           python tests/bridge_activex.py
           python tests/bridge_instance.py
+          python tests/bridge_background.py
       - name: Parse ActiveX helper with Windows PowerShell
         shell: powershell
         run: |

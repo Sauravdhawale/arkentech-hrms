@@ -59,7 +59,8 @@ namespace Axzkemkeeper {
         $request | & powershell.exe -NoProfile -STA -Command (Get-Content bridge/src/essl_activex.ps1 -Raw)
         throw 'Hidden ActiveX host console diagnostic failed'
     }
-    $child = Start-Process -FilePath (Join-Path $fixture 'sHRMSBridgeBackground.exe') -ArgumentList @('test-device','--background-ui') -PassThru -Wait
+    Remove-Item (Join-Path $fixture 'background-verified') -ErrorAction SilentlyContinue
+    $child = Start-Process -FilePath (Join-Path $fixture 'sHRMSBridgeBackground.exe') -ArgumentList @('test-device') -PassThru -Wait
     if ($child.ExitCode -ne 0 -or -not (Test-Path (Join-Path $fixture 'background-verified'))) {
         throw 'Background executable/hidden ActiveX host regression failed'
     }

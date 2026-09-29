@@ -16,6 +16,11 @@ from instance import single_instance
 
 ROOT=Path(sys.executable).parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parents[1]
 STOP=threading.Event()
+BRIDGE_VERSION='1.1.0-silent'
+
+def background_executable():
+    return bool(getattr(sys, 'frozen', False) and
+                Path(sys.executable).name.lower() == 'shrmsbridgebackground.exe')
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):
@@ -40,7 +45,7 @@ class Api:
 
 def load(background=False):
     config=json.loads((ROOT/'config/config.json').read_text(encoding='utf-8-sig'))
-    config['background_ui']=background
+    config['background_ui']=background or background_executable()
     kind=config.get('adapter','essl')
     if kind not in ('essl','mock'): raise ValueError('Unsupported adapter')
     transport=config.get('sdk_transport', 'activex')
@@ -104,7 +109,7 @@ def run_loop(background=False):
     handler=RotatingFileHandler(ROOT/'logs/bridge.log',maxBytes=2_000_000,backupCount=5)
     logging.basicConfig(level=logging.INFO,handlers=[handler],format='%(asctime)s %(levelname)s %(message)s')
     config,adapter,queue,api=load(background)
-    logging.info('Bridge started (%s)', 'background' if background else 'foreground')
+    logging.info('Bridge %s started (%s)', BRIDGE_VERSION, 'background' if background or background_executable() else 'foreground')
     interval=max(10,int(config.get('sync_interval_seconds',60)))
     delay=interval
     heartbeat_stop=threading.Event()
@@ -145,7 +150,7 @@ def service():
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser()
-    parser.add_argument('command',choices=['run','background','once','test-api','test-device','service'],default='run',nargs='?')
+    parser.add_argument('command',choices=['run','background','once','test-api','test-device','service'],default='background' if background_executable() else 'run',nargs='?')
     parser.add_argument('--background-ui',action='store_true',help='Test the invisible ActiveX host from a signed-in desktop')
     args=parser.parse_args()
     command=args.command
@@ -172,5 +177,9 @@ if __name__=='__main__':
     except KeyboardInterrupt: STOP.set()
     except Exception as exc:
         message = str(exc) if isinstance(exc, DeviceError) else type(exc).__name__ + '. Check configuration and logs.'
-        print('Bridge failed: ' + message, file=sys.stderr)
+        (ROOT/'logs').mkdir(parents=True,exist_ok=True)
+        with (ROOT/'logs/bridge.log').open('a',encoding='utf-8') as failure_log:
+            failure_log.write('Bridge '+BRIDGE_VERSION+' startup/run failed: '+message+'\n')
+        if sys.stderr is not None:
+            print('Bridge failed: ' + message, file=sys.stderr)
         sys.exit(1)

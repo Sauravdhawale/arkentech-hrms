@@ -72,3 +72,19 @@ Windows must remain **signed in and awake**. Locking the screen does not sign ou
 Stop and disable startup: `.\scripts\stop-background.ps1`. Re-enable and start: `.\scripts\start-background.ps1`. Task name: **sHRMS Attendance Bridge Background**. No configuration, queue or SDK files are deleted by these scripts.
 
 If `test-device --background-ui` fails, continue with the original foreground `test-device` / `run` mode and report the SDK error. Automated tests cover packaging and invisible synthetic-control initialization; the real vendor SDK on a locked office desktop still needs verification.
+
+
+### Silent update 1.1.0
+
+The background EXE now selects hidden SDK hosting even when double-clicked or
+called without the `background` argument. Its SDK host does not activate and
+is excluded from the taskbar and Alt-Tab. Startup failures go to logs/bridge.log.
+This is a signed-in Windows background task, not an unattended ActiveX service.
+
+To update, stop the existing bridge, back up the folder, and replace only
+sHRMSBridge.exe and sHRMSBridgeBackground.exe with the new packaged executables.
+Preserve config/config.json, data/ and logs/. Use scripts/install-background.ps1
+for first-time automatic startup or scripts/start-background.ps1 for an existing
+task. Keep the account signed in and the laptop awake; locking is supported.
+Verify a fresh heartbeat and a `Bridge 1.1.0-silent started (background)` log entry.
+Punch processing and employee mappings are unchanged by this update.
