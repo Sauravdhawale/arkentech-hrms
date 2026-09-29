@@ -27,6 +27,7 @@ function save_employee(PDO $pdo,array $actor,array $in,array $files):int {
   else{$pdo->prepare("INSERT INTO users(name,email,username,password_hash,role,must_change_password) VALUES(?,?,?,?,'employee',1)")->execute([$name,$email,$username,password_hash($password?:'User@123',PASSWORD_DEFAULT)]);$id=(int)$pdo->lastInsertId();$cols=implode(',',array_keys($values));$marks=implode(',',array_fill(0,count($values),'?'));$pdo->prepare("INSERT INTO employees(user_id,$cols) VALUES(?,$marks)")->execute([$id,...array_values($values)]);}
   $pdo->prepare('INSERT INTO user_roles(user_id,role_id) VALUES(?,?) ON DUPLICATE KEY UPDATE role_id=VALUES(role_id)')->execute([$id,$role]);
   if(in_array($status,['Inactive','Resigned','Terminated'],true))$pdo->prepare('UPDATE users SET active=0,session_version=session_version+1 WHERE id=?')->execute([$id]);
+  if(!empty($in['assigned_shift_id'])){if(!function_exists('chr_ready')||!chr_ready($pdo))throw new InvalidArgumentException('Enable Core HR before assigning a shift.');chr_save_config($pdo,$actor,'roster',['title'=>'Employee shift override','employee_id'=>$id,'shift_id'=>$in['assigned_shift_id'],'from'=>$in['shift_from']??'','to'=>$in['shift_to']??'','notes'=>'Assigned when saving employee','active'=>1]);}
   save_media($pdo,$actor,$id,'profile',$photo);faudit($pdo,$actor,$old?'employee.profile_updated':'employee.created',$id);$pdo->commit();return $id;
  }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }

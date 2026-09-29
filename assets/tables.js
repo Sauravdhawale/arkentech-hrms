@@ -19,3 +19,23 @@ if(bulk){
  bulk.querySelector('[data-bulk-review]').addEventListener('click',()=>{const n=selected().length;if(!n){alert('Select at least one employee.');return;}const deleting=bulk.elements.operation.value==='delete';const assignments=['bulk_department','bulk_designation','bulk_role'].map(k=>bulk.elements[k]).filter(s=>s.value).map(s=>s.selectedOptions[0].textContent);if(!deleting&&!assignments.length){alert('Choose an assignment first.');return;}bulk.querySelector('[data-bulk-summary]').textContent=deleting?'Delete '+n+' selected employees from the directory and disable their logins? Historical records will be retained.':'Apply '+assignments.join(', ')+' to '+n+' selected employees?';bulk.elements.confirmed.checked=false;dialog.showModal();});
  update();
 }
+
+// Keyset batches retain the current filters and avoid offset drift as live punches arrive.
+const punchScroll=document.querySelector('[data-punch-scroll]');
+if(punchScroll){
+ const button=document.querySelector('[data-punch-load]'),status=document.querySelector('[data-punch-load-status]');let busy=false,failed=false;
+ async function more(){
+  const next=punchScroll.dataset.next;if(!next||busy)return;busy=true;button.disabled=true;status.textContent='Loading punches…';
+  try{
+   const response=await fetch(next,{credentials:'same-origin'});if(!response.ok)throw new Error('Load failed');
+   const doc=new DOMParser().parseFromString(await response.text(),'text/html'),part=doc.querySelector('[data-punch-scroll]');
+   if(!part)throw new Error('Session expired or access changed');
+   for(const row of part.querySelectorAll('tbody > tr'))punchScroll.querySelector('tbody').append(document.importNode(row,true));
+   punchScroll.dataset.next=part.dataset.next||'';button.hidden=!punchScroll.dataset.next;failed=false;
+   status.textContent=punchScroll.dataset.next?'Scroll down to load more punches.':'All matching punches loaded.';
+  }catch(error){failed=true;status.textContent='Could not load more punches. Check your connection or sign in again, then retry.';button.hidden=false;button.textContent='Retry loading';}
+  finally{busy=false;button.disabled=false;}
+ }
+ punchScroll.addEventListener('scroll',()=>{if(!failed&&punchScroll.scrollTop+punchScroll.clientHeight>=punchScroll.scrollHeight-120)more();});
+ button.addEventListener('click',more);
+}
