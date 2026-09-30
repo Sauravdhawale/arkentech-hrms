@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__.'/organization.php';
 require_once __DIR__.'/employee-delete.php';
+require_once __DIR__.'/employee-csv.php';
 function save_employee(PDO $pdo,array $actor,array $in,array $files):int {
  $id=(int)($in['id']??0);$old=$id?foundation_employee($pdo,$id):null;if($id&&!$old)throw new InvalidArgumentException('Employee not found.');
  $q=$pdo->prepare("SELECT id FROM users WHERE id=? AND role='super_admin'");$q->execute([$id]);if($q->fetchColumn())throw new InvalidArgumentException('Super Admin accounts are protected.');
@@ -18,7 +19,7 @@ function save_employee(PDO $pdo,array $actor,array $in,array $files):int {
  $photo=fimage($files['photo']??[]);$password=(string)($in['password']??'');if(!$id&&$password!==''&&(strlen($password)<12||strlen($password)>72))throw new InvalidArgumentException('Use an initial password of 12–72 characters or leave it blank for the import default.');
  $values=['employee_code'=>ftext($in,'employee_code',60)?:null,'first_name'=>$first,'middle_name'=>$middle,'last_name'=>$last,'personal_email'=>$personal,'birth_date'=>$birth,'joining_date'=>$joining,'department_id'=>$department,'designation_id'=>$designation,'manager_id'=>$manager,'employment_type'=>$type,'employment_status'=>$status,'gender'=>$gender];
  foreach(['mobile'=>40,'alternate_phone'=>40,'blood_group'=>10,'current_address'=>2000,'permanent_address'=>2000,'city'=>100,'state'=>100,'country'=>100,'pin_code'=>20,'emergency_name'=>150,'emergency_phone'=>40,'emergency_relationship'=>80] as $k=>$max)$values[$k]=ftext($in,$k,$max);
- $pdo->beginTransaction();try{
+ $ownsTransaction=!$pdo->inTransaction();if($ownsTransaction)$pdo->beginTransaction();try{
   $pdo->query("SELECT id FROM users WHERE role='super_admin' ORDER BY id LIMIT 1 FOR UPDATE")->fetchColumn();
   if($id){$q=$pdo->prepare('SELECT version FROM employees WHERE user_id=? FOR UPDATE');$q->execute([$id]);if((int)$q->fetchColumn()!==(int)($in['version']??0))throw new InvalidArgumentException('This profile changed. Reload it before saving.');}
   $q=$pdo->prepare('SELECT id,department_id,active FROM designations WHERE id=?');$q->execute([$designation]);$currentDesignation=$q->fetch(PDO::FETCH_ASSOC);if(!$currentDesignation||!org_designation_allowed($currentDesignation,$department,$old))throw new InvalidArgumentException('Designation changed. Select a designation for this department again.');
@@ -29,8 +30,8 @@ function save_employee(PDO $pdo,array $actor,array $in,array $files):int {
   $pdo->prepare('INSERT INTO user_roles(user_id,role_id) VALUES(?,?) ON DUPLICATE KEY UPDATE role_id=VALUES(role_id)')->execute([$id,$role]);
   if(in_array($status,['Inactive','Resigned','Terminated'],true))$pdo->prepare('UPDATE users SET active=0,session_version=session_version+1 WHERE id=?')->execute([$id]);
   if(!empty($in['assigned_shift_id'])){if(!function_exists('chr_ready')||!chr_ready($pdo))throw new InvalidArgumentException('Enable Core HR before assigning a shift.');chr_save_config($pdo,$actor,'roster',['title'=>'Employee shift override','employee_id'=>$id,'shift_id'=>$in['assigned_shift_id'],'from'=>$in['shift_from']??'','to'=>$in['shift_to']??'','notes'=>'Assigned when saving employee','active'=>1]);}
-  save_media($pdo,$actor,$id,'profile',$photo);faudit($pdo,$actor,$old?'employee.profile_updated':'employee.created',$id);$pdo->commit();return $id;
- }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+  save_media($pdo,$actor,$id,'profile',$photo);faudit($pdo,$actor,$old?'employee.profile_updated':'employee.created',$id);if($ownsTransaction)$pdo->commit();return $id;
+ }catch(Throwable $e){if($ownsTransaction&&$pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 function import_foundation(PDO $pdo,array $actor,array $rows):array {
  $created=0;$skipped=0;$pdo->beginTransaction();try{
@@ -75,3 +76,4 @@ function foundation_bulk_employees(PDO $db,array $actor,array $in):string {
   $db->commit();return count($ids).($operation==='delete'?' employees permanently deleted, including their accounts and personal attendance records.':' employee assignments updated.');
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
+

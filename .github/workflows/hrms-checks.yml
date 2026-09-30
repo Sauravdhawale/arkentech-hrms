@@ -44,6 +44,7 @@ jobs:
           python3 tests/bridge_queue.py
 
           php tests/employee_bulk.php
+          php tests/employee_csv.php
           php tests/payroll.php
           python3 tests/payroll_http.py
           php tests/organization.php
@@ -52,3 +53,4 @@ jobs:
 
           php tests/ess.php
           python3 tests/ess_http.py
+
