@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/organization.php';
+require_once __DIR__.'/employee-delete.php';
 function save_employee(PDO $pdo,array $actor,array $in,array $files):int {
  $id=(int)($in['id']??0);$old=$id?foundation_employee($pdo,$id):null;if($id&&!$old)throw new InvalidArgumentException('Employee not found.');
  $q=$pdo->prepare("SELECT id FROM users WHERE id=? AND role='super_admin'");$q->execute([$id]);if($q->fetchColumn())throw new InvalidArgumentException('Super Admin accounts are protected.');
@@ -50,6 +51,7 @@ function foundation_bulk_employees(PDO $db,array $actor,array $in):string {
  $ids=[];foreach($raw as $value){if(!is_scalar($value)||!ctype_digit((string)$value)||(int)$value<1)throw new InvalidArgumentException('Invalid employee selection.');$ids[]=(int)$value;}$ids=array_values(array_unique($ids));sort($ids);
  $operation=$in['operation']??'';if(!in_array($operation,['delete','assign'],true))throw new InvalidArgumentException('Choose a bulk action.');
  if(($in['confirmed']??'')!=='1')throw new InvalidArgumentException('Confirm the selected employee changes.');
+ if($operation==='delete'&&($in['delete_mode']??'')!=='permanent')throw new InvalidArgumentException('Reload People and confirm permanent deletion.');
  $department=(int)($in['bulk_department']??0);$designation=(int)($in['bulk_designation']??0);$role=(int)($in['bulk_role']??0);
  if($operation==='assign'&&!$department&&!$designation&&!$role)throw new InvalidArgumentException('Choose a department, designation or role to assign.');
  $db->beginTransaction();try {
@@ -62,7 +64,7 @@ function foundation_bulk_employees(PDO $db,array $actor,array $in):string {
    foreach($employees as $e){$dep=$department?:$e['department_id'];$des=$designation?:$e['designation_id'];if($des){$q=$db->prepare('SELECT department_id FROM designations WHERE id=?');$q->execute([$des]);$bound=$q->fetchColumn();if($bound&&((int)$bound!==(int)$dep))throw new InvalidArgumentException('A designation belongs to another department. Choose a compatible designation for this selection.');}}
   }
   foreach($employees as $e){$id=(int)$e['user_id'];
-   if($operation==='delete'){$db->prepare('UPDATE employees SET deleted_at=NOW(),version=version+1 WHERE user_id=?')->execute([$id]);$db->prepare('UPDATE users SET active=0,session_version=session_version+1 WHERE id=?')->execute([$id]);}
+   if($operation==='delete'){foundation_permanently_delete_employee($db,$actor,$id);}
    else {
     if($department&&(int)$e['department_id']!==$department&&function_exists('att_ready')&&att_ready($db))att_record_write($db,$actor,'department_history',['title'=>'Department change'],['date'=>date('Y-m-d'),'before'=>(int)$e['department_id'],'after'=>$department],$id);
     $sets=['version=version+1'];$args=[];if($department){$sets[]='department_id=?';$args[]=$department;}if($designation){$sets[]='designation_id=?';$args[]=$designation;}$args[]=$id;$db->prepare('UPDATE employees SET '.implode(',',$sets).' WHERE user_id=?')->execute($args);
@@ -70,6 +72,6 @@ function foundation_bulk_employees(PDO $db,array $actor,array $in):string {
    }
    faudit($db,$actor,'employee.bulk_'.$operation,$id);
   }
-  $db->commit();return count($ids).($operation==='delete'?' employees deleted from the directory. Logins disabled; historical records retained.':' employee assignments updated.');
+  $db->commit();return count($ids).($operation==='delete'?' employees permanently deleted, including their accounts and personal attendance records.':' employee assignments updated.');
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }

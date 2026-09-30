@@ -108,7 +108,7 @@ try:
  path='reset-password.php?token='+mail['token'];_,h=get(anon,path);_,h=post(anon,path,{'csrf':token(h),'token':mail['token'],'password':'Reset-HTTP-Password-2026!','confirm_password':'Reset-HTTP-Password-2026!'});assert 'Password updated' in h
  assert 'login.php' in get(e,'index.php')[0]
  login('http.person@example.test','Reset-HTTP-Password-2026!')
- _,h=get(a,'super-admin.php?page=employee-view&id='+uid+'&tab=employment');_,h=post(a,'super-admin.php?page=employee-view&id='+uid+'&tab=employment',{'csrf':token(h),'action':'delete_employee','id':uid});assert 'archived' in h
+ _,h=get(a,'super-admin.php?page=employee-view&id='+uid+'&tab=employment');_,h=post(a,'super-admin.php?page=employee-view&id='+uid+'&tab=employment',{'csrf':token(h),'action':'delete_employee','id':uid,'delete_mode':'permanent'});assert 'permanently deleted' in h
  _,h=get(a,'super-admin.php?page=employees&search=http.person');assert 'No employees found' in h
  _,h=get(a,'super-admin.php?page=account')
  _,h=post(a,'super-admin.php?page=account',{'csrf':token(h),'action':'change_password','current_password':'User@123','new_password':'Admin-Changed-2026!','confirm_password':'Admin-Changed-2026!'});assert 'Password changed.' in h
@@ -116,7 +116,7 @@ try:
  url,h=post(a,'logout.php',{'csrf':token(h)});assert 'login.php' in url
  assert 'login.php' in get(a,'super-admin.php')[0]
  login('test.admin','Admin-Changed-2026!')
- print('PASS: Phase 1 screens, employee creation, assigned-department delete protection, forced password change, role/CSRF denial, disable/reactivate, email recovery, session revocation, archive.')
+ print('PASS: Phase 1 screens, employee creation, assigned-department delete protection, forced password change, role/CSRF denial, disable/reactivate, email recovery, session revocation, permanent deletion.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
  if __import__('sys').exc_info()[0]:print(open('/tmp/peopleflow-foundation-http.log').read())
