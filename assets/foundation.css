@@ -62,3 +62,14 @@
 .notification-panel .empty-state{padding:28px 18px}
 .notification-panel .empty-state p{font-size:12px;margin-bottom:0}
 @media(max-width:600px){.notification-panel{position:fixed;top:70px;right:16px;width:370px}.top-actions{gap:12px}}
+
+
+/* Keep device activity readable without changing other attendance tables. */
+.punch-activity-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.punch-activity-heading h2{margin:0}
+.table-scroll.attendance-table-scroll.punch-activity-scroll{height:clamp(420px,68vh,780px)}
+.punch-activity-scroll table.directory{min-width:1500px}
+.punch-activity-scroll table.directory td{vertical-align:top;white-space:nowrap}
+.punch-activity-scroll table.directory .punch-processing{min-width:240px;max-width:320px;white-space:normal}
+.punch-activity-scroll .punch-detail{display:block;line-height:1.5;overflow-wrap:anywhere;margin-top:5px}
+@media(max-width:600px){.table-scroll.attendance-table-scroll.punch-activity-scroll{height:65vh;min-height:320px}}
