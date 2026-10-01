@@ -13,6 +13,21 @@ function ess_punch_sequence(array $punches,int $duplicateSeconds=10):array {
  }
  return ['state'=>$state,'last'=>$last,'inferred'=>$inferred,'count'=>$count];
 }
+/** Manual attendance is a presence baseline, not a reason to ignore later device events. */
+function ess_presence_sequence(?array $attendance,array $punches):array {
+ $events=[];$anchor=null;
+ if($attendance&&($attendance['source']??'')!=='Biometric'){
+  $anchor=$attendance['check_out']?:$attendance['check_in'];
+  if($anchor)$events[]=['punched_at'=>$anchor,'direction'=>$attendance['check_out']?'out':'in'];
+ }
+ foreach($punches as $p){
+  if($anchor&&$p['punched_at']<=$anchor)continue;
+  // Manual protected means stored and mapped, but intentionally excluded from payroll updates.
+  if(!in_array($p['status'],['Processed','Manual protected'],true))return ['state'=>'review'];
+  $events[]=$p;
+ }
+ return ess_punch_sequence($events);
+}
 function ess_punch_status(PDO $db,int $owner):array {
  $base=['state'=>'none','label'=>'Not checked in','detail'=>'No punch in the current shift','inferred'=>false];
  if(!foundation_employee($db,$owner))return array_replace($base,['label'=>'No employee profile','detail'=>'Contact HR']);
@@ -31,15 +46,13 @@ function ess_punch_status(PDO $db,int $owner):array {
 
  $day=$resolved['day'];
  $q=$db->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND attendance_date=?');$q->execute([$owner,$day]);$attendance=$q->fetch(PDO::FETCH_ASSOC);
- if($attendance&&$attendance['source']!=='Biometric'){
-  $sequence=['state'=>$attendance['check_out']?'out':'in','last'=>$attendance['check_out']?:$attendance['check_in'],'inferred'=>false];
- }else{
-  if(!att_biometric_enabled($db))return $base;
+ $punches=[];
+ if(att_biometric_enabled($db)){
   $q=$db->prepare('SELECT p.punched_at,p.direction,x.status FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id WHERE x.employee_id=? AND x.attendance_date=? AND p.punched_at<=? ORDER BY p.punched_at,p.id');
   $q->execute([$owner,$day,date('Y-m-d H:i:s')]);$punches=$q->fetchAll(PDO::FETCH_ASSOC);
-  foreach($punches as $p)if($p['status']!=='Processed')return array_replace($base,['state'=>'review','label'=>'Punch needs review','detail'=>'Attendance processing is incomplete']);
-  $sequence=ess_punch_sequence($punches);
  }
+ $sequence=ess_presence_sequence($attendance?:null,$punches);
+ if($sequence['state']==='review')return array_replace($base,['state'=>'review','label'=>'Punch needs review','detail'=>'Attendance processing is incomplete']);
  if($sequence['state']==='none')return $base;
  [$start,$end]=chr_shift_bounds($day,$resolved['shift']['values']);
  $missing=$sequence['state']==='in'&&time()>$end->getTimestamp()+(int)att_config($db)['punch_after_minutes']*60;
