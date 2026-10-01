@@ -19,3 +19,32 @@ $s=ess_presence_sequence(null,[$raw]);check_status($s['state']==='in','Protected
 $s=ess_presence_sequence($manual,[event_at('2026-10-02 02:30:00')+['status'=>'Failed']]);check_status($s['state']==='review','Failed events must not claim a confirmed presence');
 $s=ess_presence_sequence(['source'=>'AdminManual','check_in'=>null,'check_out'=>null],[]);check_status($s['state']==='none','Empty manual attendance must not imply IN');
 echo "Employee punch status checks passed\n";
+
+
+// Shift timers use one overnight window, not the current calendar date.
+date_default_timezone_set('Asia/Kolkata');
+$start=strtotime('2026-10-01 18:00:00');$end=strtotime('2026-10-02 03:00:00');
+$shift=['required_hours'=>9,'break_minutes'=>60,'overtime_rule'=>'After shift end'];
+$timeline=ess_punch_sequence([event_at('2026-10-01 18:00:00'),event_at('2026-10-01 22:00:00'),event_at('2026-10-01 23:30:00')])['events'];
+$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-02 04:00:00'),7200);
+check_status($t['worked']===30600&&$t['break']===5400&&$t['excess_break']===1800,'Worked intervals exclude breaks without subtracting scheduled break again');
+check_status($t['overtime']===3600&&$t['target']===32400,'After-shift overtime counts checked-in time after overnight end');
+$shift['overtime_rule']='After required hours';$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-02 04:00:00'),7200);
+check_status($t['overtime']===0,'Required-hours rule must not count overtime before target');
+$shift['overtime_rule']='After both';$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-02 05:00:00'),7200);
+check_status($t['overtime']===1800,'Both overtime thresholds must be respected');
+$timeline=ess_punch_sequence([event_at('2026-10-01 18:00:00'),event_at('2026-10-02 02:30:00')])['events'];
+$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-02 04:00:00'),7200);
+check_status($t['worked']===30600&&$t['break']===1800,'Checked-out work pauses and break stops at scheduled end');
+$t=ess_shift_timer([],$start,$end,$shift,strtotime('2026-10-01 19:00:00'),7200);
+check_status($t['worked']===0&&$t['break']===0&&$t['first_in']===null,'No punches cannot start work or break');
+$timeline=ess_punch_sequence([event_at('2026-10-01 18:00:00','out'),event_at('2026-10-01 19:00:00','in')])['events'];
+$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-01 20:00:00'),7200);
+check_status($t['worked']===3600&&$t['break']===0,'Initial OUT is not a break before first IN');
+$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-02 12:00:00'),7200);
+check_status($t['expired']&&$t['worked']===36000,'Missing checkout must not run forever after shift window');
+$manual=['source'=>'AdminManual','check_in'=>'2026-10-01 18:00:00','check_out'=>'2026-10-01 22:00:00'];
+$timeline=ess_presence_sequence($manual,[event_at('2026-10-01 23:00:00')+['status'=>'Manual protected']])['events'];
+$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-02 00:00:00'),7200);
+check_status($t['worked']===18000&&$t['break']===3600,'Manual baseline and later biometric intervals agree');
+echo "Live shift timer checks passed\n";

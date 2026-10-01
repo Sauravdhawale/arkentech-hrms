@@ -2,22 +2,23 @@
 /** Read-only presence estimate. Never changes payroll, raw punches or attendance. */
 function ess_punch_sequence(array $punches,int $duplicateSeconds=10):array {
  usort($punches,fn($a,$b)=>strcmp($a['punched_at'],$b['punched_at']));
- $state='none';$last=null;$inferred=false;$count=0;
+ $state='none';$last=null;$inferred=false;$count=0;$events=[];
  foreach($punches as $p){
   $at=strtotime($p['punched_at']);
   if($last!==null&&$at-strtotime($last)<$duplicateSeconds)continue;
   $direction=$p['direction']??'unknown';
   if(in_array($direction,['in','out'],true)){$state=$direction;$inferred=false;}
   else{$state=$state==='in'?'out':'in';$inferred=true;}
-  $last=$p['punched_at'];$count++;
+  $last=$p['punched_at'];$count++;$events[]=['at'=>$at,'state'=>$state,'inferred'=>$inferred];
  }
- return ['state'=>$state,'last'=>$last,'inferred'=>$inferred,'count'=>$count];
+ return ['state'=>$state,'last'=>$last,'inferred'=>$inferred,'count'=>$count,'events'=>$events];
 }
 /** Manual attendance is a presence baseline, not a reason to ignore later device events. */
 function ess_presence_sequence(?array $attendance,array $punches):array {
  $events=[];$anchor=null;
  if($attendance&&($attendance['source']??'')!=='Biometric'){
   $anchor=$attendance['check_out']?:$attendance['check_in'];
+  if(!empty($attendance['check_in'])&&!empty($attendance['check_out']))$events[]=['punched_at'=>$attendance['check_in'],'direction'=>'in'];
   if($anchor)$events[]=['punched_at'=>$anchor,'direction'=>$attendance['check_out']?'out':'in'];
  }
  foreach($punches as $p){
@@ -53,9 +54,39 @@ function ess_punch_status(PDO $db,int $owner):array {
  }
  $sequence=ess_presence_sequence($attendance?:null,$punches);
  if($sequence['state']==='review')return array_replace($base,['state'=>'review','label'=>'Punch needs review','detail'=>'Attendance processing is incomplete']);
- if($sequence['state']==='none')return $base;
  [$start,$end]=chr_shift_bounds($day,$resolved['shift']['values']);
+ $timing=ess_shift_timer($sequence['events'],$start->getTimestamp(),$end->getTimestamp(),$resolved['shift']['values'],time(),(int)att_config($db)['punch_after_minutes']*60);
+ $timing['shift_label']=($resolved['shift']['title']??'Assigned shift').' · '.date('d M, h:i A',$start->getTimestamp()).' – '.date('d M, h:i A',$end->getTimestamp());
+ $timing['manual_baseline']=$attendance&&$attendance['source']!=='Biometric';
+ if($sequence['state']==='none')return $base+['timing'=>$timing];
  $missing=$sequence['state']==='in'&&time()>$end->getTimestamp()+(int)att_config($db)['punch_after_minutes']*60;
  return ['state'=>$missing?'review':$sequence['state'],'label'=>$missing?'Check-Out missing':($sequence['state']==='in'?'Checked In':'Checked Out'),
- 'detail'=>date('h:i A',strtotime($sequence['last'])).' · '.($sequence['inferred']?'Inferred':'Recorded'), 'inferred'=>$sequence['inferred']];
+ 'detail'=>date('h:i A',strtotime($sequence['last'])).' · '.($sequence['inferred']?'Inferred':'Recorded'), 'inferred'=>$sequence['inferred'],'timing'=>$timing];
+}
+
+
+/** Read-only timer based on accepted IN/OUT intervals; no fixed break is deducted twice. */
+function ess_shift_timer(array $events,int $start,int $end,array $shift,int $now,int $afterBuffer=0):array {
+ $limit=$end+max(0,$afterBuffer);$until=min($now,$limit);
+ $worked=0;$after=0;$break=0;$first=null;$lastOut=null;$inferred=false;$state='none';
+ foreach($events as $i=>$event){
+  $at=(int)$event['at'];if($at>$until)break;
+  $state=$event['state'];$inferred=$inferred||$event['inferred'];
+  $next=min($until,(int)($events[$i+1]['at']??$until));
+  if($state==='in'){
+   $first=$first??$at;$worked+=max(0,$next-$at);$after+=max(0,$next-max($at,$end));
+  }elseif($first!==null){
+   $lastOut=$at;$break+=max(0,min($next,$end)-max($at,$start));
+  }
+ }
+ $target=max(0,(int)round((float)($shift['required_hours']??$shift['overtime_after']??0)*3600));
+ if(!$target)$target=max(0,$end-$start-(int)($shift['break_minutes']??0)*60);
+ $allowed=max(0,(int)($shift['break_minutes']??0)*60);
+ $rule=$shift['overtime_rule']??'After required hours';$extra=max(0,$worked-$target);
+ $overtime=$rule==='After shift end'?$after:($rule==='After both'?min($after,$extra):$extra);
+ return ['as_of'=>$now,'shift_start'=>$start,'shift_end'=>$end,'limit'=>$limit,'state'=>$state,
+  'worked'=>$worked,'after_end'=>$after,'break'=>$break,'allowed_break'=>$allowed,'excess_break'=>max(0,$break-$allowed),
+  'target'=>$target,'overtime'=>$overtime,'overtime_rule'=>$rule,'first_in'=>$first,'last_out'=>$lastOut,
+  'first_in_label'=>$first?date('d M, h:i A',$first):'—','last_out_label'=>$lastOut?date('d M, h:i A',$lastOut):'—',
+  'inferred'=>$inferred,'expired'=>$now>$limit];
 }
