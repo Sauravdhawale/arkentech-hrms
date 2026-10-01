@@ -29,3 +29,34 @@
 .employee-ui.ess-page-overview #content>.ess-workday{grid-column:1/-1;background:linear-gradient(115deg,var(--surface),var(--bg));padding:28px}
 .ess-workday-main{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:24px 0 18px}.ess-workday-main span,.ess-workday-main small{display:block;color:var(--muted)}.ess-workday-main [data-workday-value]{display:block;font-size:clamp(28px,3.5vw,44px);font-variant-numeric:tabular-nums;letter-spacing:-1px;margin:6px 0}.ess-workday-punches b{display:block;color:var(--text);font-weight:600}.ess-workday progress{display:block;width:100%;height:9px;accent-color:#86ac28;border:0;border-radius:8px;overflow:hidden}.ess-workday progress::-webkit-progress-bar{background:var(--line)}.ess-workday progress::-webkit-progress-value{background:#86ac28}.ess-workday-metrics{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:24px}.ess-workday-metrics>div{padding:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px}.ess-workday-metrics small{display:block;color:var(--muted)}.ess-workday-metrics strong{display:block;font-size:17px;margin-top:8px;font-variant-numeric:tabular-nums}.ess-workday[data-excess=true] [data-workday-value=excess_break]{color:#c34b3c}.employee-ui.dark .ess-workday[data-excess=true] [data-workday-value=excess_break]{color:#ffaaa0}
 @media(max-width:1100px){.ess-workday-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:600px){.ess-workday-main{align-items:flex-start;flex-direction:column}.ess-workday-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.employee-ui.ess-page-overview #content>.ess-workday{padding:20px}.ess-workday-metrics>div{padding:12px}.ess-workday-metrics strong{font-size:14px}}
+
+/* Employee dashboard: readable full-width cards at normal browser zoom. */
+.employee-ui.ess-page-overview #content{max-width:none;padding:28px clamp(20px,3vw,44px) 40px;gap:22px;align-items:start}
+.employee-ui.ess-page-overview #content>.page-title{margin-bottom:2px}
+.employee-ui.ess-page-overview #content>.ess-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+.employee-ui.ess-page-overview .ess-cards .panel{display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--line);border-left:4px solid #91b935;padding:18px 22px}
+.employee-ui.ess-page-overview .ess-cards h2{margin:0;font-size:28px}
+.employee-ui.ess-page-overview .ess-cards small{font-size:14px}
+.employee-ui.ess-page-overview #content>.ess-workday{padding:28px 30px;border-radius:20px;background:var(--surface);box-shadow:0 6px 24px #142d2206}
+.ess-workday .ess-section-heading h2{font-size:23px;margin:5px 0 0}
+.employee-ui .ess-workday>p[data-workday-shift]{font-size:13px;margin:10px 0 0;color:var(--muted)}
+.ess-workday-main{margin:24px 0;padding:24px;border-radius:14px;background:var(--bg);border:1px solid var(--line)}
+.ess-workday-main [data-workday-value]{font-size:clamp(32px,3.8vw,54px);line-height:1.2;font-weight:750;letter-spacing:-1.5px;margin:10px 0}
+.ess-workday-main>div:first-child{min-width:0}.ess-workday-main span{font-size:14px;font-weight:600;color:var(--text)}
+.ess-workday-main small{font-size:12px;line-height:1.7}
+.ess-workday-punches{min-width:190px;border-left:1px solid var(--line);padding-left:24px}
+.ess-workday-punches p{font-size:12px;margin:0 0 14px}.ess-workday-punches p:last-child{margin-bottom:0}
+.ess-workday-punches b{font-size:14px;margin-top:5px}
+.ess-workday-metrics{grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:22px}
+.ess-workday-metrics>div{padding:16px 14px;min-width:0;border-radius:12px}
+.ess-workday-metrics small{font-size:12px;line-height:1.4}
+.ess-workday-metrics strong{font-size:clamp(14px,1.35vw,20px);white-space:nowrap;letter-spacing:-.3px}
+.ess-workday[data-excess=true] .ess-workday-metrics>div:has([data-workday-value=excess_break]){border-color:#d97c6d;background:#fff3ef}
+.employee-ui.dark .ess-workday[data-excess=true] .ess-workday-metrics>div:has([data-workday-value=excess_break]){background:#392822;border-color:#87564a}
+.employee-ui .ess-workday .ess-hint{max-width:100%;font-size:12px;line-height:1.65;margin:20px 0 0}
+.ess-workday .ess-actions{border-top:1px solid var(--line);padding-top:18px;margin-top:18px;justify-content:flex-end}
+.employee-ui.ess-page-overview .table-scroll{max-height:320px}
+.employee-ui.ess-page-overview #content>form{background:var(--surface);border-radius:14px}
+@media(min-width:1800px){.ess-workday-main [data-workday-value]{font-size:56px}}
+@media(max-width:1200px){.ess-workday-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.ess-workday-metrics strong{font-size:18px}}
+@media(max-width:760px){.employee-ui.ess-page-overview #content{padding:20px 16px;gap:16px}.employee-ui.ess-page-overview #content>.ess-workday{padding:20px}.ess-workday-main{padding:18px;gap:20px}.ess-workday .ess-section-heading{align-items:flex-start}.ess-workday-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.ess-workday-metrics>div:last-child{grid-column:1/-1}.ess-workday-punches{border-left:0;padding-left:0;display:flex;gap:24px;flex-wrap:wrap}.ess-workday-punches p{margin:0}.ess-workday .ess-actions{justify-content:flex-start}.employee-ui.ess-page-overview .ess-cards .panel{padding:16px;gap:12px}}
