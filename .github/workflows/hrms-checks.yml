@@ -52,5 +52,7 @@ jobs:
           python3 tests/organization_http.py
 
           php tests/ess.php
+          php tests/ess_punch_status.php
           python3 tests/ess_http.py
+
 

@@ -24,6 +24,15 @@ require __DIR__.'/suite.php';
 require_once __DIR__.'/leave-balances.php';
 $coreReady=chr_ready($pdo);
 require_once __DIR__.'/ess/service.php';
+if(isset($_GET['punch_status'])){
+ header('Content-Type: application/json');header('Cache-Control: no-store, private');
+ if($admin||$passwordSetup||!$coreReady){http_response_code(403);echo json_encode(['error'=>'Status unavailable']);exit;}
+ require_once __DIR__.'/ess/punch-status.php';
+ try{echo json_encode(ess_punch_status($pdo,(int)$user['id']));}
+ catch(Throwable $e){http_response_code(503);echo json_encode(['error'=>'Status unavailable']);}
+ exit;
+}
+
 if(!$admin&&$coreReady&&$page==='approvals'&&!can($pdo,$user,'leave.approve')){http_response_code(403);exit('Approval permission required.');}
 if(!$admin&&$coreReady&&$_SERVER['REQUEST_METHOD']==='POST'&&str_starts_with((string)($_POST['action']??''),'ess_')){$suiteHandledPost=true;csrf();try{ess_post($pdo,$user,$page,$_POST,$_FILES);header('Location: employee.php?page='.urlencode($page).'&saved=1');exit;}catch(InvalidArgumentException $e){$error=$e->getMessage();}catch(Throwable $e){$error='Unable to save. Please contact HR.';error_log('ESS: '.get_class($e));}}
 
@@ -93,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && empty($suiteHandledPost)) {
 }
 function token(): void { echo '<input type="hidden" name="csrf" value="'.h($_SESSION['csrf']).'">'; }
 function empty_module(string $title,string $description,array $items): void { echo '<section class="panel"><span class="eyebrow">'.h($title).'</span><h2 style="margin:12px 0">'.h($description).'</h2><p>Not configured yet. No live records are available in this module.</p><div class="module-items">';foreach($items as $item)echo '<div>'.h($item).'<span>Not connected</span></div>';echo '</div></section>'; }
-?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=h($nav[$page])?> · PeopleFlow</title><link rel="icon" href="assets/favicon.svg"><link rel="stylesheet" href="assets/style.css"><link rel="stylesheet" href="assets/workspace.css"><link rel="stylesheet" href="assets/ess.css?v=3"><link rel="stylesheet" href="assets/tables.css?v=<?=filemtime(__DIR__.'/../assets/tables.css')?>"><script src="assets/tables.js?v=<?=filemtime(__DIR__.'/../assets/tables.js')?>" defer></script></head><body class="<?=$admin?'admin-workspace':'employee-ui ess-page-'.h($page)?>"><aside><a class="brand" href="index.php"><i>p.</i> peopleflow<span>ARKENTECH</span></a><div class="workspace"><span class="company-icon">A</span><div><b><?= $admin?'Super Admin':'Employee' ?></b><small>Arkentech Solutions</small></div></div><p class="nav-label"><?= $admin?'COMPANY WORKSPACE':'MY WORKSPACE' ?></p><nav class="grouped-nav"><?php
+?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=h($nav[$page])?> · PeopleFlow</title><link rel="icon" href="assets/favicon.svg"><link rel="stylesheet" href="assets/style.css"><link rel="stylesheet" href="assets/workspace.css"><link rel="stylesheet" href="assets/ess.css?v=4"><link rel="stylesheet" href="assets/tables.css?v=<?=filemtime(__DIR__.'/../assets/tables.css')?>"><script src="assets/tables.js?v=<?=filemtime(__DIR__.'/../assets/tables.js')?>" defer></script></head><body class="<?=$admin?'admin-workspace':'employee-ui ess-page-'.h($page)?>"><aside><a class="brand" href="index.php"><i>p.</i> peopleflow<span>ARKENTECH</span></a><div class="workspace"><span class="company-icon">A</span><div><b><?= $admin?'Super Admin':'Employee' ?></b><small>Arkentech Solutions</small></div></div><p class="nav-label"><?= $admin?'COMPANY WORKSPACE':'MY WORKSPACE' ?></p><nav class="grouped-nav"><?php
 $groups=['Overview'=>['overview'],'People'=>[$admin?'employees':'profile']];
 foreach(suite_definitions() as $key=>$def)if(isset($nav[$key]))$groups[$def[1]][]=$key;
 $groups['Attendance']=array_merge(['attendance','monthly','regularisation'],$admin?['raw_logs','sync','device_attendance','device_monthly']:[],$groups['Attendance']??[]);
@@ -139,4 +148,5 @@ elseif($page==='overview'):
  'reports'=>['Reports','Company reports',['Headcount by department','Attendance summary','Leave summary','Payroll summary','Downloadable reports']],
  'settings'=>['Company settings','Two-role access model',['Company profile','Departments & designations','Attendance policies','Leave policies','Payroll configuration']]
  ];$m=$modules[$page];empty_module($m[0],$m[1],$m[2]);
- endif; ?></main><footer>PeopleFlow by Arkentech<span><?= $admin?'Company workspace':'Employee workspace' ?></span></footer></div><script src="assets/workspace.js"></script><script src="assets/ess.js?v=3" defer></script></body></html>
+ endif; ?></main><footer>PeopleFlow by Arkentech<span><?= $admin?'Company workspace':'Employee workspace' ?></span></footer></div><script src="assets/workspace.js"></script><script src="assets/ess.js?v=4" defer></script></body></html>
+

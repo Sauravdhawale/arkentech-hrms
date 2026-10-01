@@ -10,3 +10,22 @@ document.querySelectorAll('.ess-dropdown').forEach(menu=>menu.addEventListener('
 document.addEventListener('click',event=>document.querySelectorAll('.ess-dropdown[open]').forEach(menu=>{if(!menu.contains(event.target))menu.open=false;}));
 document.addEventListener('keydown',event=>{if(event.key==='Escape')document.querySelectorAll('.ess-dropdown[open]').forEach(menu=>menu.open=false);});
 })();
+
+
+(()=>{'use strict';
+ const badge=document.querySelector('[data-punch-status]');if(!badge)return;
+ const label=badge.querySelector('[data-punch-label]'),detail=badge.querySelector('[data-punch-detail]');let busy=false;
+ async function refresh(){
+  if(busy||document.hidden)return;busy=true;
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);
+  try{
+   const url=new URL('employee.php',location.href);url.searchParams.set('punch_status','1');
+   const response=await fetch(url,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+   if(!response.ok||!response.headers.get('content-type')?.includes('application/json'))throw new Error('unavailable');
+   const data=await response.json();if(!['none','in','out','review'].includes(data.state))throw new Error('invalid');
+   badge.dataset.state=data.state;label.textContent=data.label;detail.textContent=data.detail;
+  }catch(error){badge.dataset.state='review';label.textContent='Status unavailable';detail.textContent='Waiting to reconnect';}
+  finally{clearTimeout(timeout);busy=false;}
+ }
+ refresh();setInterval(refresh,10000);document.addEventListener('visibilitychange',refresh);
+})();
