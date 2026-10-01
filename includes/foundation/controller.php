@@ -17,6 +17,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
  csrf();$action=(string)($_POST['action']??'');
  try{
   if($action==='install_recruitment'){if($user['role']!=='super_admin')throw new InvalidArgumentException('Super Admin required.');recruitment_migrate($pdo);$notice='Recruitment / ATS database installed. Existing HRMS data was preserved.';
+  }elseif($action==='recruitment_save_job'){need($pdo,$user,'recruitment.jobs.manage');$id=recruitment_job_save($pdo,$user,$_POST);$_SESSION['foundation_notice']='Job opening saved.';header('Location: ?page=recruitment_jobs&edit='.$id);exit;
+  }elseif($action==='recruitment_job_status'){need($pdo,$user,'recruitment.jobs.manage');recruitment_job_status($pdo,$user,$_POST);$notice='Job status updated.';
   }elseif($action==='ess_preferences'){if($user['role']!=='super_admin')throw new InvalidArgumentException('Super Admin required.');$pdo->beginTransaction();chr_lock($pdo);$existing=chr_rows($pdo,'ess_settings')[0]??null;if((int)($existing['id']??0)!==(int)($_POST['id']??0))throw new InvalidArgumentException('Preferences changed. Reload first.');att_record_write($pdo,$user,'ess_settings',$_POST,['birthdays_enabled'=>!empty($_POST['birthdays_enabled'])]);$pdo->commit();$notice='Employee workspace preferences saved.';}elseif($action==='ess_route'){ess_save_route($pdo,$user,$_POST);$notice='Approval route saved for future applications.';
   }elseif($action==='organization_preview'){
    org_authorize($pdo,$user);$_SESSION['organization_preview']=['actor'=>(int)$user['id'],'plan'=>org_plan(org_snapshot($pdo))];$notice='Organization preview ready. No records have changed.';
