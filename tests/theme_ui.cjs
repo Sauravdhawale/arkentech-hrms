@@ -14,7 +14,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   async function layout(){assert.equal(await page.locator('body').evaluate(e=>e.scrollWidth<=innerWidth+1),true,'horizontal page overflow '+page.url());}
   async function check(){await page.waitForFunction(()=>document.body.classList.contains('shrms-ui'));assert.equal(await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily.includes('Noto Sans')),true);await layout();assert.equal(await page.locator('body').innerText().then(t=>/Fatal error|Warning:/.test(t)),false);}
-  async function login(user){await page.goto(base+'/login.php');await page.locator('[name=email]').fill(user);await page.locator('[name=password]').fill('User@123');await Promise.all([page.waitForURL(u=>!u.pathname.endsWith('/login.php')),page.locator('.login-submit').click()]);}
+  async function login(user){await page.goto(base+'/login.php');await page.locator('[name=email]').fill(user);await page.locator('[name=password]').fill(user==='test.admin'?'Admin-Changed-2026!':'User@123');await Promise.all([page.waitForURL(u=>!u.pathname.endsWith('/login.php')),page.locator('.login-submit').click()]);}
   await page.goto(base+'/login.php');await check();assert.equal(await page.locator('.login-submit').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(159, 17, 12)');await page.screenshot({path:'/tmp/shrms-ui-screenshots/login.png'});
   await page.goto(base+'/forgot-password.php');await check();
   await login('test.admin');
