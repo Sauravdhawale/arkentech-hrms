@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 }
 
 ?><!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · Arkentech sHRMS</title><link rel="icon" href="assets/favicon.svg"><link rel="stylesheet" href="assets/login.css?v=<?=filemtime(__DIR__.'/assets/login.css')?>"><script src="assets/login.js?v=<?=filemtime(__DIR__.'/assets/login.js')?>" defer></script><?php require __DIR__.'/includes/theme-assets.php';?></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in · Arkentech sHRMS</title><link rel="stylesheet" href="assets/login.css?v=<?=filemtime(__DIR__.'/assets/login.css')?>"><script src="assets/login.js?v=<?=filemtime(__DIR__.'/assets/login.js')?>" defer></script><?php require __DIR__.'/includes/theme-assets.php';?></head>
 <body class="shrms-ui ark-login">
 <main class="login-shell">
  <section class="login-panel" aria-labelledby="login-title">
