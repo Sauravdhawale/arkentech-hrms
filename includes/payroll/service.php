@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/config.php';
+require_once __DIR__.'/workflow.php';
 function pay_month(string $month):array {
  if(!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/D',$month))throw new InvalidArgumentException('Choose a valid payroll month.');
  $from=chr_date($month.'-01');return [$from,(new DateTimeImmutable($from))->format('Y-m-t')];
@@ -10,7 +11,7 @@ function pay_event(PDO $db,array $actor,string $action,?int $run=null,?int $entr
 function pay_run(PDO $db,int $id,bool $lock=false):array {
  $q=$db->prepare('SELECT * FROM hr_payroll_runs WHERE id=?'.($lock?' FOR UPDATE':''));$q->execute([$id]);$r=$q->fetch(PDO::FETCH_ASSOC);if(!$r)throw new InvalidArgumentException('Payroll run not found.');return $r;
 }
-function pay_mutable(array $run):void {if(in_array($run['status'],['Finalized','Paid'],true))throw new InvalidArgumentException('Finalized payroll is locked. Record a documented adjustment in a later payroll.');}
+function pay_mutable(array $run):void {if(pay_is_locked_status((string)$run['status']))throw new InvalidArgumentException('Locked payroll cannot be edited normally. Reopen it with a documented reason or use a later adjustment.');}
 function pay_version(array $run,array $in):void {if((int)($in['version']??0)!==(int)$run['version'])throw new InvalidArgumentException('Payroll changed. Refresh this page.');}
 function pay_company_snapshot(PDO $db):array {
  $company=$db->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC);
