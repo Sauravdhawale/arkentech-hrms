@@ -93,3 +93,26 @@ function chr_leave_prompt_for_request(PDO $db,int $requestId,string $state): voi
  $status=$state==='Approved'?'Resolved':($state==='Pending'?'Pending':($state==='Rejected'?'Open':($state==='Cancelled'?'Open':'Open')));
  foreach($q as $d){$sql='UPDATE hr_leave_absence_prompts SET status=?,leave_request_id=?,resolved_at=? WHERE employee_id=? AND absence_date=? AND status<>'Dismissed'';$db->prepare($sql)->execute([$status,$requestId,$status==='Resolved'?date('Y-m-d H:i:s'):null,$d['user_id'],$d['leave_date']]);}
 }
+
+function chr_leave_absence_prompt_refresh(PDO $db,int $employeeId): array {
+ if(!chr_leave_management_ready($db))return [];
+ $settings=$db->query('SELECT * FROM hr_leave_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC)?:['absence_grace_minutes'=>30,'absence_prompt_lookback_days'=>30];
+ $lookback=max(1,min(90,(int)$settings['absence_prompt_lookback_days']));$grace=max(0,min(1440,(int)$settings['absence_grace_minutes']));
+ $from=(new DateTimeImmutable('today'))->modify('-'.$lookback.' days')->format('Y-m-d');$to=date('Y-m-d');
+ $employee=chr_employee($db,$employeeId);$rows=chr_report($db,$from,$to,['employee_id'=>$employeeId]);
+ foreach($rows as $row){
+  if($row['status']!=='Absent')continue;$day=$row['date'];$shift=chr_assignment($db,$employeeId,$day);if(!$shift)continue;
+  [$start,$end]=chr_shift_bounds($day,$shift['values']);$eligibleAt=$end->modify('+'.$grace.' minutes');if(new DateTimeImmutable('now')<$eligibleAt)continue;
+  $q=$db->prepare("SELECT id,status FROM hr_requests WHERE user_id=? AND kind='leave' AND status IN ('Pending','Approved') AND start_date<=? AND end_date>=? LIMIT 1");$q->execute([$employeeId,$day,$day]);$leave=$q->fetch(PDO::FETCH_ASSOC);if($leave)continue;
+  $db->prepare("INSERT INTO hr_leave_absence_prompts(employee_id,absence_date,shift_id,status,detected_at) VALUES(?,?,?,'Open',NOW()) ON DUPLICATE KEY UPDATE status=IF(status='Resolved','Open',status),updated_at=CURRENT_TIMESTAMP")->execute([$employeeId,$day,$shift['id']??null]);
+ }
+ $q=$db->prepare("SELECT * FROM hr_leave_absence_prompts WHERE employee_id=? AND status IN ('Open','Pending') ORDER BY absence_date DESC,id DESC");$q->execute([$employeeId]);return $q->fetchAll(PDO::FETCH_ASSOC);
+}
+function chr_leave_absence_prompt_dismiss(PDO $db,array $actor,int $promptId): void {
+ if(!chr_leave_management_ready($db))throw new InvalidArgumentException('Leave notification service is unavailable.');
+ $q=$db->prepare("UPDATE hr_leave_absence_prompts SET status='Dismissed',dismissed_at=NOW() WHERE id=? AND employee_id=? AND status IN ('Open','Pending')");$q->execute([$promptId,$actor['id']]);if(!$q->rowCount())throw new InvalidArgumentException('This attendance reminder is no longer available.');
+ faudit($db,$actor,'leave.absence_prompt_dismissed',$promptId);
+}
+function chr_leave_request_overlap(PDO $db,int $employee,string $from,string $to,int $exclude=0): bool {
+ $q=$db->prepare("SELECT id FROM hr_requests WHERE user_id=? AND kind='leave' AND id<>? AND status IN ('Draft','Pending','Approved') AND start_date<=? AND end_date>=? LIMIT 1");$q->execute([$employee,$exclude,$to,$from]);return (bool)$q->fetchColumn();
+}
