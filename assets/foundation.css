@@ -95,3 +95,4 @@
 .admin-form-dialog>.admin-form-source>summary{display:none}
 .admin-form-dialog .admin-form-modal-heading h2{margin:0}
 .admin-form-dialog::backdrop{background:rgba(10,28,32,.55)}
+.admin-form-dialog>.admin-form-source>.card-heading:first-child,.admin-form-dialog>.admin-form-source>h2:first-child,.admin-form-dialog>.admin-form-source>h3:first-child{display:none}
