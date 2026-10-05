@@ -24,9 +24,9 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   }
   await page.goto(base+'/super-admin.php?page=overview');
   const nav=page.locator('body>aside');assert.equal(await nav.evaluate(e=>Math.round(e.getBoundingClientRect().width)),250);
-  await page.locator('.ui-sidebar-toggle').click();assert.equal(await nav.evaluate(e=>Math.round(e.getBoundingClientRect().width)),76);await layout();
+  await page.locator('.menu-toggle').click();assert.equal(await nav.evaluate(e=>Math.round(e.getBoundingClientRect().width)),76);await layout();
   assert.ok(await nav.locator('nav a').first().getAttribute('title'));await page.screenshot({path:'/tmp/shrms-ui-screenshots/admin-collapsed.png'});
-  await page.locator('.ui-sidebar-toggle').click();await page.locator('.ui-search-trigger').click();await page.locator('#ui-menu-query').fill('employee');assert.ok(await page.locator('.ui-search-results a').count()>0);await page.keyboard.press('Escape');
+  await page.locator('.menu-toggle').click();await page.locator('.ui-search-trigger').click();await page.locator('#ui-menu-query').fill('employee');assert.ok(await page.locator('.ui-search-results a').count()>0);await page.keyboard.press('Escape');
   await page.locator('#theme-toggle').click();assert.equal(await page.locator('body').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(23, 25, 28)');await page.screenshot({path:'/tmp/shrms-ui-screenshots/admin-dark.png'});await page.locator('#theme-toggle').click();
   await page.screenshot({path:'/tmp/shrms-ui-screenshots/admin.png'});
   await page.setViewportSize({width:1024,height:900});await layout();

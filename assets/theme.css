@@ -102,8 +102,7 @@ body.has-app-shell.sidebar-collapsed{--nav-width:76px}
 .shrms-ui .ui-icon{width:20px;height:20px;flex:0 0 20px;display:inline-flex;align-items:center;justify-content:center}
 .shrms-ui .ui-icon svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .shrms-ui .ui-nav-label{min-width:0;font:inherit!important;letter-spacing:normal}
-.shrms-ui :is(.icon-button,.ess-icon-button,.mobile-menu,.menu-toggle,.ui-sidebar-toggle){display:inline-flex;align-items:center;justify-content:center;width:38px;min-width:38px;height:38px;min-height:38px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-primary);padding:8px}
-.shrms-ui .ui-sidebar-toggle{align-self:flex-end;width:30px;min-width:30px;height:30px;min-height:30px;margin:0 0 6px;background:var(--sidebar-secondary);color:#cbd0d7;border-color:#3a3e44}
+.shrms-ui :is(.icon-button,.ess-icon-button,.mobile-menu,.menu-toggle){display:inline-flex;align-items:center;justify-content:center;width:38px;min-width:38px;height:38px;min-height:38px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);color:var(--text-primary);padding:8px}
 .shrms-ui :is(.breadcrumb,.main>header>span){font-size:12px;color:var(--text-secondary);min-width:0}
 .shrms-ui .top-actions,.shrms-ui .ess-header{gap:12px;margin-left:auto}
 .shrms-ui .ui-search-trigger{display:flex;align-items:center;gap:10px;min-width:0;width:min(300px,28vw);height:40px;border-radius:10px;border:1px solid var(--border);background:var(--page-bg);color:var(--text-secondary);padding:8px 12px;font:400 12px var(--font-body)}
@@ -121,7 +120,6 @@ body.has-app-shell.sidebar-collapsed{--nav-width:76px}
 .shrms-ui.sidebar-collapsed>aside nav :is(details>div,.nav-module-items){display:none}
 .shrms-ui.sidebar-collapsed>aside nav :is(summary,.nav-module-title):after{display:none}
 .shrms-ui.sidebar-collapsed :is(.sidebar-bottom a,.logout-button,.aside-bottom button){justify-content:center}
-.shrms-ui.sidebar-collapsed .ui-sidebar-toggle{align-self:center}
 .shrms-ui :is(.notification-panel,.ess-dropdown>div){background:var(--card-bg);border:1px solid var(--border);border-radius:14px;color:var(--text-primary);box-shadow:0 16px 42px #0002}
 /* Login keeps the approved red wave layout and uses the same brand/type system. */
 .shrms-ui.ark-login{--brand:var(--primary)}
@@ -157,14 +155,10 @@ body.has-app-shell.sidebar-collapsed{--nav-width:76px}
 @media print{body.shrms-ui{--page-bg:#fff;--card-bg:#fff;--text-primary:#171717;--text-secondary:#555;--border:#ddd;background:white;color:#171717}.shrms-ui.has-app-shell>aside,.shrms-ui .ui-search-trigger{display:none}.shrms-ui.has-app-shell>:is(.app,.main){margin:0;width:100%}}
 
 /* Compact sidebar heading and readable attendance records. */
-.shrms-ui.has-app-shell>aside .brand{min-height:52px;margin:0 0 18px;padding:4px 34px 4px 8px;gap:9px;font-size:21px}
+.shrms-ui.has-app-shell>aside .brand{min-height:52px;margin:0 0 18px;padding:4px 8px;gap:9px;font-size:21px}
 .shrms-ui.has-app-shell>aside .brand small{font-size:9px;letter-spacing:.8px}
 .shrms-ui.has-app-shell>aside .brand b{width:34px;min-width:34px;height:36px;font-size:25px}
-.shrms-ui.has-app-shell>aside .ui-sidebar-toggle{position:absolute;right:12px;top:28px;width:26px;min-width:26px;height:28px;min-height:28px;margin:0;padding:4px;border:0;background:transparent;z-index:2}
-.shrms-ui.has-app-shell>aside .ui-sidebar-toggle:hover{background:var(--sidebar-active);color:#fff}
-.shrms-ui.sidebar-collapsed>aside{padding-top:52px}
 .shrms-ui.has-app-shell.sidebar-collapsed>aside .brand{padding:0;margin:0 auto 20px}
-.shrms-ui.has-app-shell.sidebar-collapsed>aside .ui-sidebar-toggle{right:24px;top:14px;transform:rotate(180deg)}
 .shrms-ui.has-app-shell :is(.topbar,.main>header){position:sticky;top:0}
 .shrms-ui.employee-ui :is(table td,table th){font-size:13px!important;line-height:1.55!important;padding:14px 16px!important}
 .shrms-ui :is(td.ui-digital,table td.ui-digital){font-family:var(--font-body)!important;font-size:13px!important;font-weight:500!important;line-height:1.55;letter-spacing:0;font-variant-numeric:tabular-nums}
