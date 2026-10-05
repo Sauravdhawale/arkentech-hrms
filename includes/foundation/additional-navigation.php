@@ -7,7 +7,6 @@ $additionalGroups=[
  'Performance & PMS'=>['performance'=>'Goals & KPIs','reviews'=>'Reviews','pip'=>'Improvement plans'],
  'Assets & IT'=>['assets'=>'Assets','access'=>'Access & licenses'],
  'Workplace'=>['tasks'=>'Tasks','policies'=>'Policies & handbook','documents'=>'Document register','expenses'=>'Expenses','announcements'=>'Announcements','helpdesk'=>'Help desk'],
- 'Additional HR records'=>['employment'=>'Employment details','contracts'=>'Contracts','advances'=>'Salary advances','restricted'=>'Restricted leave periods'],
  'Reports & earlier records'=>['reports'=>'Exports','audit'=>'Activity history','salary'=>'Earlier salary structures','components'=>'Earlier components','payroll'=>'Earlier payroll records','jobs'=>'Earlier job records','recruitment'=>'Earlier candidates','interviews'=>'Earlier interviews','offers'=>'Earlier offer checklists']
 ];
 if(att_biometric_enabled($pdo))$additionalGroups['Reports & earlier records']+=['device_attendance'=>'Device punch attendance','device_monthly'=>'Device punch summary'];
