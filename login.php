@@ -27,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
 <body class="ark-login">
 <main class="login-shell">
  <section class="login-panel" aria-labelledby="login-title">
-  <a href="login.php" class="login-logo" aria-label="Arkentech Solutions"><img src="assets/arkentech-logo.webp" alt="Arkentech Solutions" width="1600" height="619"></a>
   <div class="login-content">
+  <a href="login.php" class="login-logo" aria-label="Arkentech Solutions"><img src="assets/arkentech-logo.webp" alt="Arkentech Solutions" width="1600" height="619"></a>
    <p class="login-eyebrow">EMPLOYEE PORTAL</p><h1 id="login-title">Welcome back.</h1><p class="login-intro">Sign in to your sHRMS workspace.</p>
    <?php if($error):?><div class="login-error" role="alert"><?=htmlspecialchars($error,ENT_QUOTES,'UTF-8')?></div><?php endif;?>
    <form method="post">
