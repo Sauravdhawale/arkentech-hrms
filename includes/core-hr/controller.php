@@ -6,7 +6,7 @@ function chr_handle_post(PDO $db,array $user,string $action,array $in,array $fil
  if($action==='core_leave_upgrade'){if($user['role']!=='super_admin')throw new InvalidArgumentException('Super Admin access required.');chr_leave_management_install($db);faudit($db,$user,'leave.management_upgraded');return 'Connected Leave Management is ready. Existing leave and attendance history was preserved.';}
  if(!chr_ready($db))throw new InvalidArgumentException('Install Core HR first.');
  switch($action){
- case 'core_config':chr_save_config($db,$user,(string)($in['module']??''),$in);return 'Configuration saved.';
+ case 'core_config':$module=(string)($in['module']??'');$id=chr_save_config($db,$user,$module,$in);if($module==='balances')chr_leave_sync_allocation($db,$user,$id);return 'Configuration saved.';
  case 'core_delete':chr_delete_config($db,$user,(string)($in['module']??''),(int)($in['id']??0));return 'Record deleted.';
  case 'core_attendance':chr_save_attendance($db,$user,$in);return 'Attendance saved and calculated.';
  case 'core_leave':chr_create_leave($db,$user,$in,$files['attachment']??[]);return 'Leave request submitted for approval.';
