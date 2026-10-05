@@ -78,3 +78,13 @@
 .employee-schedule .schedule-actions{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:20px 0 28px}.employee-schedule .schedule-actions>div{padding:22px;border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;align-items:flex-start}.employee-schedule .schedule-actions h3{margin:0 0 8px}.employee-schedule .schedule-actions p{color:var(--muted);font-size:13px;line-height:1.6;margin:0 0 18px}.employee-schedule .schedule-actions button{margin-top:auto}.employee-schedule dialog{width:min(620px,calc(100vw - 32px));max-height:85vh;overflow:auto}.employee-schedule dialog .form-grid{margin-top:20px}.employee-schedule textarea{resize:vertical}
 @media(max-width:700px){.employee-schedule .schedule-heading{flex-direction:column}.employee-schedule .schedule-actions{grid-template-columns:1fr}.employee-schedule .schedule-current strong{font-size:16px}}
 
+
+/* Reusable admin create/edit modal forms. */
+.form-launch{display:flex;justify-content:flex-end;gap:10px;margin:0 0 16px}
+.admin-form-dialog{width:min(920px,calc(100vw - 32px));max-width:920px;max-height:90vh;overflow:auto}
+.admin-form-dialog.wide{width:min(1080px,calc(100vw - 32px));max-width:1080px}
+.admin-form-dialog .card-heading{position:sticky;top:-28px;z-index:4;background:var(--card);padding:4px 0 14px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.admin-form-dialog .core-form,.admin-form-dialog .form-grid{margin-bottom:0}
+.admin-form-dialog .form-actions{margin-bottom:0}
+.admin-form-dialog fieldset{min-width:0}
+@media(max-width:600px){.form-launch .button{width:100%}.admin-form-dialog{padding:20px}.admin-form-dialog .card-heading{top:-20px}.admin-form-dialog .form-grid,.admin-form-dialog .pay-grid{grid-template-columns:1fr}}
