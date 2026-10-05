@@ -91,7 +91,7 @@ function chr_leave_prompt_for_request(PDO $db,int $requestId,string $state): voi
  if(!chr_leave_management_ready($db))return;
  $q=$db->prepare("SELECT r.user_id,d.leave_date FROM hr_requests r JOIN hr_leave_days d ON d.request_id=r.id WHERE r.id=? AND d.units>0");$q->execute([$requestId]);
  $status=$state==='Approved'?'Resolved':($state==='Pending'?'Pending':($state==='Rejected'?'Open':($state==='Cancelled'?'Open':'Open')));
- foreach($q as $d){$sql='UPDATE hr_leave_absence_prompts SET status=?,leave_request_id=?,resolved_at=? WHERE employee_id=? AND absence_date=? AND status<>'Dismissed'';$db->prepare($sql)->execute([$status,$requestId,$status==='Resolved'?date('Y-m-d H:i:s'):null,$d['user_id'],$d['leave_date']]);}
+ foreach($q as $d){$sql="UPDATE hr_leave_absence_prompts SET status=?,leave_request_id=?,resolved_at=? WHERE employee_id=? AND absence_date=? AND status<>'Dismissed'";$db->prepare($sql)->execute([$status,$requestId,$status==='Resolved'?date('Y-m-d H:i:s'):null,$d['user_id'],$d['leave_date']]);}
 }
 
 function chr_leave_absence_prompt_refresh(PDO $db,int $employeeId): array {
