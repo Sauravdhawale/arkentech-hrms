@@ -1,25 +1,173 @@
 -- Payroll workflow / snapshot / template foundation.
--- Additive only. Existing salary assignments, payroll runs, entries and published payslips are preserved.
+-- Additive and re-runnable. Existing salary assignments, payroll runs, entries and published payslips are preserved.
+-- Safe for phpMyAdmin re-import: existing columns, foreign keys, tables, permissions and migration marker are skipped.
 
-ALTER TABLE hr_payroll_runs
- ADD COLUMN prepared_by INT UNSIGNED NULL AFTER created_by,
- ADD COLUMN prepared_at DATETIME NULL AFTER prepared_by,
- ADD COLUMN reviewed_by INT UNSIGNED NULL AFTER prepared_at,
- ADD COLUMN reviewed_at DATETIME NULL AFTER reviewed_by,
- ADD COLUMN approved_by INT UNSIGNED NULL AFTER reviewed_at,
- ADD COLUMN approved_at DATETIME NULL AFTER approved_by,
- ADD COLUMN locked_by INT UNSIGNED NULL AFTER approved_at,
- ADD COLUMN locked_at DATETIME NULL AFTER locked_by,
- ADD COLUMN reopened_by INT UNSIGNED NULL AFTER locked_at,
- ADD COLUMN reopened_at DATETIME NULL AFTER reopened_by,
- ADD COLUMN reopen_reason VARCHAR(1000) NOT NULL DEFAULT '' AFTER reopened_at,
- ADD COLUMN payslips_generated_at DATETIME NULL AFTER reopen_reason,
- ADD COLUMN published_at DATETIME NULL AFTER payslips_generated_at,
- ADD FOREIGN KEY(prepared_by) REFERENCES users(id),
- ADD FOREIGN KEY(reviewed_by) REFERENCES users(id),
- ADD FOREIGN KEY(approved_by) REFERENCES users(id),
- ADD FOREIGN KEY(locked_by) REFERENCES users(id),
- ADD FOREIGN KEY(reopened_by) REFERENCES users(id);
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN prepared_by INT UNSIGNED NULL AFTER created_by',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='prepared_by'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN prepared_at DATETIME NULL AFTER prepared_by',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='prepared_at'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN reviewed_by INT UNSIGNED NULL AFTER prepared_at',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='reviewed_by'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN reviewed_at DATETIME NULL AFTER reviewed_by',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='reviewed_at'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN approved_by INT UNSIGNED NULL AFTER reviewed_at',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='approved_by'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN approved_at DATETIME NULL AFTER approved_by',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='approved_at'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN locked_by INT UNSIGNED NULL AFTER approved_at',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='locked_by'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN locked_at DATETIME NULL AFTER locked_by',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='locked_at'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN reopened_by INT UNSIGNED NULL AFTER locked_at',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='reopened_by'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN reopened_at DATETIME NULL AFTER reopened_by',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='reopened_at'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  "ALTER TABLE hr_payroll_runs ADD COLUMN reopen_reason VARCHAR(1000) NOT NULL DEFAULT '' AFTER reopened_at",
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='reopen_reason'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN payslips_generated_at DATETIME NULL AFTER reopen_reason',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='payslips_generated_at'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD COLUMN published_at DATETIME NULL AFTER payslips_generated_at',
+  'SELECT 1')
+ FROM information_schema.COLUMNS
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='published_at'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD CONSTRAINT fk_payroll_runs_prepared_by FOREIGN KEY (prepared_by) REFERENCES users(id)',
+  'SELECT 1')
+ FROM information_schema.KEY_COLUMN_USAGE
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='prepared_by'
+   AND REFERENCED_TABLE_NAME='users' AND REFERENCED_COLUMN_NAME='id'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD CONSTRAINT fk_payroll_runs_reviewed_by FOREIGN KEY (reviewed_by) REFERENCES users(id)',
+  'SELECT 1')
+ FROM information_schema.KEY_COLUMN_USAGE
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='reviewed_by'
+   AND REFERENCED_TABLE_NAME='users' AND REFERENCED_COLUMN_NAME='id'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD CONSTRAINT fk_payroll_runs_approved_by FOREIGN KEY (approved_by) REFERENCES users(id)',
+  'SELECT 1')
+ FROM information_schema.KEY_COLUMN_USAGE
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='approved_by'
+   AND REFERENCED_TABLE_NAME='users' AND REFERENCED_COLUMN_NAME='id'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD CONSTRAINT fk_payroll_runs_locked_by FOREIGN KEY (locked_by) REFERENCES users(id)',
+  'SELECT 1')
+ FROM information_schema.KEY_COLUMN_USAGE
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='locked_by'
+   AND REFERENCED_TABLE_NAME='users' AND REFERENCED_COLUMN_NAME='id'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @sql = (
+ SELECT IF(COUNT(*)=0,
+  'ALTER TABLE hr_payroll_runs ADD CONSTRAINT fk_payroll_runs_reopened_by FOREIGN KEY (reopened_by) REFERENCES users(id)',
+  'SELECT 1')
+ FROM information_schema.KEY_COLUMN_USAGE
+ WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='hr_payroll_runs' AND COLUMN_NAME='reopened_by'
+   AND REFERENCED_TABLE_NAME='users' AND REFERENCED_COLUMN_NAME='id'
+);
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 CREATE TABLE IF NOT EXISTS hr_payroll_attendance_snapshots (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -111,3 +259,16 @@ CREATE TABLE IF NOT EXISTS hr_payslip_documents (
  FOREIGN KEY(generated_by) REFERENCES users(id),
  FOREIGN KEY(published_by) REFERENCES users(id)
 ) ENGINE=InnoDB;
+
+INSERT IGNORE INTO permissions(code,label) VALUES
+ ('payroll.salary.edit','Edit salary'),
+ ('payroll.process','Process payroll'),
+ ('payroll.adjust','Adjust payroll'),
+ ('payroll.approve','Approve payroll'),
+ ('payroll.lock','Lock payroll'),
+ ('payroll.reopen','Reopen payroll'),
+ ('payroll.payslip.generate','Generate payslips'),
+ ('payroll.payslip.publish','Publish payslips'),
+ ('payroll.reports','View payroll reports');
+
+INSERT IGNORE INTO hr_migrations(name) VALUES('010-payroll-workflow');
