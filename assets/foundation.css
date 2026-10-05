@@ -88,3 +88,10 @@
 .admin-form-dialog .form-actions{margin-bottom:0}
 .admin-form-dialog fieldset{min-width:0}
 @media(max-width:600px){.form-launch .button{width:100%}.admin-form-dialog{padding:20px}.admin-form-dialog .card-heading{top:-20px}.admin-form-dialog .form-grid,.admin-form-dialog .pay-grid{grid-template-columns:1fr}}
+
+.admin-form-launch{min-width:150px}
+.admin-form-dialog>.admin-form-source{margin:0!important}
+.admin-form-dialog>.admin-form-source.card{border:0;box-shadow:none;background:transparent;padding:0}
+.admin-form-dialog>.admin-form-source>summary{display:none}
+.admin-form-dialog .admin-form-modal-heading h2{margin:0}
+.admin-form-dialog::backdrop{background:rgba(10,28,32,.55)}
