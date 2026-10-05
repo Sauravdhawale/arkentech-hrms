@@ -39,7 +39,11 @@ try:
  _,shiftform=get(a,'super-admin.php?page=shifts')
  assert 'Overnight shift' in shiftform and 'Break duration' in shiftform and '06:00 PM' in shiftform
  _,employeeform=get(a,'super-admin.php?page=employee-add')
- assert 'Assigned Shift' in employeeform and 'Ends next day' in employeeform
+ assert 'Default attendance shift' in employeeform and 'Ends next day' in employeeform
+ fixture=json.load(open('/tmp/core-hr-fixture.json'))
+ _,profile=get(a,'super-admin.php?page=employee-edit&id='+str(fixture['employee']))
+ assert 'Change default shift' in profile and 'Add temporary shift' in profile and 'schedule_token' in profile
+ assert not any(x in profile for x in ['Fatal error','Warning:','Parse error'])
  _,h=get(a,'super-admin.php?page=punch_log&from=2026-02-01&to=2026-02-28&processing_status=Unmapped')
  assert 'CI-WAIT-' in h and 'has no unique active employee mapping' in h
  _,h=get(a,'super-admin.php?page=punch_log&from=2026-02-01&to=2026-02-28&device_code=NO-SUCH-DEVICE')
@@ -74,3 +78,4 @@ try:
  print('PASS: attendance upgrade pages, manual import controls and calendar rendering.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
+

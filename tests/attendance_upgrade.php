@@ -28,3 +28,39 @@ $_SESSION['attendance_import']=['actor'=>1,'expires'=>time()+600,'nonce'=>'ci','
 att_device_action($db,$admin,['device_id'=>$device['id'],'device_action'=>'revoke']);blocked(fn()=>att_bridge_auth($db,'Bearer '.$token),'Revoked token accepted');blocked(fn()=>att_retry_device_punches($db,$authenticated),'Automatic retry accepted revoked token');
 att_save_event($db,$admin,['title'=>'CI Event','type'=>'Training','start'=>'2026-02-01','end'=>'2026-02-02','all_day'=>1,'audience'=>'Everyone','active'=>1]);check(count(chr_rows($db,'company_events'))===1,'Calendar persisted');blocked(fn()=>att_save_event($db,$viewer,[]),'Calendar permission bypass');
 echo "PASS: additive migration, default-OFF, shifts, manual punches, import normalization, bridge dedupe, overnight processing, manual protection, token revocation, calendar and permission guards.\n";
+
+
+// Profile scheduling is transactional, date-scoped, and resumes the old snapshot.
+$db->beginTransaction();
+try {
+ $day=(new DateTimeImmutable('today'))->modify('+5 years')->format('Y-m-d');
+ $next=(new DateTimeImmutable($day))->modify('+1 day')->format('Y-m-d');
+ $after=(new DateTimeImmutable($day))->modify('+2 days')->format('Y-m-d');
+ $prior=(new DateTimeImmutable($day))->modify('-1 day')->format('Y-m-d');
+ $shift=chr_record($db,'shifts',(int)$fixture['shift']);
+ $other=att_record_write($db,$admin,'shifts',['title'=>'CI temporary day shift'],array_replace($shift['values'],['code'=>'CI-TEMP','start'=>'09:00','end'=>'18:00','overnight'=>false]));
+ $baseInput=['employee_id'=>$employee,'schedule_mode'=>'default','from'=>$day,'shift_id'=>$fixture['shift'],'notes'=>'CI default','schedule_token'=>att_schedule_token(att_employee_roster($db,$employee))];
+ blocked(fn()=>att_save_employee_schedule($db,$viewer,$baseInput),'Unauthorized schedule update');
+ $defaultId=att_save_employee_schedule($db,$admin,$baseInput);
+ $default=chr_record($db,'roster',$defaultId);
+ $temporary=['employee_id'=>$employee,'schedule_mode'=>'temporary','from'=>$next,'to'=>$next,'shift_id'=>$other,'notes'=>'CI one-day change','schedule_token'=>att_schedule_token(att_employee_roster($db,$employee))];
+ att_save_employee_schedule($db,$admin,$temporary);
+ check((int)chr_assignment($db,$employee,$day)['id']===(int)$fixture['shift'],'Default applies before exception');
+ check((int)chr_assignment($db,$employee,$next)['id']===$other,'Temporary shift applies for one day');
+ check((int)chr_assignment($db,$employee,$after)['id']===(int)$fixture['shift'],'Original shift resumes after temporary end');
+ check(chr_record($db,'roster',$defaultId)['values']['from']===$day,'Original default ID and start retained');
+ check(chr_assignment($db,$employee,$after)['values']['start']===$default['values']['shift_snapshot']['start'],'Resumed shift preserves old rules');
+ $beforeRows=att_employee_roster($db,$employee);
+ blocked(fn()=>att_save_employee_schedule($db,$admin,$temporary),'Stale schedule token accepted');
+ check($beforeRows===att_employee_roster($db,$employee),'Failed save changed schedule');
+ $past=array_replace($temporary,['from'=>$prior,'to'=>$next,'schedule_token'=>att_schedule_token($beforeRows)]);
+ $past['from']=date('Y-m-d',strtotime('-1 day'));blocked(fn()=>att_save_employee_schedule($db,$admin,$past),'Historical change accepted');
+ $defaultChange=array_replace($baseInput,['from'=>$after,'shift_id'=>$other,'schedule_token'=>att_schedule_token(att_employee_roster($db,$employee))]);
+ att_save_employee_schedule($db,$admin,$defaultChange);
+ check((int)chr_assignment($db,$employee,$after)['id']===$other,'Ongoing default can be changed');
+ check((int)chr_assignment($db,$employee,$day)['id']===(int)$fixture['shift'],'Changing default retained earlier dates');
+ $q=$db->prepare("INSERT INTO hr_attendance(employee_id,attendance_date,check_in,shift_snapshot,source,status,notes,updated_by) VALUES(?,?,?,?,'Admin Manual','Open','CI protected',1)");$q->execute([$employee,$after,$after.' 09:00:00',json_encode($shift['values'])]);
+ $locked=array_replace($temporary,['from'=>$after,'to'=>$after,'schedule_token'=>att_schedule_token(att_employee_roster($db,$employee))]);
+ blocked(fn()=>att_save_employee_schedule($db,$admin,$locked),'Recorded attendance schedule replaced');
+} finally {if($db->inTransaction())$db->rollBack();}
+echo "Employee default and temporary shift checks passed\n";

@@ -22,6 +22,7 @@ try:
   except urllib.error.HTTPError as e:assert e.code==403
 
  h=get(c,'employee.php?page=overview')
+ assert 'Your monthly overview' in h and 'ess-balance-grid' in h and 'ess-event-list' in h
  sidebar=h.split('<nav class="grouped-nav">',1)[1].split('</nav>',1)[0]
  assert '?page=profile' not in sidebar and '?page=security' not in sidebar
  assert '?page=attendance_sheet' not in sidebar and '?page=balances' not in sidebar
@@ -52,3 +53,4 @@ except Exception:
  raise
 finally:
  server.terminate();server.wait();log.close()
+
