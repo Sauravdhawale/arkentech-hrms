@@ -126,11 +126,11 @@ body.has-app-shell.sidebar-collapsed{--nav-width:76px}
 /* Login keeps the approved red wave layout and uses the same brand/type system. */
 .shrms-ui.ark-login{--brand:var(--primary)}
 .shrms-ui.ark-login .login-input{border-color:var(--input-border)}
-.shrms-ui.ark-login .login-input input{border:0;padding:0;background:transparent;box-shadow:none}
+.shrms-ui.ark-login .login-input input:not([type=hidden]):not([type=checkbox]):not([type=radio]){border:0;padding:0;background:transparent;box-shadow:none}
 .shrms-ui.ark-login .login-input:focus-within{border-color:var(--primary);box-shadow:0 0 0 3px var(--focus-ring)}
 .shrms-ui.ark-login :is(.login-help a,.password-toggle[aria-pressed=true]){color:var(--primary)}
 .shrms-ui.ark-login .login-visual{background:linear-gradient(145deg,#35090c,var(--primary-dark) 53%,var(--primary))}
-.shrms-ui.ark-login .story-copy h2{color:#fff;font-family:var(--font-heading);font-weight:700}
+.shrms-ui.ark-login .story-copy h2{font-size:clamp(26px,3.2vw,43px);color:#fff;font-family:var(--font-heading);font-weight:700}
 .shrms-ui.ark-login .story-copy h2 span{color:#ffd5c9}
 .shrms-ui.auth-screen .auth-shell{width:calc(100% - 32px);max-width:460px;margin:10vh auto}
 @media(max-width:1150px) and (min-width:781px){.shrms-ui.has-app-shell :is(.breadcrumb,.main>header>span){display:none}.shrms-ui .ui-search-trigger{width:min(270px,28vw)}}
