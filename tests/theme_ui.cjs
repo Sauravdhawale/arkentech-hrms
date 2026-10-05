@@ -1,9 +1,10 @@
 /* Actual authenticated browser checks, against the disposable CI database only. */
 const assert=require('node:assert/strict');
-const {spawn}=require('node:child_process');
+const {spawn,execFileSync}=require('node:child_process');
 const {mkdirSync}=require('node:fs');
 const {chromium}=require(process.env.UI_PLAYWRIGHT_PATH||'playwright');
 assert.equal(process.env.DB_NAME,'peopleflow_ci');
+execFileSync('php',['-r',`if(getenv('DB_NAME')!=='peopleflow_ci')exit(1);require 'auth.php';require 'includes/core-hr/service.php';$db=db();$r=chr_rows($db,'attendance_settings')[0]??[];att_save_settings($db,['id'=>1,'role'=>'super_admin'],['mode'=>'Manual + Biometric','biometric_enabled'=>1,'version'=>$r['version']??0]);`]);
 const base='http://127.0.0.1:8099';
 const server=spawn('php',['-S','127.0.0.1:8099','-t','.'],{stdio:'ignore'});
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -13,12 +14,12 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   browser=await chromium.launch({headless:true});mkdirSync('/tmp/shrms-ui-screenshots',{recursive:true});
   const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   async function layout(){assert.equal(await page.locator('body').evaluate(e=>e.scrollWidth<=innerWidth+1),true,'horizontal page overflow '+page.url());}
-  async function check(){await page.waitForFunction(()=>document.body.classList.contains('shrms-ui'));assert.equal(await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily.includes('Noto Sans')),true);await layout();assert.equal(await page.locator('body').innerText().then(t=>/Fatal error|Warning:/.test(t)),false);}
+  async function check(){assert.ok(await page.locator('body').evaluate(e=>e.classList.contains('shrms-ui')),page.url()+' '+(await page.locator('body').innerText()).slice(0,300));assert.equal(await page.locator('body').evaluate(e=>getComputedStyle(e).fontFamily.includes('Noto Sans')),true);await layout();assert.equal(await page.locator('body').innerText().then(t=>/Fatal error|Warning:/.test(t)),false);}
   async function login(user){await page.goto(base+'/login.php');await page.locator('[name=email]').fill(user);await page.locator('[name=password]').fill(user==='test.admin'?'Admin-Changed-2026!':'User@123');await Promise.all([page.waitForURL(u=>!u.pathname.endsWith('/login.php')),page.locator('.login-submit').click()]);}
   await page.goto(base+'/login.php');await check();assert.equal(await page.locator('.login-submit').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(159, 17, 12)');await page.screenshot({path:'/tmp/shrms-ui-screenshots/login.png'});
   await page.goto(base+'/forgot-password.php');await check();
-  await login('test.admin');
-  for(const route of ['overview','employees','employee-add','employee-view&id=2','settings','departments','designations','roles','attendance_dashboard','attendance','manual_attendance','attendance_requests','daily_work_status','monthly','devices','mapping','punch_log','sync','leaves','payroll_dashboard','recruitment_dashboard','documents','announcements','performance','tasks','helpdesk','reports','account']){
+  await login('test.admin');await page.goto(base+'/super-admin.php?page=employees');const profileLink=await page.locator('a[href*="employee-view&id="]').first().getAttribute('href');assert.ok(profileLink);await page.goto(base+'/super-admin.php'+profileLink);await check();
+  for(const route of ['overview','employees','employee-add','settings','departments','designations','roles','attendance_dashboard','attendance','manual_attendance','attendance_requests','daily_work_status','monthly','devices','mapping','punch_log','sync','leaves','payroll_dashboard','recruitment_dashboard','documents','announcements','performance','tasks','helpdesk','reports','account']){
    await page.goto(base+'/super-admin.php?page='+route);await check();assert.equal(await page.locator('body>aside').count(),1,route+' shell');
   }
   await page.goto(base+'/super-admin.php?page=overview');
