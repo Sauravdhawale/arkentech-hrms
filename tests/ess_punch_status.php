@@ -48,3 +48,21 @@ $timeline=ess_presence_sequence($manual,[event_at('2026-10-01 23:00:00')+['statu
 $t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-02 00:00:00'),7200);
 check_status($t['worked']===18000&&$t['break']===3600,'Manual baseline and later biometric intervals agree');
 echo "Live shift timer checks passed\n";
+
+
+require __DIR__.'/../includes/attendance/punch-types.php';
+$rows=[
+ ['id'=>31,'punched_at'=>'2026-10-01 18:00:00','direction'=>'unknown','status'=>'Processed'],
+ ['id'=>32,'punched_at'=>'2026-10-01 18:00:04','direction'=>'unknown','status'=>'Processed'],
+ ['id'=>33,'punched_at'=>'2026-10-02 00:01:00','direction'=>'unknown','status'=>'Processed'],
+ ['id'=>34,'punched_at'=>'2026-10-02 00:30:00','direction'=>'in','status'=>'Processed'],
+];
+$types=att_punch_type_events(null,array_reverse($rows));
+check_status($types[31]['direction']==='in'&&$types[33]['direction']==='out','Log labels alternate across midnight in chronological order');
+check_status(!isset($types[32]),'Suppressed repeated scan must not receive a false opposite direction');
+check_status($types[34]['direction']==='in'&&!$types[34]['inferred'],'Recorded direction is retained');
+check_status($types[34]['direction']===ess_presence_sequence(null,$rows)['state'],'Last log type matches employee presence');
+$types=att_punch_type_events($manual,[['id'=>35,'punched_at'=>'2026-10-01 23:00:00','direction'=>'unknown','status'=>'Manual protected']]);
+check_status($types[35]['direction']==='in'&&$types[35]['inferred'],'Log uses the same manual OUT baseline as dashboard');
+$rows[2]['status']='Failed';check_status(att_punch_type_events(null,$rows)===[],'Unresolved sequence must not invent inferred directions');
+echo "Punch log display checks passed\n";

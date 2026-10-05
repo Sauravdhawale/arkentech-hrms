@@ -1,7 +1,7 @@
 <?php
 /** Read-only presence estimate. Never changes payroll, raw punches or attendance. */
 function ess_punch_sequence(array $punches,int $duplicateSeconds=10):array {
- usort($punches,fn($a,$b)=>strcmp($a['punched_at'],$b['punched_at']));
+ usort($punches,fn($a,$b)=>strcmp($a['punched_at'],$b['punched_at']) ?: (($a['id']??0)<=>($b['id']??0)));
  $state='none';$last=null;$inferred=false;$count=0;$events=[];
  foreach($punches as $p){
   $at=strtotime($p['punched_at']);
@@ -9,7 +9,7 @@ function ess_punch_sequence(array $punches,int $duplicateSeconds=10):array {
   $direction=$p['direction']??'unknown';
   if(in_array($direction,['in','out'],true)){$state=$direction;$inferred=false;}
   else{$state=$state==='in'?'out':'in';$inferred=true;}
-  $last=$p['punched_at'];$count++;$events[]=['at'=>$at,'state'=>$state,'inferred'=>$inferred];
+  $last=$p['punched_at'];$count++;$events[]=['at'=>$at,'state'=>$state,'inferred'=>$inferred,'punch_id'=>$p['id']??null];
  }
  return ['state'=>$state,'last'=>$last,'inferred'=>$inferred,'count'=>$count,'events'=>$events];
 }
@@ -49,7 +49,7 @@ function ess_punch_status(PDO $db,int $owner):array {
  $q=$db->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND attendance_date=?');$q->execute([$owner,$day]);$attendance=$q->fetch(PDO::FETCH_ASSOC);
  $punches=[];
  if(att_biometric_enabled($db)){
-  $q=$db->prepare('SELECT p.punched_at,p.direction,x.status FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id WHERE x.employee_id=? AND x.attendance_date=? AND p.punched_at<=? ORDER BY p.punched_at,p.id');
+  $q=$db->prepare('SELECT p.id,p.punched_at,p.direction,x.status FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id WHERE x.employee_id=? AND x.attendance_date=? AND p.punched_at<=? ORDER BY p.punched_at,p.id');
   $q->execute([$owner,$day,date('Y-m-d H:i:s')]);$punches=$q->fetchAll(PDO::FETCH_ASSOC);
  }
  $sequence=ess_presence_sequence($attendance?:null,$punches);
