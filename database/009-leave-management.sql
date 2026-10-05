@@ -3,12 +3,12 @@
 
 ALTER TABLE hr_requests
  MODIFY status ENUM('Draft','Pending','Approved','Rejected','Cancelled','Withdrawn','Resolved') NOT NULL DEFAULT 'Pending',
- ADD COLUMN IF NOT EXISTS submitted_by INT UNSIGNED NULL AFTER reviewer_id,
- ADD COLUMN IF NOT EXISTS submitted_at DATETIME NULL AFTER submitted_by,
- ADD COLUMN IF NOT EXISTS reviewed_at DATETIME NULL AFTER submitted_at,
- ADD COLUMN IF NOT EXISTS approval_comment TEXT NULL AFTER reviewed_at,
- ADD COLUMN IF NOT EXISTS rejection_reason TEXT NULL AFTER approval_comment,
- ADD INDEX IF NOT EXISTS request_kind_status_dates(kind,status,start_date,end_date);
+ ADD COLUMN submitted_by INT UNSIGNED NULL AFTER reviewer_id,
+ ADD COLUMN submitted_at DATETIME NULL AFTER submitted_by,
+ ADD COLUMN reviewed_at DATETIME NULL AFTER submitted_at,
+ ADD COLUMN approval_comment TEXT NULL AFTER reviewed_at,
+ ADD COLUMN rejection_reason TEXT NULL AFTER approval_comment,
+ ADD INDEX request_kind_status_dates(kind,status,start_date,end_date);
 
 CREATE TABLE IF NOT EXISTS hr_leave_balances (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
