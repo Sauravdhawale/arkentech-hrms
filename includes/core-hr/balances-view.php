@@ -7,7 +7,7 @@ $balanceEmployees=array_slice($balanceEmployees,($balancePage-1)*25,25,true);
 ?>
 <section class="card balance-card">
 <h2>Yearly leave balances · <?=h($year)?></h2>
-<p class="hint">Remaining days by leave type. Approved leave is deducted; pending requests are not.</p>
+<p class="hint">Connected balance view. Approved leave changes Available; pending leave is shown separately and reduces Requestable only.</p>
 <form method="get" class="toolbar balance-filters">
 <?php chr_hidden('page','balances');field('year','Year',['year'=>$year],'number',true);field('search','Search employee name or ID',['search'=>$balanceSearch],'text'); ?>
 <button class="button">Apply filters</button><a class="button" href="?page=balances&amp;year=<?=(int)$year?>">Reset</a>
@@ -20,8 +20,8 @@ $balanceEmployees=array_slice($balanceEmployees,($balancePage-1)*25,25,true);
 <?php if(!$balanceEmployees):?><tr><td colspan="<?=1+count($leaveOptions)?>">No matching employees.</td></tr><?php endif;?>
 <?php foreach($balanceEmployees as $id=>$label):?><tr>
 <th scope="row" style="position:sticky;left:0;z-index:1;background:var(--card,#fff);text-transform:none;letter-spacing:normal"><?=h($label)?></th>
-<?php foreach($leaveOptions as $code=>$name):$allocated=chr_entitlement($pdo,(int)$id,$code,$year);$used=chr_used($pdo,(int)$id,$code,$year);?>
-<td><strong><?=h($allocated===null?'Not set':$allocated-$used)?></strong><?php if($allocated!==null):?> days<?php endif;?><div class="hint">Allocated: <?=h($allocated??'Not set')?> · Used: <?=h($used)?></div></td>
+<?php foreach($leaveOptions as $code=>$name):$summary=chr_leave_balance_summary($pdo,(int)$id,$code,$year);?>
+<td><strong><?=h($summary['available'])?></strong> days<div class="hint">Entitled: <?=h($summary['entitled'])?> · Used: <?=h($summary['used'])?> · Pending: <?=h($summary['pending'])?> · Requestable: <?=h($summary['requestable'])?></div></td>
 <?php endforeach;?></tr><?php endforeach;?>
 </tbody></table></div>
 <?php if(!$leaveOptions):?><p>No leave types configured. Add leave types to see their yearly balances here.</p><?php endif;?>
