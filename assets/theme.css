@@ -155,3 +155,20 @@ body.has-app-shell.sidebar-collapsed{--nav-width:76px}
 @media(max-width:480px){.shrms-ui .ess-header{flex-wrap:wrap;justify-content:flex-end;flex:1}.shrms-ui .ess-punch-status{order:5;flex-basis:100%;max-width:none}.shrms-ui .page-heading,.shrms-ui .page-title{align-items:flex-start;flex-wrap:wrap}.shrms-ui .top-actions{gap:6px}.shrms-ui .ess-workday-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.shrms-ui *{scroll-behavior:auto!important;transition:none!important}}
 @media print{body.shrms-ui{--page-bg:#fff;--card-bg:#fff;--text-primary:#171717;--text-secondary:#555;--border:#ddd;background:white;color:#171717}.shrms-ui.has-app-shell>aside,.shrms-ui .ui-search-trigger{display:none}.shrms-ui.has-app-shell>:is(.app,.main){margin:0;width:100%}}
+
+/* Compact sidebar heading and readable attendance records. */
+.shrms-ui.has-app-shell>aside .brand{min-height:52px;margin:0 0 18px;padding:4px 34px 4px 8px;gap:9px;font-size:21px}
+.shrms-ui.has-app-shell>aside .brand small{font-size:9px;letter-spacing:.8px}
+.shrms-ui.has-app-shell>aside .brand b{width:34px;min-width:34px;height:36px;font-size:25px}
+.shrms-ui.has-app-shell>aside .ui-sidebar-toggle{position:absolute;right:12px;top:28px;width:26px;min-width:26px;height:28px;min-height:28px;margin:0;padding:4px;border:0;background:transparent;z-index:2}
+.shrms-ui.has-app-shell>aside .ui-sidebar-toggle:hover{background:var(--sidebar-active);color:#fff}
+.shrms-ui.sidebar-collapsed>aside{padding-top:52px}
+.shrms-ui.has-app-shell.sidebar-collapsed>aside .brand{padding:0;margin:0 auto 20px}
+.shrms-ui.has-app-shell.sidebar-collapsed>aside .ui-sidebar-toggle{right:24px;top:14px;transform:rotate(180deg)}
+.shrms-ui.has-app-shell :is(.topbar,.main>header){position:sticky;top:0}
+.shrms-ui.employee-ui :is(table td,table th){font-size:13px!important;line-height:1.55!important;padding:14px 16px!important}
+.shrms-ui :is(td.ui-digital,table td.ui-digital){font-family:var(--font-body)!important;font-size:13px!important;font-weight:500!important;line-height:1.55;letter-spacing:0;font-variant-numeric:tabular-nums}
+.shrms-ui.employee-ui .table-scroll{max-height:min(65vh,620px)}
+.shrms-ui.employee-ui .table-scroll thead th{position:sticky;top:0;z-index:2}
+.shrms-ui.employee-ui :is(.ess-stat,.stat){border:1px solid var(--border);background:var(--card-bg);border-radius:14px}
+.shrms-ui.employee-ui :is(.ess-stat,.stat) strong{font-size:22px;line-height:1.3}
