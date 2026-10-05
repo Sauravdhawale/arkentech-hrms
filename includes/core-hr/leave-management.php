@@ -116,3 +116,17 @@ function chr_leave_absence_prompt_dismiss(PDO $db,array $actor,int $promptId): v
 function chr_leave_request_overlap(PDO $db,int $employee,string $from,string $to,int $exclude=0): bool {
  $q=$db->prepare("SELECT id FROM hr_requests WHERE user_id=? AND kind='leave' AND id<>? AND status IN ('Draft','Pending','Approved') AND start_date<=? AND end_date>=? LIMIT 1");$q->execute([$employee,$exclude,$to,$from]);return (bool)$q->fetchColumn();
 }
+
+function chr_leave_sync_allocation(PDO $db,array $actor,int $recordId): void {
+ if(!chr_leave_management_ready($db))return;
+ $record=chr_record($db,'balances',$recordId);if(!$record||$record['status']!=='Active')return;
+ $employee=(int)$record['employee_id'];$year=(int)($record['values']['year']??0);if(!$employee||!$year)return;
+ foreach($record['values'] as $type=>$target){
+  if(in_array($type,['year','allocation_details','notes'],true)||!is_numeric($target))continue;
+  $row=chr_leave_balance_bootstrap($db,$employee,$type,$year,(int)$actor['id']);if(!$row)continue;
+  $target=(float)$target;$currentEntitled=(float)$row['entitled'];$delta=$target-$currentEntitled;
+  if(abs($delta)<0.0001)continue;
+  chr_leave_transaction($db,$actor,$employee,$type,$year,$delta>0?'MANUAL_CREDIT':'MANUAL_DEBIT',$delta,'balance_record',$recordId,"allocation-sync:$recordId:$type:".$record['version'],'Allocation updated by HR');
+  $db->prepare('UPDATE hr_leave_balances SET entitled=?,version=version+1 WHERE id=?')->execute([$target,$row['id']]);
+ }
+}
