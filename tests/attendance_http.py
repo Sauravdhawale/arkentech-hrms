@@ -36,6 +36,12 @@ try:
  assert 'before_time=' in next_url and 'before_id=' in next_url
  _,more=get(a,'super-admin.php'+next_url)
  assert 'data-punch-scroll' in more and 'Fatal error' not in more
+ for legacy_page in ['device_attendance','device_monthly','exit_tasks','onboarding','assets','reports','announcements']:
+  _,modern=get(a,'super-admin.php?page='+legacy_page)
+  assert 'class="sidebar"' in modern and 'admin-modules.css' in modern and 'Company Settings' in modern,legacy_page
+  assert not any(x in modern for x in ['Fatal error','Warning:','Parse error']),legacy_page
+ _,exit_form=get(a,'super-admin.php?page=exit_tasks&new=1')
+ assert 'suite_save' in exit_form and 'Save record' in exit_form and 'Export CSV' in exit_form
  _,shiftform=get(a,'super-admin.php?page=shifts')
  assert 'Overnight shift' in shiftform and 'Break duration' in shiftform and '06:00 PM' in shiftform
  _,employeeform=get(a,'super-admin.php?page=employee-add')

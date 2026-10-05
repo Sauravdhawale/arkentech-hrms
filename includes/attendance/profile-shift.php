@@ -17,7 +17,8 @@ $shiftOptions=[];foreach(chr_rows($pdo,'shifts') as $shift)if($shift['status']==
  <dialog class="attendance-dialog" id="employee-<?=h($mode)?>-shift" <?=$reopen?'data-auto-open':''?>>
  <h2><?=h($title)?></h2><p class="hint"><?=$mode==='temporary'?'For one day, select the same start and end date. Dates refer to the day the shift starts, including overnight shifts.':'This shift continues until the next change. Earlier dates retain the previous shift.'?></p>
  <form method="post" class="form-grid core-form">
- <?php ftoken();chr_hidden('action','att_employee_schedule');chr_hidden('employee_id',$id);chr_hidden('schedule_mode',$mode);chr_hidden('schedule_token',$reopen?($_POST['schedule_token']??''):$scheduleToken);?>
+ <?php ftoken();?>
+ <input type="hidden" name="action" value="att_employee_schedule"><input type="hidden" name="employee_id" value="<?=(int)$id?>"><input type="hidden" name="schedule_mode" value="<?=h($mode)?>"><input type="hidden" name="schedule_token" value="<?=h($reopen?($_POST['schedule_token']??''):$scheduleToken)?>">
  <label class="full">Shift and working hours<select name="shift_id" required><option value="">Select shift</option><?php foreach($shiftOptions as $s):?><option value="<?=(int)$s['id']?>" <?=($shiftForm['shift_id']??'')==$s['id']?'selected':''?>><?=h(att_shift_label($s))?></option><?php endforeach;?></select></label>
  <?php field('from',$mode==='temporary'?'Start date':'Effective from',$shiftForm,'date',true);if($mode==='temporary')field('to','End date (inclusive)',$shiftForm,'date',true);?>
  <label class="full">Reason<textarea name="notes" required maxlength="2000" rows="3" placeholder="Why is this shift changing?"><?=h($shiftForm['notes']??'')?></textarea></label>
