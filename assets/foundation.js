@@ -55,7 +55,14 @@ if(notificationRoot){
   const open=document.createElement('button');open.type='button';open.className='button primary admin-form-launch';
   open.textContent=(/^(?:Add|Create)\b/i.test(label)?'+ ':'')+label;
   launch.appendChild(open);
-  source.parentNode.insertBefore(launch,source);
+
+  // Keep create/edit launch buttons at the top of their section.
+  // Organization pages render the table and editor inside one .two-columns wrapper;
+  // putting the trigger beside the old editor would leave it below the table.
+  const sourceParent=source.parentNode;
+  const stackedLayout=sourceParent?.matches?.('.two-columns')?sourceParent:null;
+  if(stackedLayout&&stackedLayout.parentNode)stackedLayout.parentNode.insertBefore(launch,stackedLayout);
+  else sourceParent.insertBefore(launch,source);
 
   const dialog=document.createElement('dialog');
   dialog.className='attendance-dialog admin-form-dialog'+(source.querySelector('.permissions')?' wide':'');
