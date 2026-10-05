@@ -13,6 +13,9 @@ function pay_breakup_table(array $parts,bool $annual=true):void {
 if(!pay_ready($pdo)):?>
 <section class="card pay-card"><h2>Enable Payroll</h2><p>Add salary revisions and payroll snapshots to the existing workspace. Existing salaries and published payslips stay available.</p><?php if($user['role']==='super_admin'){pay_form('pay_install');echo '<button class="button primary">Install Payroll upgrade</button></form>';}else echo '<p>Ask your Super Admin to install the Payroll upgrade.</p>';?></section>
 <?php return;endif;
+if(!pay_workflow_ready($pdo)):?>
+<section class="card pay-card"><h2>Enable Payroll Workflow Upgrade</h2><p>Add attendance snapshots, payroll exception records, lock/reopen audit fields, controlled overrides and versioned payslip templates. Existing payroll data remains unchanged.</p><?php if($user['role']==='super_admin'){pay_form('pay_workflow_install');echo '<button class="button primary">Enable Payroll Workflow</button></form>';}else echo '<p>Ask your Super Admin to enable the Payroll Workflow upgrade.</p>';?></section>
+<?php endif;
 $configModules=['salary_components'=>'pay_component','salary_structures'=>'pay_structure','statutory_settings'=>'pay_statutory','payroll_settings'=>'pay_settings','payslip_settings'=>'pay_payslip'];
 if(isset($configModules[$page])){require __DIR__.'/settings-view.php';return;}
 $employeeOptions=[''=>'All employees'];foreach($pdo->query('SELECT e.user_id,e.employee_code,u.name FROM employees e JOIN users u ON u.id=e.user_id ORDER BY u.name') as $e)$employeeOptions[$e['user_id']]=$e['name'].' · '.$e['employee_code'];
