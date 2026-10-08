@@ -33,8 +33,9 @@ function chr_punch_issue(string $day,string $in,?string $out,?array $shift):stri
 }
 function chr_calculate(string $day,string $in,?string $out,?array $shift,bool $resolvedShiftWindow=false):array{
  $a=new DateTimeImmutable($in);$b=$out?new DateTimeImmutable($out):null;if(!$resolvedShiftWindow&&$a->format('Y-m-d')!==$day)throw new InvalidArgumentException('Check-in must be on the attendance date.');if($b&&($b<=$a||$b->getTimestamp()-$a->getTimestamp()>36*3600))throw new InvalidArgumentException('Check-out must follow check-in, within 36 hours.');
- $issue=chr_punch_issue($day,$in,$out,$shift);if($issue!=='')throw new InvalidArgumentException($issue);
  $result=['working_minutes'=>0,'late_minutes'=>0,'early_minutes'=>0,'overtime_minutes'=>0,'status'=>$b?'Present':'Open'];
+ // Accept the punch itself even outside scheduled hours; never invent a shift penalty.
+ if(chr_punch_issue($day,$in,$out,$shift)!==''){$result['status']='Review needed';return $result;}
  if($b)$result['working_minutes']=max(0,(int)floor(($b->getTimestamp()-$a->getTimestamp())/60)-(int)($shift['break_minutes']??0));
  if(!$shift)return $result;[$start,$end]=chr_shift_bounds($day,$shift);$late=max(0,(int)floor(($a->getTimestamp()-$start->getTimestamp())/60));$result['late_minutes']=$late>(int)($shift['grace']??0)?$late:0;
  if($b){$early=max(0,(int)floor(($end->getTimestamp()-$b->getTimestamp())/60));$result['early_minutes']=$early>(int)($shift['early_grace']??0)?$early:0;$after=max(0,(int)floor(($b->getTimestamp()-$end->getTimestamp())/60));$required=(int)round((float)($shift['required_hours']??$shift['overtime_after']??0)*60);$extra=$required>0?max(0,$result['working_minutes']-$required):0;$rule=$shift['overtime_rule']??'After required hours';$result['overtime_minutes']=$rule==='After shift end'?$after:($rule==='After both'?min($after,$extra):$extra);$half=(int)round((float)($shift['half_day_hours']??0)*60);$result['status']=$half>0&&$result['working_minutes']<$half?'Half Day':($result['late_minutes']>0?'Late':'Present');}

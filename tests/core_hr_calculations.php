@@ -21,7 +21,7 @@ echo "PASS: overnight shifts, breaks, grace, early leaving, overtime rules, open
 
 // Historical date mistakes must not become a 26-hour early departure or paid half day.
 $night=['start'=>'18:00','end'=>'03:00','required_hours'=>8,'half_day_hours'=>4,'break_minutes'=>60];
-invalid(fn()=>chr_calculate('2026-01-05','2026-01-05 00:45:00','2026-01-05 00:45:20',$night),'Wrong night-shift date rejected');
+$r=chr_calculate('2026-01-05','2026-01-05 00:45:00','2026-01-05 00:45:20',$night);expect($r['status']==='Review needed'&&$r['early_minutes']===0,'Wrong night-shift date flagged without blocking punch capture');
 expect(chr_punch_issue('2026-01-05','2026-01-05 18:00:00','2026-01-05 18:00:00',$night)!=='','Identical punch timestamps flagged');
 expect(chr_punch_issue('2026-01-05','2026-01-06 00:45:00','2026-01-06 03:00:00',$night)==='','Valid after-midnight punches retained');
 $r=chr_calculate('2026-01-05','2026-01-06 00:45:00','2026-01-06 03:00:00',$night,true);expect($r['early_minutes']===0,'Resolved overnight date has no phantom early departure');
