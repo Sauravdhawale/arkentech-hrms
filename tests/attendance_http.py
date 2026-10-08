@@ -55,6 +55,17 @@ try:
  _,h=get(a,'super-admin.php?page=punch_log&from=2026-02-01&to=2026-02-28&device_code=NO-SUCH-DEVICE')
  assert 'No device punches in this date range' in h
  _,h=get(a,'super-admin.php?page=attendance');assert 'id="manual-punch"' not in h
+ assert 'attendance-tools' not in h
+ _,sheet=get(a,'super-admin.php?page=daily_work_status&month=2026-02')
+ assert 'Export sheet' in sheet and 'Download template' in sheet and 'id="sheet-entry"' in sheet and 'att_import_preview' in sheet
+ _,sheet_csv=get(a,'super-admin.php?page=daily_work_status&month=2026-02&export=1')
+ assert 'employee_code' in sheet_csv and '2026-02-28' in sheet_csv and '2026-03-01' not in sheet_csv.splitlines()[0]
+ _,template=get(a,'assets/templates/attendance-import.csv')
+ assert template.strip()=='employee_id,date,check_in,check_out,shift,status,notes'
+ _,monthly=get(a,'super-admin.php?page=monthly&month=2026-02')
+ assert 'Attendance through the month' in monthly and 'Most frequent late arrivals' in monthly and 'Employee details' in monthly
+ assert not any(x in monthly for x in ['Fatal error','Warning:','Parse error'])
+
  # Turn the existing setting OFF, verify menu and route gates, then restore it.
  def biometric(on):
   _,form=get(a,'super-admin.php?page=attendance_settings')
@@ -69,7 +80,8 @@ try:
    _,h=get(a,'super-admin.php?page='+page)
    sidebar=h.split('<aside',1)[1].split('</aside>',1)[0]
    assert 'Biometric Device' not in sidebar and '?page=punch_log' not in sidebar
-   assert '?page=manual_attendance' in sidebar and '?page=attendance' in sidebar
+   assert '?page=daily_work_status' in sidebar and '?page=attendance' in sidebar
+   assert '?page=manual_attendance' not in sidebar
    assert 'Fatal error' not in h
   for page in ['devices','mapping','punch_log','sync','raw_logs']:
    try:get(a,'super-admin.php?page='+page);raise AssertionError('Biometric route allowed while disabled: '+page)
@@ -84,4 +96,5 @@ try:
  print('PASS: attendance upgrade pages, manual import controls and calendar rendering.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
+
 

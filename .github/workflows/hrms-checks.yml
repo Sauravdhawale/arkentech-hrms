@@ -36,6 +36,7 @@ jobs:
           php tests/core_hr_calculations.php
           php tests/core_hr.php
           python3 tests/core_hr_http.py
+          php tests/attendance_insights.php
           php tests/attendance_rules.php
           php tests/attendance_upgrade.php
           php tests/attendance_punch_windows.php
@@ -68,7 +69,9 @@ jobs:
           DB_USER: root
           DB_PASSWORD: ci-only-password
           UI_PLAYWRIGHT_PATH: /tmp/shrms-ui-check/node_modules/playwright
-        run: node tests/theme_ui.cjs
+        run: |
+          node tests/attendance_ui.cjs
+          node tests/theme_ui.cjs
       - name: Save UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -76,3 +79,4 @@ jobs:
           name: shrms-ui-screenshots
           path: /tmp/shrms-ui-screenshots/
           if-no-files-found: ignore
+

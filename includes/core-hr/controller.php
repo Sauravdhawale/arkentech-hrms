@@ -16,13 +16,15 @@ function chr_handle_post(PDO $db,array $user,string $action,array $in,array $fil
 }
 function chr_export(PDO $db,array $user,string $page):void {
  need($db,$user,'attendance.reports');if(!chr_ready($db)){http_response_code(409);exit('Install Core HR first.');}
- try{[$from,$to]=chr_report_range($page,$_GET);$rows=chr_report($db,$from,$to,$_GET);if($page==='monthly')$rows=chr_monthly($rows);}
+ try{[$from,$to]=chr_report_range($page,$_GET);$rows=chr_report($db,$from,$to,$_GET);if($page==='monthly')$rows=chr_monthly($rows);
+ if($page==='daily_work_status'){$sheet=[];foreach($rows as $row){$id=$row['employee_id'];if(!isset($sheet[$id])){$sheet[$id]=['employee_code'=>$row['employee_code'],'employee_name'=>$row['name'],'department'=>$row['department']];foreach(chr_dates($from,$to) as $date)$sheet[$id][$date]='';}$sheet[$id][$row['date']]=$row['status'];}$rows=array_values($sheet);}}
  catch(InvalidArgumentException $e){http_response_code(422);exit(h($e->getMessage()));}
  header('Content-Type: text/csv; charset=utf-8');header('Content-Disposition: attachment; filename="attendance-'.$from.'.csv"');header('Cache-Control: no-store');$out=fopen('php://output','w');if($rows){$keys=array_keys($rows[0]);fputcsv($out,$keys,',','"','');foreach($rows as $row){$safe=[];foreach($keys as $key){$v=(string)($row[$key]??'');$safe[]=preg_match('/^[\s]*[=+@-]/u',$v)?"'".$v:$v;}fputcsv($out,$safe,',','"','');}}else fputcsv($out,['No matching attendance'],',','"','');fclose($out);exit;
 }
 function chr_report_range(string $page,array $in):array {
- if($page==='monthly'){$month=$in['month']??date('Y-m');if(!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/',$month))throw new InvalidArgumentException('Choose a valid month.');$from=chr_date($month.'-01');return [$from,date('Y-m-t',strtotime($from))];}
+ if(in_array($page,['monthly','daily_work_status'],true)){$month=$in['month']??date('Y-m');if(!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/',$month))throw new InvalidArgumentException('Choose a valid month.');$from=chr_date($month.'-01');return [$from,date('Y-m-t',strtotime($from))];}
  if($page==='attendance_history')return [chr_date($in['from']??date('Y-m-01')),chr_date($in['to']??date('Y-m-d'))];$day=chr_date($in['date']??date('Y-m-d'));return [$day,$day];
 }
 
 require_once dirname(__DIR__).'/attendance/controller.php';
+

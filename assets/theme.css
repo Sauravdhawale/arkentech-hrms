@@ -166,3 +166,61 @@ body.has-app-shell.sidebar-collapsed{--nav-width:76px}
 .shrms-ui.employee-ui .table-scroll thead th{position:sticky;top:0;z-index:2}
 .shrms-ui.employee-ui :is(.ess-stat,.stat){border:1px solid var(--border);background:var(--card-bg);border-radius:14px}
 .shrms-ui.employee-ui :is(.ess-stat,.stat) strong{font-size:22px;line-height:1.3}
+
+
+/* Attendance reporting: scoped layouts, shared light/dark theme tokens. */
+.shrms-ui .att-section-heading,.shrms-ui .att-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 18px}
+.shrms-ui .att-section-heading h2,.shrms-ui .att-panel-heading h2{margin:0}
+.shrms-ui .att-section-heading p{margin:5px 0;color:var(--text-secondary);font-size:13px}
+.shrms-ui .att-filter{display:grid;grid-template-columns:repeat(4,minmax(130px,1fr)) auto;align-items:end;gap:16px;margin-bottom:22px}
+.shrms-ui .att-filter label{display:flex;flex-direction:column;gap:7px;min-width:0}
+.shrms-ui .att-filter label input,.shrms-ui .att-filter label select{width:100%}
+.shrms-ui .att-filter .full{grid-column:1/-1;display:flex;gap:10px;flex-wrap:wrap}
+.shrms-ui .att-report-filter{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.shrms-ui .att-filter-actions{display:flex;gap:8px;flex-wrap:wrap}
+.shrms-ui .att-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-bottom:22px}
+.shrms-ui .att-kpi{position:relative;margin:0;border-top:3px solid var(--primary)}
+.shrms-ui .att-kpi p{font-size:13px;color:var(--text-secondary);margin:0 0 12px}
+.shrms-ui .att-kpi strong{display:block;font:700 32px/1.2 var(--font-heading);font-variant-numeric:tabular-nums;margin-bottom:10px}
+.shrms-ui .att-kpi small{display:block;color:var(--text-secondary);font-size:11px}
+.shrms-ui .att-insight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin:0 0 22px}
+.shrms-ui .att-insight-grid>.card{margin:0;min-width:0}
+.shrms-ui .att-insight-grid h2{margin-top:0}
+.shrms-ui .att-wide{grid-column:1/-1}
+.shrms-ui .att-caption{font-size:12px;color:var(--text-secondary);line-height:1.65;margin:8px 0 22px}
+.shrms-ui .att-tag{border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--text-secondary)}
+.shrms-ui .att-bars{list-style:none;padding:0;margin:20px 0 0;display:grid;gap:21px}
+.shrms-ui .att-bar-label{display:flex;justify-content:space-between;align-items:start;gap:16px;font-size:13px;margin-bottom:9px}
+.shrms-ui .att-bar-label>span{overflow-wrap:anywhere}
+.shrms-ui .att-bar-label strong{white-space:nowrap;font-size:12px;font-variant-numeric:tabular-nums}
+.shrms-ui .att-bar-label small,.shrms-ui .att-bars li>small{display:block;font-size:11px;color:var(--text-secondary);margin-top:4px}
+.shrms-ui .att-bar-track,.shrms-ui .att-stack{height:9px;border-radius:6px;overflow:hidden;background:var(--secondary-bg);display:flex}
+.shrms-ui .att-bar-track>span{display:block;height:100%;border-radius:6px;background:var(--brand-readable)}
+.shrms-ui .att-legend{display:flex;flex-wrap:wrap;gap:18px;font-size:11px;color:var(--text-secondary)}
+.shrms-ui .att-legend>span{display:inline-flex;align-items:center;gap:7px}
+.shrms-ui .att-legend i{width:9px;height:9px;border-radius:3px}
+.shrms-ui .att-present{background:#3f7f70}.shrms-ui .att-absent{background:#b12625}.shrms-ui .att-leave{background:#d4a348}
+.shrms-ui .att-chart-scroll{max-height:330px;overflow:auto;padding-right:5px}
+.shrms-ui .att-empty{padding:32px 12px;background:var(--secondary-bg);border-radius:10px;text-align:center;font-size:13px;color:var(--text-secondary)}
+.shrms-ui .att-text-link{display:inline-block;margin-top:24px;font-size:12px;color:var(--brand-readable)}
+.shrms-ui .att-summary-strip{display:flex;align-items:center;gap:28px;flex-wrap:wrap;margin-bottom:24px}
+.shrms-ui .att-summary-strip strong,.shrms-ui .att-time-summary strong{display:block;font:700 24px var(--font-heading);margin-top:6px}
+.shrms-ui .att-summary-strip small,.shrms-ui .att-time-summary small{font-size:12px;color:var(--text-secondary)}
+.shrms-ui .att-summary-strip p{flex:1;min-width:180px;font-size:12px;color:var(--text-secondary)}
+.shrms-ui .att-time-summary{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:24px 0}
+.shrms-ui .att-trend-scroll{overflow-x:auto;margin-top:24px}
+.shrms-ui .att-trend{display:flex;gap:8px;min-width:660px;padding:0 3px 8px}
+.shrms-ui .att-day{flex:1;min-width:12px;text-align:center;position:relative}
+.shrms-ui .att-day-bars{height:170px;display:flex;flex-direction:column-reverse;justify-content:flex-start;border-bottom:1px solid var(--border);gap:0}
+.shrms-ui .att-day-bars>span{display:block;width:100%;max-width:26px;margin:0 auto}
+.shrms-ui .att-day small{font-size:10px;color:var(--text-secondary)}
+.shrms-ui .att-day:focus-visible:after{content:attr(aria-label);position:absolute;bottom:100%;left:0;background:var(--card-bg);border:1px solid var(--border);padding:8px;min-width:150px;z-index:2;font-size:12px}
+.shrms-ui .att-sheet-tools{margin-bottom:20px}
+.shrms-ui .att-sheet-tools h2{margin:0 0 6px}.shrms-ui .att-sheet-tools p{font-size:12px;color:var(--text-secondary);margin:0 0 16px}
+.shrms-ui .att-toolbar{display:flex;gap:10px;flex-wrap:wrap}
+.shrms-ui #sheet-entry .core-editor{padding:0;border:0;box-shadow:none}
+.shrms-ui #sheet-entry .core-editor>summary{display:none}
+.shrms-ui .att-sheet-cell{display:inline-flex;min-width:32px;min-height:32px;align-items:center;justify-content:center;text-decoration:none;border-radius:6px}
+.shrms-ui .att-sheet-cell:hover{outline:1px solid var(--brand-readable);background:var(--brand-soft)}
+@media(max-width:1100px){.shrms-ui .att-filter{grid-template-columns:repeat(2,minmax(0,1fr))}.shrms-ui .att-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.shrms-ui .att-insight-grid{grid-template-columns:1fr}.shrms-ui .att-filter{grid-template-columns:1fr}.shrms-ui .att-kpis{gap:10px}.shrms-ui .att-kpi.card{padding:17px}.shrms-ui .att-kpi strong{font-size:27px}.shrms-ui .att-toolbar>.button{flex:1 1 180px}.shrms-ui .att-summary-strip{gap:20px}.shrms-ui .att-insight-grid>.card{padding:18px}}
