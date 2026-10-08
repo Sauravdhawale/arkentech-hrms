@@ -20,7 +20,7 @@ const base='http://127.0.0.1:8100';
  await page.setViewportSize({width:1440,height:1000});await page.goto(base+'/super-admin.php?page=daily_work_status&month=2026-02');
  await page.locator('[data-open-dialog="sheet-entry"]').click();assert.ok(await page.locator('#sheet-entry').evaluate(e=>e.open));await page.keyboard.press('Escape');
  await page.locator('[data-open-dialog="attendance-import"]').click();assert.ok(await page.locator('#attendance-import').evaluate(e=>e.open));await page.keyboard.press('Escape');
- const cell=page.locator('.att-sheet-cell').first();assert.ok(await cell.count());await cell.click();assert.ok(await page.locator('#sheet-entry').evaluate(e=>e.open));assert.ok((await page.locator('#sheet-entry [name=attendance_date]').inputValue()).startsWith('2026-02'));await page.keyboard.press('Escape');
+ const cell=page.locator('.att-sheet-cell').first();assert.ok(await cell.count());await cell.click();assert.ok(await page.locator('#sheet-status').evaluate(e=>e.open));assert.ok((await page.locator('#sheet-status [name=attendance_date]').inputValue()).startsWith('2026-02'));assert.ok(await page.locator('#sheet-status [name=sheet_status] option[value=Absent]').count());await page.screenshot({path:'/tmp/shrms-ui-screenshots/attendance-status-popup.png',animations:'disabled'});await page.keyboard.press('Escape');
  await page.locator('#theme-toggle').click();await page.screenshot({path:'/tmp/shrms-ui-screenshots/attendance-sheet-dark.png',fullPage:true,animations:'disabled'});
  assert.deepEqual(errors,[]);console.log('PASS: attendance pages, responsive layouts, sheet dialogs, historical cell editing and dark theme.');
  }finally{if(browser)await browser.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1;});

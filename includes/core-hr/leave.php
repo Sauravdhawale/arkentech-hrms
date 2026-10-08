@@ -38,7 +38,7 @@ function chr_create_leave(PDO $db,array $actor,array $in,array $file=[] ,bool $s
  if(!in_array($part,['Full Day','First Half','Second Half'],true)||($part!=='Full Day'&&$from!==$to))throw new InvalidArgumentException('Half-day leave must cover exactly one date.');
  $type=ftext($in,'category',40,true);$reason=ftext($in,'details',5000,true);$subject=ftext($in,'subject',180)?:'Leave request';$upload=null;
  if(($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){if($file['error']!==UPLOAD_ERR_OK||$file['size']>4000000||!is_uploaded_file($file['tmp_name']))throw new InvalidArgumentException('Upload a PDF, JPEG or PNG up to 4 MB.');$mime=(new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);if(!in_array($mime,['application/pdf','image/jpeg','image/png'],true))throw new InvalidArgumentException('Unsupported attachment type.');$upload=['name'=>substr(preg_replace('/[^a-zA-Z0-9._ -]/','_',basename($file['name'])),0,190),'mime'=>$mime,'content'=>file_get_contents($file['tmp_name'])];}
- $db->beginTransaction();try{
+ $ownsTransaction=!$db->inTransaction();if($ownsTransaction)$db->beginTransaction();try{
   chr_lock($db);$connected=chr_leave_management_ready($db);$policy=chr_policy($db,$type);if(!$policy||$policy['status']!=='Published')throw new InvalidArgumentException('Choose an active leave type.');
   $pv=$connected?chr_leave_policy_defaults($policy):$policy['values'];
   if($connected){
@@ -57,15 +57,15 @@ function chr_create_leave(PDO $db,array $actor,array $in,array $file=[] ,bool $s
   $id=(int)$db->lastInsertId();$attachment=null;
   if($upload){$db->prepare("INSERT INTO hr_records(module,employee_id,title,status,data,created_by) VALUES('leave_attachment',?,?,'Received',?,?)")->execute([$employee,$upload['name'],json_encode(['request_id'=>$id]),$actor['id']]);$attachment=(int)$db->lastInsertId();$db->prepare('INSERT INTO hr_files(record_id,uploaded_by,filename,mime,content) VALUES(?,?,?,?,?)')->execute([$attachment,$actor['id'],$upload['name'],$upload['mime'],$upload['content']]);}
   $db->prepare('INSERT INTO hr_leave_details(request_id,type_record_id,day_part,days,policy_snapshot,attachment_record_id) VALUES(?,?,?,?,?,?)')->execute([$id,$policy['id'],$part,$total,json_encode($pv),$attachment]);$q=$db->prepare('INSERT INTO hr_leave_days(request_id,leave_date,units,day_part) VALUES(?,?,?,?)');foreach($days as $d)$q->execute([$id,...$d]);
-  ess_snapshot_route($db,$actor,$id,$employee);chr_leave_prompt_for_request($db,$id,'Pending');faudit($db,$actor,'core.leave.submitted',$id);$db->commit();return $id;
- }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+  ess_snapshot_route($db,$actor,$id,$employee);chr_leave_prompt_for_request($db,$id,'Pending');faudit($db,$actor,'core.leave.submitted',$id);if($ownsTransaction)$db->commit();return $id;
+ }catch(Throwable $e){if($ownsTransaction&&$db->inTransaction())$db->rollBack();throw $e;}
 }
 function chr_review_leave(PDO $db,array $actor,int $id,string $status,string $reason=''):void {
  if(!in_array($status,['Approved','Rejected','Cancelled'],true)||!can($db,$actor,$status==='Cancelled'?'leave.manage':'leave.approve'))throw new InvalidArgumentException('This decision is not permitted.');
- $db->beginTransaction();try{
+ $ownsTransaction=!$db->inTransaction();if($ownsTransaction)$db->beginTransaction();try{
   chr_lock($db);$q=$db->prepare("SELECT * FROM hr_requests WHERE id=? AND kind='leave' FOR UPDATE");$q->execute([$id]);$r=$q->fetch(PDO::FETCH_ASSOC);if(!$r||!in_array($r['status'],$status==='Cancelled'?['Pending','Approved']:['Pending'],true))throw new InvalidArgumentException('This request has already been processed. Refresh its status.');
   if($status==='Cancelled'&&$actor['role']!=='super_admin'&&!ess_can_review($db,$actor,$r))throw new InvalidArgumentException('Request outside your scope.');
-  if($status!=='Cancelled'&&!ess_review_step($db,$actor,$r,$status,$reason)){$db->commit();return;}
+  if($status!=='Cancelled'&&!ess_review_step($db,$actor,$r,$status,$reason)){if($ownsTransaction)$db->commit();return;}
   $wasApproved=$r['status']==='Approved';
   if($status==='Approved'){
    chr_validate_leave($db,$r);$totals=[];foreach(chr_request_days($db,$r) as $d)if((float)$d['units']>0){$year=(int)substr($d['leave_date'],0,4);$totals[$year]=($totals[$year]??0)+(float)$d['units'];}
@@ -79,6 +79,7 @@ function chr_review_leave(PDO $db,array $actor,int $id,string $status,string $re
    $db->prepare('UPDATE hr_requests SET status=?,reviewer_id=?,reviewed_at=NOW(),approval_comment=?,rejection_reason=? WHERE id=?')->execute([$status,$actor['id'],$comment,$reject,$id]);
    chr_leave_prompt_for_request($db,$id,$status);
   }else $db->prepare('UPDATE hr_requests SET status=?,reviewer_id=? WHERE id=?')->execute([$status,$actor['id'],$id]);
-  faudit($db,$actor,'core.leave.'.strtolower($status),$id);$db->commit();
- }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+  faudit($db,$actor,'core.leave.'.strtolower($status),$id);if($ownsTransaction)$db->commit();
+ }catch(Throwable $e){if($ownsTransaction&&$db->inTransaction())$db->rollBack();throw $e;}
 }
+

@@ -8,7 +8,7 @@ $isSheet=!empty($attendanceSheet);
 $entryError=$error&&($_POST['action']??'')==='core_attendance';
 $entryDefaultDate=$isSheet?($_GET['entry_date']??((substr($from??'',0,7)===date('Y-m'))?date('Y-m-d'):($from??date('Y-m-d')))):date('Y-m-d');
 $v=$entryError?$_POST:($edit?:['attendance_date'=>$entryDefaultDate,'employee_id'=>$isSheet?($_GET['entry_employee']??''):'']);
-$autoOpen=(($_SERVER['REQUEST_METHOD']??'GET')==='GET'&&($edit||isset($_GET['entry_date'])))||$entryError;
+$autoOpen=(($_SERVER['REQUEST_METHOD']??'GET')==='GET'&&empty($_GET['status_cell'])&&($edit||isset($_GET['entry_date'])))||$entryError;
 $clear=['page'=>$page];if($isSheet)$clear['month']=$month;
 if($isSheet):?>
 <dialog id="sheet-entry" class="attendance-dialog" aria-label="Add or correct attendance" <?=$autoOpen?'data-auto-open':''?>>
