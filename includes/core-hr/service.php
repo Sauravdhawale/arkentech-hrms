@@ -21,8 +21,19 @@ function chr_assignment(PDO $db,int $employee,string $day):?array{
 }
 function chr_holiday(PDO $db,string $day):?array{foreach(chr_rows($db,'holidays') as $r)if($r['status']==='Published'&&($r['values']['date']??'')===$day&&($r['values']['holiday_type']??'Company Holiday')!=='Optional Holiday')return $r;return null;}
 function chr_weekoff(?array $shift,string $day):bool{return $shift&&in_array((int)date('N',strtotime($day)),array_map('intval',(array)($shift['values']['week_off']??[])),true);}
+/** Reject completed punch pairs that cannot belong to the scheduled shift instance. */
+function chr_punch_issue(string $day,string $in,?string $out,?array $shift):string {
+ $a=new DateTimeImmutable($in);$b=$out?new DateTimeImmutable($out):null;
+ if($b&&($b<=$a||$b->getTimestamp()-$a->getTimestamp()>36*3600))return 'Check-out must follow check-in, within 36 hours.';
+ if($shift&&isset($shift['start'],$shift['end'])){
+  [$start,$end]=chr_shift_bounds($day,$shift);
+  if($b&&($b<=$start||$a>=$end))return 'Punch dates do not overlap the assigned shift. Review the attendance date and night-shift assignment.';
+ }
+ return '';
+}
 function chr_calculate(string $day,string $in,?string $out,?array $shift,bool $resolvedShiftWindow=false):array{
  $a=new DateTimeImmutable($in);$b=$out?new DateTimeImmutable($out):null;if(!$resolvedShiftWindow&&$a->format('Y-m-d')!==$day)throw new InvalidArgumentException('Check-in must be on the attendance date.');if($b&&($b<=$a||$b->getTimestamp()-$a->getTimestamp()>36*3600))throw new InvalidArgumentException('Check-out must follow check-in, within 36 hours.');
+ $issue=chr_punch_issue($day,$in,$out,$shift);if($issue!=='')throw new InvalidArgumentException($issue);
  $result=['working_minutes'=>0,'late_minutes'=>0,'early_minutes'=>0,'overtime_minutes'=>0,'status'=>$b?'Present':'Open'];
  if($b)$result['working_minutes']=max(0,(int)floor(($b->getTimestamp()-$a->getTimestamp())/60)-(int)($shift['break_minutes']??0));
  if(!$shift)return $result;[$start,$end]=chr_shift_bounds($day,$shift);$late=max(0,(int)floor(($a->getTimestamp()-$start->getTimestamp())/60));$result['late_minutes']=$late>(int)($shift['grace']??0)?$late:0;
@@ -74,3 +85,4 @@ require_once dirname(__DIR__).'/attendance/settings.php';
 require_once dirname(__DIR__).'/attendance/shifts.php';
 require_once dirname(__DIR__).'/attendance/punch-window.php';
 require_once dirname(__DIR__).'/attendance/time-display.php';
+

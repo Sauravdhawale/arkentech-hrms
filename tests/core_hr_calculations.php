@@ -17,3 +17,19 @@ $employee=['user_id'=>1,'name'=>'Test','joining_date'=>'2026-01-01'];$ctx=['assi
 expect(chr_day($ctx,$employee,'2026-01-07')['status']==='Holiday','Holiday report');expect(chr_day($ctx,$employee,'2026-01-11')['status']==='Week Off','Week-off report');expect(chr_day($ctx,$employee,'2026-01-08')['status']==='Leave','Approved leave report');$half=chr_day($ctx,$employee,'2026-01-09');expect($half['leave']===0.5&&$half['absent']===0.5,'Half-day leave absent remainder');expect(chr_day($ctx,$employee,'2025-12-31')['status']==='Not started','Joining date');expect(chr_day($ctx,$employee,'2090-01-02')['absent']===0,'Future absence');expect(chr_day($ctx,$employee,'2026-01-06')['status']==='Absent','Missing scheduled punch');
 $rows=[chr_day($ctx,$employee,'2026-01-07'),chr_day($ctx,$employee,'2026-01-08'),$half];$m=chr_monthly($rows)[0];expect($m['leave']===1.5&&$m['absent']===0.5&&$m['holidays']===1,'Monthly fractional totals');
 echo "PASS: overnight shifts, breaks, grace, early leaving, overtime rules, open punches, half days, date validation and integrated daily/monthly status calculations.\n";
+
+
+// Historical date mistakes must not become a 26-hour early departure or paid half day.
+$night=['start'=>'18:00','end'=>'03:00','required_hours'=>8,'half_day_hours'=>4,'break_minutes'=>60];
+invalid(fn()=>chr_calculate('2026-01-05','2026-01-05 00:45:00','2026-01-05 00:45:20',$night),'Wrong night-shift date rejected');
+expect(chr_punch_issue('2026-01-05','2026-01-05 18:00:00','2026-01-05 18:00:00',$night)!=='','Identical punch timestamps flagged');
+expect(chr_punch_issue('2026-01-05','2026-01-06 00:45:00','2026-01-06 03:00:00',$night)==='','Valid after-midnight punches retained');
+$r=chr_calculate('2026-01-05','2026-01-06 00:45:00','2026-01-06 03:00:00',$night,true);expect($r['early_minutes']===0,'Resolved overnight date has no phantom early departure');
+$bad=['id'=>5,'shift_id'=>10,'shift_snapshot'=>json_encode($night),'check_in'=>'2026-01-05 00:45:00','check_out'=>'2026-01-05 00:45:20','working_minutes'=>0,'late_minutes'=>0,'early_minutes'=>1574,'overtime_minutes'=>0,'status'=>'Half Day','source'=>'Biometric'];
+$ctx['attendance'][1]['2026-01-05']=$bad;
+$r=chr_day($ctx,$employee,'2026-01-05');expect($r['status']==='Review needed'&&$r['early_minutes']===0&&$r['present']===0&&$r['absent']===0,'Invalid historical record excluded from penalties and paid-day inference');
+expect($r['check_in']===$bad['check_in']&&$r['check_out']===$bad['check_out']&&$ctx['attendance'][1]['2026-01-05']===$bad,'Original punch evidence retained');
+$ctx['attendance'][1]['2026-01-05']=array_replace($bad,['check_in'=>'2026-01-05 18:00:00','check_out'=>null,'early_minutes'=>0,'status'=>'Open']);
+$r=chr_day($ctx,$employee,'2026-01-05');expect($r['status']==='Check-out missing'&&$r['present']===0,'Expired open shift is explicitly missing checkout');
+expect(att_time_label('2026-01-05 00:45:20',true,true)==='05 Jan 2026 · 12:45:20 AM','Seconds distinguish punches within one minute');
+echo "PASS: wrong night-shift dates, identical timestamps, preserved historical punches, missing checkout and precise display.\n";

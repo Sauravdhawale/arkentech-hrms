@@ -253,3 +253,18 @@ body.has-app-shell.sidebar-collapsed{--nav-width:76px}
 .shrms-ui .att-status-form textarea{min-height:80px}.shrms-ui .att-status-form>.check{display:flex;align-items:start;gap:8px}
 .shrms-ui .att-status-actions{display:flex;justify-content:space-between;gap:12px;padding-top:16px;border-top:1px solid var(--border)}
 @media(max-width:600px){.shrms-ui .att-sheet-card .directory tbody th{min-width:150px;max-width:165px}.shrms-ui .att-status-dialog{padding:20px}.shrms-ui .att-status-actions>.button{flex:1}}
+
+/* Employee attendance: enough rows to read a month without a three-row viewport. */
+.shrms-ui .ess-attendance-sheet .ess-attendance-scroll{max-height:min(68vh,680px)!important;min-height:320px;overflow:auto;scrollbar-gutter:stable}
+.shrms-ui .ess-attendance-sheet .ess-section-heading{align-items:flex-start;gap:16px}
+.shrms-ui .ess-attendance-sheet .ess-section-heading p{margin:7px 0 16px;color:var(--text-muted,#64748b);font-size:13px}
+.shrms-ui .ess-attendance-sheet table{min-width:1250px;width:100%}
+.shrms-ui .ess-attendance-sheet th,.shrms-ui .ess-attendance-sheet td{padding:13px 16px;vertical-align:top}
+.shrms-ui .ess-attendance-sheet tbody th{font-weight:600;text-align:left;white-space:nowrap}
+.shrms-ui .ess-attendance-sheet small{display:block;margin-top:5px;font-size:11px;font-weight:400;color:var(--text-muted,#64748b)}
+.shrms-ui .ess-attendance-sheet .ess-punch-time{white-space:nowrap;font-variant-numeric:tabular-nums}
+.shrms-ui .ess-attendance-detail{min-width:240px;max-width:320px;white-space:normal;font-size:12px;line-height:1.6}
+.shrms-ui .ess-attendance-badge,.shrms-ui .ess-attendance-count{display:inline-flex;align-items:center;padding:5px 9px;border:1px solid var(--border,#e7e7e7);border-radius:7px;font-size:12px;font-weight:600;white-space:nowrap}
+.shrms-ui .ess-attendance-badge.needs-review{color:#9F110C;background:#fff0ed;border-color:#ebc6c0}
+.shrms-ui .ess-attendance-notice{border-left:3px solid #9F110C;padding:10px 14px;margin:0 0 16px;font-size:13px;line-height:1.6;background:rgba(159,17,12,.06)}
+@media(max-width:600px){.shrms-ui .ess-attendance-sheet .ess-attendance-scroll{min-height:300px;max-height:65vh!important}.shrms-ui .ess-attendance-sheet th,.shrms-ui .ess-attendance-sheet td{padding:11px 12px}}

@@ -33,6 +33,12 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   await page.setViewportSize({width:390,height:844});await layout();assert.equal(await nav.evaluate(e=>e.inert),true);await page.locator('.menu-toggle').click();assert.equal(await nav.evaluate(e=>e.inert),false);await page.keyboard.press('Escape');assert.equal(await nav.evaluate(e=>e.inert),true);await page.screenshot({path:'/tmp/shrms-ui-screenshots/admin-mobile.png'});
   await page.context().clearCookies();await page.setViewportSize({width:1440,height:1000});await login('ess.applicant');
   for(const route of ['overview','profile','my_shift','attendance','leaves','inbox','my_salary','tasks','documents','performance','helpdesk']){await page.goto(base+'/employee.php?page='+route);await check();}
+  await page.goto(base+'/employee.php?page=attendance&month=2026-01');await check();
+  assert.equal(await page.locator('.ess-attendance-scroll tbody tr').count(),31);
+  assert.ok(await page.locator('.ess-attendance-scroll').evaluate(e=>e.clientHeight>=320),'Employee attendance table collapsed');
+  await page.locator('[data-dialog-open="correction-dialog"]').click();assert.equal(await page.locator('#correction-dialog').evaluate(e=>e.open),true);await page.keyboard.press('Escape');
+  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/employee-attendance-'+width+'.png',fullPage:true,animations:'disabled'});}
+  await page.setViewportSize({width:1440,height:1000});
   await page.goto(base+'/employee.php?page=overview');await page.screenshot({path:'/tmp/shrms-ui-screenshots/employee.png'});
   await page.locator('[data-ess-theme]').click();assert.ok(await page.locator('body').evaluate(e=>e.classList.contains('dark')));await page.locator('[data-ess-theme]').click();
   await page.locator('[data-dialog-open="correction-dialog"]').click();assert.equal(await page.locator('#correction-dialog').evaluate(e=>e.open),true);await page.keyboard.press('Escape');
