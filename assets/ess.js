@@ -63,3 +63,28 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape')document.que
  });
  setInterval(render,1000);
 })();
+
+
+// Current shift on the attendance page shares the existing authenticated status poll.
+(()=>{'use strict';
+ const card=document.querySelector('[data-attendance-today]');if(!card)return;
+ let snapshot=null,received=0;
+ const duration=n=>{n=Math.max(0,Math.floor(n));return `${String(Math.floor(n/3600)).padStart(2,'0')}h ${String(Math.floor(n/60)%60).padStart(2,'0')}m ${String(n%60).padStart(2,'0')}s`;};
+ const set=(key,value)=>{card.querySelector(`[data-attendance-live-${key}]`).textContent=value;};
+ function render(){
+  if(!snapshot)return;const t=snapshot,age=(performance.now()-received)/1000;
+  const now=Math.min(t.as_of+Math.min(age,15),t.limit),delta=Math.max(0,now-t.as_of);
+  const worked=t.worked+(t.state==='in'?delta:0),after=t.after_end+(t.state==='in'?Math.max(0,now-Math.max(t.as_of,t.shift_end)):0);
+  const late=t.first_in===null?0:Math.max(0,t.first_in-t.shift_start),early=t.first_in===null?0:Math.max(0,t.shift_start-t.first_in);
+  for(const [key,value] of Object.entries({worked,late,early,overtime:Math.max(0,after-late)}))card.querySelector(`[data-attendance-live="${key}"]`).textContent=duration(value);
+  set('state',age>15?'Sync delayed':t.expired?'Shift ended':t.state==='in'?'Checked in':t.state==='out'?'Checked out':'Not checked in');
+  set('shift',t.shift_label);
+  set('note',age>15?'Timer paused until fresh punch data arrives.':`${t.inferred?'Estimated from alternating biometric punches. ':'Based on recorded punches. '}Work pauses during recorded breaks. Net overtime deducts late arrival from time worked after shift end. ${t.expired?'This is the latest shift; its counting window has ended. ':''}Refreshes every 10 seconds; these are live estimates.`);
+ }
+ document.addEventListener('ess:punch-status',event=>{
+  const data=event.detail,t=data?.timing;
+  if(!t||data.state==='review'){snapshot=null;set('state',data?.label||'Unavailable');set('note',data?.detail||'Waiting for punch data.');set('shift',t?.shift_label||'');card.querySelectorAll('[data-attendance-live]').forEach(el=>el.textContent='—');return;}
+  snapshot=t;received=performance.now();render();
+ });
+ setInterval(render,1000);
+})();

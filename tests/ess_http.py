@@ -28,7 +28,7 @@ try:
  assert '?page=attendance_sheet' not in sidebar and '?page=balances' not in sidebar
  assert 'Profile & account' in h and 'data-ess-theme' in h and 'data-dialog-open="correction-dialog"' in h
  h=get(c,'employee.php?page=attendance&month=2030-02')
- assert 'February 2030' in h and 'Late arrivals' in h and 'Early departures' in h and 'id="correction-dialog"' in h
+ assert 'February 2030' in h and 'Late arrivals' in h and 'Early arrivals' in h and 'id="correction-dialog"' in h
  h=post(c,'employee.php?page=regularisation',{'csrf':token(h),'action':'request','category':'Missed punch','subject':'ESS popup correction','details':'Please check the missing punch','start_date':'2030-02-06','end_date':'2030-02-06'})
  h=get(c,'employee.php?page=attendance&month=2030-02')
  assert 'ESS popup correction' in h and 'Pending' in h
@@ -53,4 +53,5 @@ except Exception:
  raise
 finally:
  server.terminate();server.wait();log.close()
+
 

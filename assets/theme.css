@@ -268,3 +268,16 @@ body.has-app-shell.sidebar-collapsed{--nav-width:76px}
 .shrms-ui .ess-attendance-badge.needs-review{color:#9F110C;background:#fff0ed;border-color:#ebc6c0}
 .shrms-ui .ess-attendance-notice{border-left:3px solid #9F110C;padding:10px 14px;margin:0 0 16px;font-size:13px;line-height:1.6;background:rgba(159,17,12,.06)}
 @media(max-width:600px){.shrms-ui .ess-attendance-sheet .ess-attendance-scroll{min-height:300px;max-height:65vh!important}.shrms-ui .ess-attendance-sheet th,.shrms-ui .ess-attendance-sheet td{padding:11px 12px}}
+
+/* Employee time breakdown separates early arrival from leaving early. */
+.shrms-ui .ess-time-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin-top:18px}
+.shrms-ui .ess-time-grid>div{padding:6px 22px;border-left:1px solid var(--border)}
+.shrms-ui .ess-time-grid>div:first-child{border-left:0;padding-left:0}
+.shrms-ui .ess-time-grid span{display:block;font-size:12px;color:var(--text-secondary)}
+.shrms-ui .ess-time-grid strong{display:block;margin:8px 0;font:700 27px/1.2 var(--font-heading);font-variant-numeric:tabular-nums}
+.shrms-ui .ess-time-grid small{display:block;color:var(--text-secondary);font-size:11px;line-height:1.6}
+.shrms-ui .ess-today-summary h2{margin:4px 0 6px}.shrms-ui .ess-today-summary .ess-section-heading p{margin:0;color:var(--text-secondary);font-size:12px}
+.shrms-ui .ess-today-summary .ess-hint{margin:18px 0 0;font-size:12px;color:var(--text-secondary)}
+.shrms-ui .ess-month-caption{margin:24px 0 10px;font-weight:600;font-size:13px;color:var(--text-secondary)}
+.shrms-ui .ess-time-rule{padding:11px 14px;border:1px solid var(--border);border-radius:9px;background:var(--secondary-bg);font-size:12px;color:var(--text-secondary);line-height:1.7;margin:0 0 16px}
+@media(max-width:800px){.shrms-ui .ess-time-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 0}.shrms-ui .ess-time-grid>div:nth-child(3){border-left:0;padding-left:0}.shrms-ui .ess-time-grid strong{font-size:22px}.shrms-ui .ess-today-summary .ess-section-heading{align-items:flex-start}}
