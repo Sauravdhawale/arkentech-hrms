@@ -32,7 +32,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
     assert.equal(await page.locator('[data-pay-empty]').isVisible(),true);
     await page.locator('[data-pay-search]').fill('');await page.locator('[data-pay-filter=""]').click();
    }
-   for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/'+route+'-'+width+'.png',fullPage:true});}
+   for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/'+route+'-'+width+'.png',fullPage:true,animations:'disabled'});}
    await page.setViewportSize({width:1440,height:1000});
   }
   await page.goto(base+'/super-admin.php?page=payslip_settings');
