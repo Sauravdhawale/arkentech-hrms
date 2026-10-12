@@ -1,15 +1,19 @@
-/* Full-width settings workspace: compact groups instead of a second tall sidebar. */
+/* Settings use category tabs and a contextual section row, not a second sidebar. */
 .shrms-ui .settings-workspace{display:block;width:100%;max-width:none}
-.shrms-ui .settings-workspace>.settings-menu{position:static;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;padding:18px;margin:0 0 24px;max-height:none!important;overflow:visible!important;width:100%}
-.shrms-ui .settings-workspace .settings-menu-group{margin:0;padding:0;border:0;min-width:0}
-.shrms-ui .settings-workspace .settings-menu-group .eyebrow{margin:0 0 8px;padding:0;font-size:10px;letter-spacing:.08em}
-.shrms-ui .settings-workspace .settings-menu-group a{display:inline-flex;align-items:center;gap:6px;margin:3px 3px 3px 0;padding:8px 10px;border:1px solid var(--border,#e3e4e7);font-size:12px;line-height:1.4;border-radius:7px}
-.shrms-ui .settings-workspace .settings-menu a[aria-current=page]{background:#b12625;color:#fff!important;border-color:#b12625;box-shadow:none}
-.shrms-ui .settings-workspace .settings-section-heading{margin:0 0 14px}
+.shrms-ui .settings-workspace>.settings-menu{position:static;display:block;padding:0;margin:0 0 28px;width:100%;max-height:none!important;overflow:visible!important;background:transparent;border:0;border-radius:0;box-shadow:none}
+.shrms-ui .settings-workspace .settings-category-tabs{display:flex;align-items:center;gap:28px;border-bottom:1px solid var(--border,#e2e5e9);overflow-x:auto;scrollbar-width:thin;white-space:nowrap}
+.shrms-ui .settings-workspace .settings-category-tabs a{display:block;flex:0 0 auto;margin:0;padding:14px 2px;font-size:14px;font-weight:600;line-height:1.4;border:0;border-bottom:3px solid transparent;border-radius:0;background:transparent;box-shadow:none;color:var(--muted,#637083)}
+.shrms-ui .settings-workspace .settings-category-tabs a[aria-current=true]{color:var(--primary,#b12625);border-bottom-color:var(--primary,#b12625)}
+.shrms-ui .settings-workspace .settings-section-tabs{display:flex;gap:6px;align-items:center;padding:14px 0 0;overflow-x:auto;scrollbar-width:thin;white-space:nowrap}
+.shrms-ui .settings-workspace .settings-section-tabs a{display:block;flex:0 0 auto;margin:0;padding:9px 12px;border:1px solid transparent;border-radius:7px;font-size:12px;line-height:1.4;color:var(--text,#28303c);box-shadow:none;background:transparent}
+.shrms-ui .settings-workspace .settings-section-tabs a[aria-current=page]{background:var(--surface,#fff);border-color:var(--border,#e2e5e9);color:var(--primary,#b12625);font-weight:700;box-shadow:0 1px 3px #00000008}
+.shrms-ui .settings-workspace .settings-menu a:hover{color:var(--primary,#b12625)}
 .shrms-ui .settings-workspace .settings-content{width:100%;min-width:0}
+.shrms-ui .settings-workspace .settings-section-heading{display:flex;align-items:center;justify-content:space-between;margin:0 0 18px}
+.settings-context{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted,#637083);margin-bottom:6px}
+.shrms-ui .settings-workspace .settings-section-heading h2{margin:0;font-size:22px;line-height:1.3}
 .shrms-ui .settings-workspace .settings-content .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .pay-reference-tabs{padding:12px;background:var(--surface,#fff);border:1px solid var(--border,#e3e4e7);border-radius:10px}
 .pay-reference-tabs a{padding:9px 13px}
 @media(min-width:1100px){.shrms-ui .app:has(.settings-workspace) main{max-width:none;width:100%}}
-@media(max-width:900px){.shrms-ui .settings-workspace>.settings-menu{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}}
-@media(max-width:560px){.shrms-ui .settings-workspace>.settings-menu{grid-template-columns:1fr;padding:14px;gap:12px}.shrms-ui .settings-workspace .settings-content .form-grid{grid-template-columns:1fr}.pay-reference-tabs a{flex:1 1 130px}}
+@media(max-width:650px){.shrms-ui .settings-workspace .settings-category-tabs{gap:20px}.shrms-ui .settings-workspace .settings-category-tabs a{font-size:13px;padding-top:10px}.shrms-ui .settings-workspace>.settings-menu{margin-bottom:22px}.shrms-ui .settings-workspace .settings-content .form-grid{grid-template-columns:1fr}.pay-reference-tabs a{flex:1 1 130px}.shrms-ui .settings-workspace .settings-section-heading h2{font-size:20px}}

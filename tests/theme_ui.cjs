@@ -36,7 +36,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    await page.setViewportSize({width:1440,height:1000});
   }
   assert.equal(await page.locator('.pay-nav a').count(),4);
-  for(const route of ['settings','leave_routes']){await page.goto(base+'/super-admin.php?page='+route);for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await check();await page.screenshot({path:'/tmp/shrms-ui-screenshots/settings-'+route+'-'+width+'.png',fullPage:true});}}
+  for(const route of ['settings','leave_routes','time_policies']){await page.goto(base+'/super-admin.php?page='+route);for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await check();assert.equal(await page.locator('.settings-category[aria-current="true"]').count(),1);assert.equal(await page.locator('.settings-section-tabs a[aria-current="page"]').count(),1);assert.ok(await page.locator('.settings-menu').evaluate(e=>e.getBoundingClientRect().height<180),'Settings navigation too tall');await page.screenshot({path:'/tmp/shrms-ui-screenshots/settings-'+route+'-'+width+'.png',fullPage:true});}}
   await page.setViewportSize({width:1440,height:1000});
   await page.goto(base+'/super-admin.php?page=payslip_settings');
   assert.equal(await page.locator('.settings-menu').count(),1);
@@ -91,6 +91,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 
 
