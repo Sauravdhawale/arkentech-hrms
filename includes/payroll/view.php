@@ -1,5 +1,5 @@
 <?php
-echo '<script src="assets/payroll-ui.js?v=1" defer></script>';
+echo '<script src="assets/payroll-ui.js?v=2" defer></script>';
 function pay_hidden(string $key,$value):void {if(is_array($value)){foreach($value as $k=>$v)pay_hidden($key.'['.$k.']',$v);return;}echo '<input type="hidden" name="'.h($key).'" value="'.h((string)$value).'">';}
 function pay_form(string $action,array $hidden=[]):void {echo '<form method="post">';ftoken();pay_hidden('action',$action);foreach($hidden as $k=>$v)pay_hidden($k,$v);}
 function pay_select(string $key,string $label,$value,array $options):void {echo '<label>'.h($label).'<select name="'.h($key).'">';foreach($options as $k=>$v)echo '<option value="'.h((string)$k).'" '.((string)$value===(string)$k?'selected':'').'>'.h($v).'</option>';echo '</select></label>';}
@@ -14,7 +14,7 @@ function pay_breakup_table(array $parts,bool $annual=true):void {
 if(!pay_ready($pdo)):?>
 <section class="card pay-card"><h2>Enable Payroll</h2><p>Add salary revisions and payroll snapshots to the existing workspace. Existing salaries and published payslips stay available.</p><?php if($user['role']==='super_admin'){pay_form('pay_install');echo '<button class="button primary">Install Payroll upgrade</button></form>';}else echo '<p>Ask your Super Admin to install the Payroll upgrade.</p>';?></section>
 <?php return;endif;
-if(!pay_workflow_ready($pdo)):?>
+if(!pay_workflow_ready($pdo)&&$page==='payroll_settings'):?>
 <section class="card pay-card"><h2>Enable Payroll Workflow Upgrade</h2><p>Add attendance snapshots, payroll exception records, lock/reopen audit fields, controlled overrides and versioned payslip templates. Existing payroll data remains unchanged.</p><?php if($user['role']==='super_admin'){pay_form('pay_workflow_install');echo '<button class="button primary">Enable Payroll Workflow</button></form>';}else echo '<p>Ask your Super Admin to enable the Payroll Workflow upgrade.</p>';?></section>
 <?php endif;
 // Configuration lives in Company Settings; payroll work stays in Payslips.
@@ -55,6 +55,7 @@ if($page==='payroll_reports'){
   echo '<section class="card pay-card"><h2>Component and statutory totals</h2><div class="pay-table"><table><thead><tr><th>Component</th><th>Amount</th></tr></thead><tbody>';foreach($summary as $key=>$value)echo '<tr><td>'.h($key).'</td><td>'.pay_amount($value).'</td></tr>';echo '</tbody></table></div></section>';
  }
 }
+
 
 
 

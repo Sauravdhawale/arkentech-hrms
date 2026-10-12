@@ -26,18 +26,23 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    await page.goto(base+'/super-admin.php?page='+route);await check();
    if(route==='payroll_dashboard')assert.equal(await page.locator('.pay-kpi').count(),6);
    if(route==='salary_components'){
-    await page.locator('[data-pay-filter="Deduction"]').click();
+    await page.locator('[data-pay-method="Fixed"]').click();
     await page.locator('[data-pay-search]').fill('no-such-component-123');
     assert.equal(await page.locator('[data-pay-row]:visible').count(),0);
     assert.equal(await page.locator('[data-pay-empty]').isVisible(),true);
-    await page.locator('[data-pay-search]').fill('');await page.locator('[data-pay-filter=""]').click();
+    await page.locator('[data-pay-search]').fill('');await page.locator('[data-pay-method=""]').click();
    }
    for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/'+route+'-'+width+'.png',fullPage:true,animations:'disabled'});}
    await page.setViewportSize({width:1440,height:1000});
   }
-  assert.equal(await page.locator('.pay-nav a').count(),3);
+  assert.equal(await page.locator('.pay-nav a').count(),4);
+  for(const route of ['settings','leave_routes']){await page.goto(base+'/super-admin.php?page='+route);for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await check();await page.screenshot({path:'/tmp/shrms-ui-screenshots/settings-'+route+'-'+width+'.png',fullPage:true});}}
+  await page.setViewportSize({width:1440,height:1000});
   await page.goto(base+'/super-admin.php?page=payslip_settings');
   assert.equal(await page.locator('.settings-menu').count(),1);
+  assert.equal(await page.locator('.settings-menu a[href="?page=salary_components"]').count(),0);
+  assert.equal(await page.locator('.settings-menu a[href="?page=salary_structures"]').count(),0);
+  assert.equal(await page.locator('.settings-menu a[href="?page=payroll_settings"]').count(),0);
   const editor=page.locator('[data-pay-template-editor]');assert.equal(await editor.count(),1);
   await editor.evaluate(e=>{const details=e.closest('details');if(details)details.open=true;const dialog=e.closest('dialog');if(dialog&&!dialog.open)dialog.showModal();});
   await editor.getByRole('button',{name:'Classic layout',exact:true}).click();
@@ -86,6 +91,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 
 

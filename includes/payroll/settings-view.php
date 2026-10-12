@@ -5,8 +5,14 @@ if(!$editing){$v['effective_from']=date('Y-m-01');if($module==='pay_settings')$v
 else{$v['effective_from']=date('Y-m-d');$v['effective_to']='';}
 if(($_POST['action']??'')==='pay_config'&&($_POST['module']??'')===$module&&$module==='pay_payslip')$v=array_replace($v,$_POST);
 ?>
-<nav class="pay-config-tabs" aria-label="Payroll configuration"><?php foreach(['salary_structures'=>'Salary Structure','salary_components'=>'Allowances & Deductions','payslip_settings'=>'Payslip Designer'] as $route=>$label):?><a href="?page=<?=h($route)?>" <?=($page===$route)?'aria-current="page"':''?>><?=h($label)?></a><?php endforeach;if($module==='pay_structure'&&can($pdo,$user,'payroll.salary.view')):?><a href="?page=employee_salary">Employee salary assignments</a><?php endif;?></nav>
-<p class="pay-muted">Changes create dated revisions. Existing salary assignments and finalized payroll retain their snapshots. To change a saved code, open its latest revision below.</p>
+<?php
+$componentCategory=in_array($_GET['category']??'',['Earning','Deduction','Employer'],true)?$_GET['category']:'Earning';
+if($module==='pay_component'&&!$editing)$v['category']=$componentCategory;
+$configurationTabs=[['salary_structures','','Salary Structures'],['salary_components','Earning','Allowances'],['salary_components','Deduction','Deductions'],['salary_components','Employer','Employer Contributions'],['payroll_settings','','Payroll Rules']];
+if($module!=='pay_payslip'):?>
+<nav class="pay-config-tabs pay-reference-tabs" aria-label="Payroll configuration"><?php foreach($configurationTabs as [$route,$category,$label]):$active=$page===$route&&(!$category||$componentCategory===$category);?><a href="?page=<?=h($route)?><?=$category?'&amp;category='.h($category):''?>" <?=$active?'aria-current="page"':''?>><?=h($label)?></a><?php endforeach;?></nav>
+<?php endif;?>
+<p class="pay-muted">Manage your payroll setup. Changes apply from the effective date; previous payroll stays unchanged.</p>
 <?php if(can($pdo,$user,'payroll.settings.manage')):?>
 <details class="card pay-card" <?=($editing||!$records)?'open':''?>><summary><?=$editing?'Create a new revision':($module==='pay_component'?'Create allowance / deduction':($module==='pay_structure'?'Create salary structure':($module==='pay_payslip'?'Create payslip design':'Add configuration')))?></summary>
 <?php pay_form('pay_config',['module'=>$module,'previous_id'=>$editing['id']??0]);?>
@@ -30,6 +36,7 @@ pay_check('variable_enabled','Enable variable pay',$v);choose('rounding','Roundi
 <?php $latest=[];foreach($records as $r):$d=$r['values'];$isLatest=!isset($latest[$d['code']]);$latest[$d['code']]=true;?>
 <tr><td><?=h($r['title'])?></td><td><?=h($d['code'])?></td><td><?=h($d['effective_from'].' → '.($d['effective_to']?:'Open'))?></td><td><?=h($r['status'])?></td><td><details><summary>View configuration</summary><pre class="pay-detail"><?=h(json_encode($d,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE))?></pre></details></td><td><?php if($isLatest&&can($pdo,$user,'payroll.settings.manage')):?><a href="?page=<?=h($page)?>&revision=<?=$r['id']?>">New revision</a><?php endif;?></td></tr>
 <?php endforeach;if(!$records)echo '<tr><td colspan="6">No configuration saved yet.</td></tr>';?></tbody></table></div></section></details>
+
 
 
 
