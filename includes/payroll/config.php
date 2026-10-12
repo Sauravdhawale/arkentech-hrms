@@ -2,6 +2,7 @@
 require_once dirname(__DIR__).'/foundation/employees.php';
 require_once dirname(__DIR__).'/core-hr/service.php';
 require_once __DIR__.'/calculation.php';
+require_once __DIR__.'/templates.php';
 function pay_ready(PDO $db):bool {try{return (bool)$db->query("SELECT name FROM hr_migrations WHERE name='007-payroll'")->fetchColumn();}catch(Throwable $e){return false;}}
 function pay_allow(PDO $db,array $actor,string $permission):void{if(!can($db,$actor,$permission))throw new InvalidArgumentException('Payroll permission required: '.$permission);}
 function pay_install(PDO $db,array $actor):void {
@@ -28,7 +29,7 @@ function pay_settings(PDO $db,string $day):array {
  return array_values($rows)[0]['values'];
 }
 function pay_setting_defaults():array{return ['cycle'=>'Monthly','closing_day'=>1,'proration'=>'Calendar Days','lop_basis'=>'GROSS','lop_days'=>'Absent + unpaid leave','ot_enabled'=>false,'ot_method'=>'Fixed Hourly Rate','ot_rate'=>'0','ot_basis'=>'GROSS','hours_per_day'=>8,'variable_enabled'=>false,'rounding'=>'Paise','approval_required'=>true,'auto_payslip'=>false,'currency'=>'INR','currency_position'=>'Before'];}
-function pay_slip_defaults():array{return ['show_logo'=>true,'show_address'=>true,'show_attendance'=>true,'show_bank'=>false,'show_pan'=>false,'mask_sensitive'=>true,'footer'=>'','signatory'=>'','number_format'=>'PAY-{YYYY}{MM}-{ID}'];}
+function pay_slip_defaults():array{return ['show_logo'=>true,'show_address'=>true,'show_attendance'=>true,'show_bank'=>false,'show_pan'=>false,'mask_sensitive'=>true,'footer'=>'','signatory'=>'','number_format'=>'PAY-{YYYY}{MM}-{ID}','template_mode'=>'standard','html_template'=>'','attributes'=>[]];}
 function pay_save_config(PDO $db,array $actor,array $in):int {
  pay_allow($db,$actor,'payroll.settings.manage');$module=pay_enum($in,'module',['pay_component','pay_structure','pay_statutory','pay_settings','pay_payslip']);
  $from=chr_date((string)($in['effective_from']??''));$to=fdate($in,'effective_to');if($to&&$to<$from)throw new InvalidArgumentException('Effective end must follow start.');
@@ -55,6 +56,7 @@ function pay_save_config(PDO $db,array $actor,array $in):int {
  }else{
   foreach(['show_logo','show_address','show_attendance','show_bank','show_pan','mask_sensitive'] as $key)$v[$key]=!empty($in[$key]);
   $v+=['footer'=>ftext($in,'footer',1000),'signatory'=>ftext($in,'signatory',190),'number_format'=>ftext($in,'number_format',60,true)];
+  $v+=pay_template_config($in);
   if(!str_contains($v['number_format'],'{ID}')||!preg_match('/^[A-Za-z0-9{} _\/-]+$/D',$v['number_format']))throw new InvalidArgumentException('Payslip number format must contain {ID}; use letters, digits, spaces, / or -.');
  }
  $db->beginTransaction();try{
@@ -86,3 +88,4 @@ function pay_assign(PDO $db,array $actor,array $in):int {
   $db->prepare('INSERT INTO hr_salary_assignments(employee_id,structure_id,effective_from,effective_to,monthly_gross,annual_ctc,snapshot,reason,notes,created_by) VALUES(?,?,?,?,?,?,?,?,?,?)')->execute([$p['employee']['user_id'],$p['structure_id'],$p['effective_from'],$p['effective_to'],$p['breakup']['gross'],$p['breakup']['annual_ctc'],pay_json($p),$reason,ftext($in,'notes',3000),$actor['id']]);$id=(int)$db->lastInsertId();faudit($db,$actor,'payroll.salary.assigned',$id);$db->commit();return $id;
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
+

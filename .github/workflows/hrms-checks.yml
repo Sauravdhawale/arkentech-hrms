@@ -48,6 +48,7 @@ jobs:
           php tests/employee_bulk.php
           php tests/employee_csv.php
           php tests/payroll.php
+          php tests/payroll_templates.php
           python3 tests/payroll_http.py
           php tests/organization.php
           node tests/organization_filter.cjs
@@ -81,5 +82,6 @@ jobs:
           name: shrms-ui-screenshots
           path: /tmp/shrms-ui-screenshots/
           if-no-files-found: ignore
+
 
 

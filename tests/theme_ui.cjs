@@ -22,6 +22,18 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   for(const route of ['overview','employees','employee-add','settings','departments','designations','roles','attendance_dashboard','attendance','manual_attendance','attendance_requests','daily_work_status','monthly','devices','mapping','punch_log','sync','leaves','payroll_dashboard','recruitment_dashboard','documents','announcements','performance','tasks','helpdesk','reports','account']){
    await page.goto(base+'/super-admin.php?page='+route);await check();assert.equal(await page.locator('body>aside').count(),1,route+' shell');
   }
+  await page.goto(base+'/super-admin.php?page=payslip_settings');
+  const editor=page.locator('[data-pay-template-editor]');assert.equal(await editor.count(),1);
+  await editor.evaluate(e=>{const details=e.closest('details');if(details)details.open=true;const dialog=e.closest('dialog');if(dialog&&!dialog.open)dialog.showModal();});
+  await editor.getByRole('button',{name:'Classic layout',exact:true}).click();
+  await editor.getByRole('button',{name:'Add attribute',exact:true}).click();
+  await editor.locator('[data-attribute-row] input').first().fill('office_label');
+  await editor.locator('[data-attribute-row] input').last().fill('Pune office');
+  await editor.getByRole('button',{name:'Preview sample payslip',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('[data-template-message]')?.textContent.includes('Sample preview only'));
+  assert.ok(await editor.locator('[data-template-preview]').getAttribute('srcdoc').then(s=>s.includes('Sample Employee')));
+  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/payroll-template-'+width+'.png',fullPage:true});}
+  await page.setViewportSize({width:1440,height:1000});
   await page.goto(base+'/super-admin.php?page=overview');
   const nav=page.locator('body>aside');assert.equal(await nav.evaluate(e=>Math.round(e.getBoundingClientRect().width)),250);
   await page.locator('.menu-toggle').click();assert.equal(await nav.evaluate(e=>Math.round(e.getBoundingClientRect().width)),76);await layout();
