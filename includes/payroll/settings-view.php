@@ -12,7 +12,7 @@ $configurationTabs=[['salary_structures','','Salary Structures'],['salary_compon
 if($module!=='pay_payslip'):?>
 <nav class="pay-config-tabs pay-reference-tabs" aria-label="Payroll configuration"><?php foreach($configurationTabs as [$route,$category,$label]):$active=$page===$route&&(!$category||$componentCategory===$category);?><a href="?page=<?=h($route)?><?=$category?'&amp;category='.h($category):''?>" <?=$active?'aria-current="page"':''?>><?=h($label)?></a><?php endforeach;?></nav>
 <?php endif;?>
-<?php if($module!=='pay_payslip'&&can($pdo,$user,'payroll.settings.manage')):?>
+<?php $starterConfigured=false;foreach(chr_rows($pdo,'pay_structure') as $starterRecord)if(($starterRecord['values']['code']??'')==='ARK_ANNEXURE_A')$starterConfigured=true;if(!$starterConfigured&&$module!=='pay_payslip'&&can($pdo,$user,'payroll.settings.manage')):?>
 <section class="card pay-card"><div class="pay-panel-heading"><div><h2>Recommended payroll setup</h2><p class="pay-muted">Basic 50% · HRA 50% of Basic · Bonus 8.33% of Basic · balancing Special Allowance. Optional variable pay up to 5%, PF and recoveries start at zero. No income tax is added.</p></div><?php pay_form('pay_starter');?><button class="button primary">Add recommended setup</button></form></div><p class="pay-muted">Adds missing starter records once. Existing configurations and employee salaries stay unchanged. Then select “Arkentech Annexure A” when assigning salary.</p></section>
 <?php endif;?>
 <p class="pay-muted">Manage your payroll setup. Changes apply from the effective date; previous payroll stays unchanged.</p>
