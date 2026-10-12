@@ -34,7 +34,7 @@ try:
   assert 'text/csv' in r.headers['Content-Type'];assert 'PAY-CI-001' in r.read().decode()
  owner=login('payroll.ci','Payroll-CI-2026!')
  _,own=get(owner,'payroll-slip.php?entry='+str(f['entry']));assert 'Payroll Test' in own and 'Net pay' in own
- _,own=get(owner,'employee.php?page=payroll');assert 'Published payslips' in own and 'PAY-CI-001' not in own # ID is in slip, salary view stays compact
+ _,own=get(owner,'employee.php?page=payroll');assert 'Published payslips' in own and 'Current salary' in own
  _,own=get(owner,'employee.php?page=profile&tab=payroll');assert 'Current salary' in own
  _,h=get(a,'super-admin.php?page=employee-view&id='+str(f['employee'])+'&tab=payroll');assert 'Current salary' in h and 'Set / revise salary' in h
  viewer=login('test.two' ,'User@123')

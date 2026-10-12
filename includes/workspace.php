@@ -11,7 +11,6 @@ $nav['attendance']='Attendance records';$nav['monthly']='Monthly attendance';
 if($admin){$nav['raw_logs']='Raw biometric logs';$nav['sync']='Sync history';$nav['device_attendance']='Device punch attendance';$nav['device_monthly']='Device punch summary';}
 if(!$admin)$nav+=['my_shift'=>'My Shift','attendance_sheet'=>'Attendance Sheet','leave_history'=>'Leave History','inbox'=>'Inbox','notifications'=>'Notifications','my_salary'=>'My Payroll & Payslips','approvals'=>'Leave Approvals'];
 $page=$_GET['page'] ?? 'overview';
-if(!$admin&&$page==='payroll')$page='my_salary';
 if(!$admin&&!$passwordSetup&&$page==='profile'){$profileTab=(string)($_GET['tab']??'overview');$page=['overview'=>'profile','shift'=>'my_shift','documents'=>'documents','security'=>'security','payroll'=>'my_salary'][$profileTab]??'profile';}
 if (!isset($nav[$page])) { http_response_code(403); exit('This section is not available for your role.'); }
 $pdo=db(); $notice=''; $error=''; $ready=true;
@@ -19,7 +18,7 @@ try { $pdo->query('SELECT id FROM hr_requests LIMIT 1'); $pdo->query('SELECT id 
 function audit_action(PDO $pdo,int $actor,string $action,int $record): void { $pdo->prepare('INSERT INTO hr_audit(actor_id,action,record_id) VALUES(?,?,?)')->execute([$actor,$action,$record]); }
 function field_text(string $key,int $max,bool $required=true): string { $s=trim((string)($_POST[$key] ?? '')); if (($required && $s==='') || strlen($s)>$max) throw new InvalidArgumentException('Please complete all fields within their character limits.'); return $s; }
 require_once __DIR__.'/core-hr/service.php';if(!att_biometric_enabled($pdo))foreach(['devices','mapping','sync','raw_logs','device_attendance','device_monthly'] as $biometricPage)unset($nav[$biometricPage]);
-$coreReady=chr_ready($pdo);if($coreReady){$companyZone=$pdo->query('SELECT timezone FROM company_settings WHERE id=1')->fetchColumn();if($companyZone)date_default_timezone_set($companyZone);}
+$coreReady=chr_ready($pdo);if(!$admin&&$coreReady&&$page==='payroll')$page='my_salary';if($coreReady){$companyZone=$pdo->query('SELECT timezone FROM company_settings WHERE id=1')->fetchColumn();if($companyZone)date_default_timezone_set($companyZone);}
 if(!$admin&&$coreReady&&!in_array($page,['overview','profile','my_shift','documents','attendance','attendance_sheet','monthly','regularisation','leaves','balances','leave_history','my_salary','payroll','performance','reviews','tasks','helpdesk','inbox','notifications','security','announcements'],true)&&!($page==='approvals'&&can($pdo,$user,'leave.approve'))){http_response_code(403);exit('This section is not available in the employee workspace.');}
 require __DIR__.'/suite.php';
 require_once __DIR__.'/leave-balances.php';
