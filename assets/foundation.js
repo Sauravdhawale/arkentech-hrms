@@ -83,6 +83,6 @@ if(notificationRoot){
 
   const editMode=/^(?:Edit|Correct)\b/i.test(label)||new URLSearchParams(location.search).has('edit')||new URLSearchParams(location.search).has('revision');
   const validationError=!!document.querySelector('.alert.error');
-  if(wasOpen||editMode||validationError)requestAnimationFrame(()=>{if(!dialog.open)dialog.showModal();});
+  if((wasOpen&&!source.closest('.settings-workspace'))||editMode||validationError)requestAnimationFrame(()=>{if(!dialog.open)dialog.showModal();});
  });
 })();
