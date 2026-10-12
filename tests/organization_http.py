@@ -31,7 +31,7 @@ try:
   _,h=get(a,'super-admin.php?page='+page);assert all(x not in h for x in ['Fatal error','Warning:','Parse error']),page
  for page in ['departments','designations']:
   _,h=get(a,'super-admin.php?page='+page)
-  assert 'ORGANIZATION' in h
+  assert 'Organization settings' in h and 'settings-category-tabs' in h
   assert 'Arkentech departments & designations' not in h and 'Preview organization update' not in h and 'Apply safe changes' not in h
  _,h=get(a,'super-admin.php?page=employee-add');p=Options();p.feed(h);assert all('disabled' in o for o in p.options if o.get('value'))
  _,h=get(a,'super-admin.php?page=employee-edit&id='+str(f['employee']));p=Options();p.feed(h)
