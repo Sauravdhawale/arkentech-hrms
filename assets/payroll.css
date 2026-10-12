@@ -5,3 +5,6 @@
 @media(max-width:640px){.pay-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pay-kpi{padding:14px}.pay-kpi>strong{font-size:19px}.pay-dashboard-pair,.pay-dashboard-side{grid-template-columns:1fr}.pay-pipeline{grid-template-columns:repeat(2,minmax(0,1fr))}.pay-panel{padding:16px}.pay-search,.pay-list-actions{width:100%;min-width:0}.pay-config-tabs a{flex:1;text-align:center;padding:9px}.pay-panel-heading{align-items:stretch}.pay-line-chart{min-height:160px}}
 
 .pay-modern-table{max-height:70vh!important;min-height:320px}
+/* Use one scroll container; the shared table enhancer must not clip its contents. */
+.pay-modern-table{min-height:0}
+.pay-modern-table>.app-table-scroll{max-height:none!important;overflow:visible;border:0;margin:0}
