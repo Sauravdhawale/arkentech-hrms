@@ -16,6 +16,12 @@ if(!pay_ready($pdo)):?>
 if(!pay_workflow_ready($pdo)):?>
 <section class="card pay-card"><h2>Enable Payroll Workflow Upgrade</h2><p>Add attendance snapshots, payroll exception records, lock/reopen audit fields, controlled overrides and versioned payslip templates. Existing payroll data remains unchanged.</p><?php if($user['role']==='super_admin'){pay_form('pay_workflow_install');echo '<button class="button primary">Enable Payroll Workflow</button></form>';}else echo '<p>Ask your Super Admin to enable the Payroll Workflow upgrade.</p>';?></section>
 <?php endif;
+// Related tools remain reachable without adding more sidebar entries.
+$payRelated=[];
+if(in_array($page,['salary_structures','salary_components','employee_salary'],true))$payRelated=['salary_structures'=>'Salary Structure','salary_components'=>'Allowances & Deductions','employee_salary'=>'Employee salary assignments'];
+elseif(in_array($page,['payroll_payslips','payroll_processing','payroll_history','payroll_reports','payslip_settings'],true))$payRelated=['payroll_payslips'=>'Payslips','payslip_settings'=>'Payslip Designer','payroll_processing'=>'Process payroll','payroll_history'=>'History','payroll_reports'=>'Reports'];
+elseif($page==='payroll_dashboard')$payRelated=['employee_salary'=>'Employee salary assignments','payroll_processing'=>'Process payroll','payroll_history'=>'History','payroll_reports'=>'Reports','payroll_settings'=>'Payroll Settings'];
+if($payRelated){echo '<nav class="pay-actions" aria-label="Related payroll tools">';foreach($payRelated as $route=>$label)if($route!==$page&&can($pdo,$user,$payPages[$route][1]))echo '<a class="button" href="?page='.h($route).'">'.h($label).'</a>';echo '</nav>';}
 $configModules=['salary_components'=>'pay_component','salary_structures'=>'pay_structure','statutory_settings'=>'pay_statutory','payroll_settings'=>'pay_settings','payslip_settings'=>'pay_payslip'];
 if(isset($configModules[$page])){require __DIR__.'/settings-view.php';return;}
 $employeeOptions=[''=>'All employees'];foreach($pdo->query('SELECT e.user_id,e.employee_code,u.name FROM employees e JOIN users u ON u.id=e.user_id ORDER BY u.name') as $e)$employeeOptions[$e['user_id']]=$e['name'].' · '.$e['employee_code'];
@@ -31,7 +37,7 @@ $q=$pdo->prepare('SELECT r.*,COUNT(e.id) employees,COALESCE(SUM(e.gross),0) gros
 if($page==='payroll_dashboard'){
  $totals=['employees'=>0,'gross'=>0,'deductions'=>0,'net'=>0,'exceptions'=>0,'published'=>0];foreach($runs as $run)foreach($totals as $key=>$value)$totals[$key]+=(int)$run[$key];
  echo '<section class="card pay-card"><div class="pay-actions"><div><h2>Payroll overview</h2><p class="pay-muted">'.h($month).' · All runs for the selected month. Draft amounts are provisional.</p></div>';
- foreach(['employee_salary'=>['Salary assignments','payroll.salary.view'],'payroll_processing'=>['Process payroll','payroll.process.view'],'payslip_settings'=>['Design payslips','payroll.settings.view']] as $route=>$link)if(can($pdo,$user,$link[1]))echo '<a class="button" href="?page='.$route.'">'.$link[0].'</a>';echo '</div></section>';
+ echo '</div></section>';
  $stats=['Employees in payroll'=>$totals['employees'],'Gross payroll'=>pay_amount($totals['gross']),'Deductions'=>pay_amount($totals['deductions']),'Net payroll'=>pay_amount($totals['net']),'Exceptions'=>$totals['exceptions'],'Payslips published'=>$totals['published']];
  echo '<div class="pay-grid">';foreach($stats as $label=>$value)echo '<section class="card pay-card"><span class="pay-muted">'.h($label).'</span><strong class="pay-stat">'.h((string)$value).'</strong></section>';echo '</div>';
  echo '<section class="card pay-card"><h2>Payroll progress</h2><div class="pay-grid">';$statuses=[];foreach($runs as $run)$statuses[$run['status']]=($statuses[$run['status']]??0)+1;foreach($statuses as $status=>$count)echo '<div><span>'.h($status).'</span><strong class="pay-stat">'.$count.' run'.($count===1?'':'s').'</strong></div>';if(!$runs)echo '<p class="pay-muted">Create a payroll run to start this month.</p>';echo '</div></section>';

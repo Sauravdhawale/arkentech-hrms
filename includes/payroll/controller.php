@@ -7,11 +7,11 @@ $payPages=[
  'payroll_payslips'=>['Payslips','payslip.view'],
  'payroll_history'=>['Payroll History','payroll.process.view'],
  'payroll_reports'=>['Payroll Reports','payroll.reports'],
- 'salary_components'=>['Salary Components','payroll.settings.view'],
- 'salary_structures'=>['Salary Structures','payroll.settings.view'],
+ 'salary_components'=>['Allowances & Deductions','payroll.settings.view'],
+ 'salary_structures'=>['Salary Structure','payroll.settings.view'],
  'statutory_settings'=>['Statutory Settings','payroll.settings.view'],
  'payroll_settings'=>['Payroll Settings','payroll.settings.view'],
- 'payslip_settings'=>['Payslip Settings','payroll.settings.view']
+ 'payslip_settings'=>['Payslip Designer','payroll.settings.view']
 ];
 function pay_handle_post(PDO $db,array $actor,string $action,array $in):string {
  if($action==='pay_install'){pay_install($db,$actor);return 'Payroll tables added. Existing data preserved.';}
