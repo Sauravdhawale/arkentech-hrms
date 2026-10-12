@@ -2,6 +2,7 @@
 require_once __DIR__.'/service.php';
 $payPages=[
  'payroll_dashboard'=>['Payroll dashboard','payroll.view'],
+ 'payroll_loans'=>['Loans & Salary Advances','payroll.view'],
  'employee_salary'=>['Employee Salary','payroll.salary.view'],
  'payroll_processing'=>['Payroll Processing','payroll.process.view'],
  'payroll_payslips'=>['Payslips','payslip.view'],
@@ -28,6 +29,7 @@ function pay_handle_post(PDO $db,array $actor,string $action,array $in):string {
   case 'pay_create':$id=pay_create_run($db,$actor,(string)($in['month']??''),!empty($in['employee_id'])?[(int)$in['employee_id']]:[]);$_SESSION['pay_redirect']=$id;return 'Draft payroll created.';
   case 'pay_calculate':pay_calculate_run($db,$actor,$in);return 'Payroll calculated. Review exceptions and totals.';
   case 'pay_add_employees':pay_add_employees($db,$actor,$in);return 'Employees added. Recalculate payroll.';
+  case 'pay_bulk_adjust':$count=pay_bulk_adjust($db,$actor,$in);return $count.' employee adjustments recorded. Recalculate this run.';
   case 'pay_adjust':pay_adjust($db,$actor,$in);return 'Adjustment recorded. Recalculate this run.';
   case 'pay_transition':pay_transition($db,$actor,$in);return 'Payroll workflow updated.';
   default:throw new InvalidArgumentException('Unknown payroll action.');
@@ -54,3 +56,4 @@ function pay_export(PDO $db,array $actor,array $in):void {
   fputcsv($out,array_map(fn($v)=>is_string($v)&&preg_match('/^[=+@\-\t\r]/',$v)?"'".$v:$v,$row));
  }fclose($out);exit;
 }
+

@@ -18,7 +18,7 @@ try:
   except OSError:time.sleep(.1)
  a=login('test.admin','Admin-Changed-2026!')
  f=json.load(open('/tmp/payroll-fixture.json'))
- pages=['payroll_dashboard','employee_salary','payroll_processing','payroll_payslips','payroll_history','payroll_reports','salary_components','salary_structures','statutory_settings','payroll_settings','payslip_settings']
+ pages=['payroll_loans','payroll_dashboard','employee_salary','payroll_processing','payroll_payslips','payroll_history','payroll_reports','salary_components','salary_structures','statutory_settings','payroll_settings','payslip_settings']
  for page in pages:
   _,h=get(a,'super-admin.php?page='+page+'&month=2025-02')
   assert all(x not in h for x in ['Fatal error','Warning:','Parse error']),page
@@ -34,12 +34,16 @@ try:
   assert 'text/csv' in r.headers['Content-Type'];assert 'PAY-CI-001' in r.read().decode()
  owner=login('payroll.ci','Payroll-CI-2026!')
  _,own=get(owner,'payroll-slip.php?entry='+str(f['entry']));assert 'Payroll Test' in own and 'Net pay' in own
- viewer=login('test.two','User@123')
+ _,own=get(owner,'employee.php?page=payroll');assert 'Published payslips' in own and 'PAY-CI-001' not in own # ID is in slip, salary view stays compact
+ _,own=get(owner,'employee.php?page=profile&tab=payroll');assert 'Current salary' in own
+ _,h=get(a,'super-admin.php?page=employee-view&id='+str(f['employee'])+'&tab=payroll');assert 'Current salary' in h and 'Set / revise salary' in h
+ viewer=login('test.two' ,'User@123')
  for page in pages:
   try:get(viewer,'super-admin.php?page='+page);raise AssertionError('Unauthorized payroll page '+page)
   except urllib.error.HTTPError as e:assert e.code==403
  try:get(viewer,'payroll-slip.php?entry='+str(f['entry']));raise AssertionError('Payslip IDOR')
  except urllib.error.HTTPError as e:assert e.code==404
+ _,h=get(viewer,'employee.php?page=my_salary&employee_id='+str(f['employee']));assert 'Payroll Test' not in h and '30000.00' not in h
  _,h=get(viewer,'super-admin.php?page=overview')
  _,h=post(viewer,'super-admin.php?page=overview',{'csrf':token(h),'action':'pay_create','month':'2025-04'})
  assert 'Payroll permission required' in h
@@ -48,3 +52,4 @@ try:
  print('PASS: Payroll pages, report CSV, PDF, published snapshot, permission checks, IDOR and CSRF.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
+

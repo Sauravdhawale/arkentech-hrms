@@ -32,3 +32,4 @@ pay_check('variable_enabled','Enable variable pay',$v);choose('rounding','Roundi
 <?php endforeach;if(!$records)echo '<tr><td colspan="6">No configuration saved yet.</td></tr>';?></tbody></table></div></section></details>
 
 
+

@@ -172,3 +172,25 @@ function pay_add_employees(PDO $db,array $actor,array $in):void {
 function pay_legacy_check(PDO $db,int $employee,string $month):void {
  $q=$db->prepare("SELECT data FROM hr_records WHERE module='payroll' AND employee_id=? AND status='Published'");$q->execute([$employee]);foreach($q as $row)if((json_decode($row['data'],true)['month']??'')===$month)throw new InvalidArgumentException('An existing published payroll already covers employee #'.$employee.' for '.$month.'. Keep its original payslip; do not pay this month twice.');
 }
+
+
+/** One atomic, versioned allocation to a selected employee or department. */
+function pay_bulk_adjust(PDO $db,array $actor,array $in):int {
+ pay_allow($db,$actor,'payroll.process.manage');
+ if(empty($in['confirm']))throw new InvalidArgumentException('Confirm the allocation first.');
+ $target=pay_enum($in,'target',['Employee','Department']);$type=pay_enum($in,'type',['Earning','Deduction']);
+ $label=ftext($in,'component',80,true);$reason=ftext($in,'reason',1000,true);$amount=pay_money($in['amount']??'0');
+ if($amount<=0)throw new InvalidArgumentException('Enter a positive amount per employee.');
+ $targetId=(int)($in[$target==='Employee'?'entry_id':'department_id']??0);
+ if($targetId<1)throw new InvalidArgumentException('Choose the target employee or department.');
+ $db->beginTransaction();try{
+  chr_lock($db);$run=pay_run($db,(int)($in['run_id']??0),true);pay_mutable($run);pay_version($run,$in);
+  if(!in_array($run['status'],['Draft','Calculated'],true))throw new InvalidArgumentException('Only draft or calculated payroll can receive allocations.');
+  $sql='SELECT e.id FROM hr_payroll_entries e JOIN employees p ON p.user_id=e.employee_id WHERE e.run_id=? AND '.($target==='Employee'?'e.id=?':'p.department_id=?').' ORDER BY e.id';
+  $q=$db->prepare($sql);$q->execute([$run['id'],$targetId]);$ids=$q->fetchAll(PDO::FETCH_COLUMN);
+  if(!$ids)throw new InvalidArgumentException('No employees in this payroll match the selected target.');
+  $q=$db->prepare('INSERT INTO hr_payroll_adjustments(entry_id,type,component,amount,units,reason,created_by) VALUES(?,?,?,?,0,?,?)');
+  foreach($ids as $id){$q->execute([$id,$type,$label,$amount,$reason,$actor['id']]);pay_event($db,$actor,'allocation.added',(int)$run['id'],(int)$id,$target.' #'.$targetId.': '.$reason);}
+  $db->prepare("UPDATE hr_payroll_runs SET status='Draft',version=version+1 WHERE id=?")->execute([$run['id']]);$db->commit();return count($ids);
+ }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+}

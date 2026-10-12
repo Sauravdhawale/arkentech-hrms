@@ -22,7 +22,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   for(const route of ['overview','employees','employee-add','settings','departments','designations','roles','attendance_dashboard','attendance','manual_attendance','attendance_requests','daily_work_status','monthly','devices','mapping','punch_log','sync','leaves','payroll_dashboard','recruitment_dashboard','documents','announcements','performance','tasks','helpdesk','reports','account']){
    await page.goto(base+'/super-admin.php?page='+route);await check();assert.equal(await page.locator('body>aside').count(),1,route+' shell');
   }
-  for(const route of ['payroll_dashboard','salary_components','salary_structures','payroll_payslips']){
+  for(const route of ['payroll_dashboard','salary_components','salary_structures','payroll_payslips','payroll_loans']){
    await page.goto(base+'/super-admin.php?page='+route);await check();
    if(route==='payroll_dashboard')assert.equal(await page.locator('.pay-kpi').count(),6);
    if(route==='salary_components'){
@@ -35,7 +35,9 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/'+route+'-'+width+'.png',fullPage:true,animations:'disabled'});}
    await page.setViewportSize({width:1440,height:1000});
   }
+  assert.equal(await page.locator('.pay-nav a').count(),3);
   await page.goto(base+'/super-admin.php?page=payslip_settings');
+  assert.equal(await page.locator('.settings-menu').count(),1);
   const editor=page.locator('[data-pay-template-editor]');assert.equal(await editor.count(),1);
   await editor.evaluate(e=>{const details=e.closest('details');if(details)details.open=true;const dialog=e.closest('dialog');if(dialog&&!dialog.open)dialog.showModal();});
   await editor.getByRole('button',{name:'Classic layout',exact:true}).click();
@@ -84,5 +86,6 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 

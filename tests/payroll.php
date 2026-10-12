@@ -77,6 +77,22 @@ foreach(['2025-06'=>false,'2025-07'=>true] as $month=>$approve){
 }
 pc(pay_run($db,$run)['settings_snapshot']===$oldRunSnapshot,'Historical settings snapshot changed');
 $legacy=['month'=>'2025-05'];$db->prepare("INSERT INTO hr_records(module,employee_id,title,status,data,created_by) VALUES('payroll',?,'CI legacy preservation','Published',?,?)")->execute([$employee,pay_json($legacy),$admin['id']]);pd(fn()=>pay_create_run($db,$admin,'2025-05',[$employee]),'Legacy duplicate payroll allowed');
+
+$bulkRun=pay_create_run($db,$admin,'2025-08',[$employee]);
+$bulkEntry=(int)$db->query('SELECT id FROM hr_payroll_entries WHERE run_id='.$bulkRun)->fetchColumn();
+$bulk=['run_id'=>$bulkRun,'version'=>1,'target'=>'Employee','entry_id'=>$bulkEntry,'type'=>'Earning','component'=>'Travel allowance','amount'=>'100','reason'=>'Targeted allocation test','confirm'=>1];
+pd(fn()=>pay_bulk_adjust($db,$viewer,$bulk),'Bulk permission bypass');
+pd(fn()=>pay_bulk_adjust($db,$admin,array_merge($bulk,['confirm'=>0])),'Bulk confirmation bypass');
+pd(fn()=>pay_bulk_adjust($db,$admin,array_merge($bulk,['entry_id'=>$locked['id']])),'Cross-run allocation');
+pc(pay_bulk_adjust($db,$admin,$bulk)===1,'Employee allocation');
+pd(fn()=>pay_bulk_adjust($db,$admin,$bulk),'Duplicate stale bulk allocation');
+$department=(int)$db->query('SELECT id FROM departments ORDER BY id LIMIT 1')->fetchColumn();
+$db->prepare('UPDATE employees SET department_id=? WHERE user_id=?')->execute([$department,$employee]);
+$deptBulk=array_merge($bulk,['version'=>2,'target'=>'Department','department_id'=>$department,'type'=>'Deduction','component'=>'Approved deduction']);
+pc(pay_bulk_adjust($db,$admin,$deptBulk)===1,'Department allocation');
+pc((int)$db->query('SELECT COUNT(*) FROM hr_payroll_adjustments WHERE entry_id='.$bulkEntry)->fetchColumn()===2,'Allocation duplicated');
+$state=pay_run($db,$run);pd(fn()=>pay_bulk_adjust($db,$admin,array_merge($bulk,['run_id'=>$run,'version'=>$state['version'],'entry_id'=>$locked['id']])),'Locked allocation allowed');
 file_put_contents('/tmp/payroll-fixture.json',pay_json(['employee'=>$employee,'run'=>$run,'entry'=>$locked['id'],'structure'=>$structure]));
 require dirname(__DIR__).'/includes/payroll/pdf.php';$pdf=pay_pdf(['Payslip','Gross 100.00','Net 90.00']);pc(str_starts_with($pdf,'%PDF-1.4')&&str_contains($pdf,'startxref'),'PDF output');
 echo "PASS: Payroll additive migration, components, formulas, balancing, CTC, statutory configuration, LOP, OT approval, variable limits, proration, permissions, concurrency, workflow, finalization locks, salary history, snapshot stability and PDF.\n";
+

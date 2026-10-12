@@ -17,13 +17,13 @@ if(!pay_ready($pdo)):?>
 if(!pay_workflow_ready($pdo)):?>
 <section class="card pay-card"><h2>Enable Payroll Workflow Upgrade</h2><p>Add attendance snapshots, payroll exception records, lock/reopen audit fields, controlled overrides and versioned payslip templates. Existing payroll data remains unchanged.</p><?php if($user['role']==='super_admin'){pay_form('pay_workflow_install');echo '<button class="button primary">Enable Payroll Workflow</button></form>';}else echo '<p>Ask your Super Admin to enable the Payroll Workflow upgrade.</p>';?></section>
 <?php endif;
-// Related tools remain reachable without adding more sidebar entries.
-$payRelated=[];
-if(in_array($page,['salary_structures','salary_components','employee_salary'],true))$payRelated=['salary_structures'=>'Salary Structure','salary_components'=>'Allowances & Deductions','employee_salary'=>'Employee salary assignments'];
-elseif(in_array($page,['payroll_payslips','payroll_processing','payroll_history','payroll_reports','payslip_settings'],true))$payRelated=['payroll_payslips'=>'Payslips','payslip_settings'=>'Payslip Designer','payroll_processing'=>'Process payroll','payroll_history'=>'History','payroll_reports'=>'Reports'];
-elseif($page==='payroll_dashboard')$payRelated=['employee_salary'=>'Employee salary assignments','payroll_processing'=>'Process payroll','payroll_history'=>'History','payroll_reports'=>'Reports','payroll_settings'=>'Payroll Settings'];
-if(in_array($page,['salary_structures','salary_components','payslip_settings'],true))$payRelated=[];
-if($payRelated){echo '<nav class="pay-actions" aria-label="Related payroll tools">';foreach($payRelated as $route=>$label)if($route!==$page&&can($pdo,$user,$payPages[$route][1]))echo '<a class="button" href="?page='.h($route).'">'.h($label).'</a>';echo '</nav>';}
+// Configuration lives in Company Settings; payroll work stays in Payslips.
+if(in_array($page,['payroll_payslips','payroll_processing','payroll_history','payroll_reports','employee_salary'],true)){
+ echo '<nav class="pay-actions" aria-label="Payslip tools">';
+ foreach(['payroll_payslips'=>'Payslips','employee_salary'=>'Set employee salary','payroll_processing'=>'Generate payroll','payroll_reports'=>'Reports'] as $route=>$label)if($route!==$page&&can($pdo,$user,$payPages[$route][1]))echo '<a class="button" href="?page='.h($route).'">'.h($label).'</a>';
+ echo '</nav>';
+}
+if($page==='payroll_loans'){require __DIR__.'/loans-view.php';return;}
 $configModules=['salary_components'=>'pay_component','salary_structures'=>'pay_structure','statutory_settings'=>'pay_statutory','payroll_settings'=>'pay_settings','payslip_settings'=>'pay_payslip'];
 if(isset($configModules[$page])){require __DIR__.'/settings-view.php';return;}
 $employeeOptions=[''=>'All employees'];foreach($pdo->query('SELECT e.user_id,e.employee_code,u.name FROM employees e JOIN users u ON u.id=e.user_id ORDER BY u.name') as $e)$employeeOptions[$e['user_id']]=$e['name'].' · '.$e['employee_code'];
@@ -42,7 +42,7 @@ if(in_array($page,['payroll_dashboard','payroll_processing','payroll_history'],t
  echo '<section class="card pay-card"><h2>Payroll runs</h2><div class="pay-table"><table><thead><tr><th>Month</th><th>Status</th><th>Employees</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Exceptions</th><th></th></tr></thead><tbody>';
  foreach($runs as $r){echo '<tr><td>'.h($r['month']).'</td><td>'.h($r['status']).'</td><td>'.$r['employees'].'</td><td>'.pay_amount((int)$r['gross']).'</td><td>'.pay_amount((int)$r['deductions']).'</td><td>'.pay_amount((int)$r['net']).'</td><td>'.$r['exceptions'].'</td><td>';if(can($pdo,$user,'payroll.process.view'))echo '<a href="?page=payroll_processing&run='.$r['id'].'">Open run</a>';echo '</td></tr>';}
  if(!$runs)echo '<tr><td colspan="8">No payroll run for this month.</td></tr>';echo '</tbody></table></div></section>';
- if($user['role']==='super_admin')echo '<p><a href="?page=payroll">Previous payroll records and payslips</a> · <a href="?page=salary">Previous salary records</a></p>';
+
 }
 if($page==='payroll_payslips'){require __DIR__.'/payslips-view.php';return;}
 if($page==='payroll_reports'){
@@ -55,5 +55,6 @@ if($page==='payroll_reports'){
   echo '<section class="card pay-card"><h2>Component and statutory totals</h2><div class="pay-table"><table><thead><tr><th>Component</th><th>Amount</th></tr></thead><tbody>';foreach($summary as $key=>$value)echo '<tr><td>'.h($key).'</td><td>'.pay_amount($value).'</td></tr>';echo '</tbody></table></div></section>';
  }
 }
+
 
 
