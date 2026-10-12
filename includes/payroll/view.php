@@ -22,6 +22,7 @@ $payRelated=[];
 if(in_array($page,['salary_structures','salary_components','employee_salary'],true))$payRelated=['salary_structures'=>'Salary Structure','salary_components'=>'Allowances & Deductions','employee_salary'=>'Employee salary assignments'];
 elseif(in_array($page,['payroll_payslips','payroll_processing','payroll_history','payroll_reports','payslip_settings'],true))$payRelated=['payroll_payslips'=>'Payslips','payslip_settings'=>'Payslip Designer','payroll_processing'=>'Process payroll','payroll_history'=>'History','payroll_reports'=>'Reports'];
 elseif($page==='payroll_dashboard')$payRelated=['employee_salary'=>'Employee salary assignments','payroll_processing'=>'Process payroll','payroll_history'=>'History','payroll_reports'=>'Reports','payroll_settings'=>'Payroll Settings'];
+if(in_array($page,['salary_structures','salary_components','payslip_settings'],true))$payRelated=[];
 if($payRelated){echo '<nav class="pay-actions" aria-label="Related payroll tools">';foreach($payRelated as $route=>$label)if($route!==$page&&can($pdo,$user,$payPages[$route][1]))echo '<a class="button" href="?page='.h($route).'">'.h($label).'</a>';echo '</nav>';}
 $configModules=['salary_components'=>'pay_component','salary_structures'=>'pay_structure','statutory_settings'=>'pay_statutory','payroll_settings'=>'pay_settings','payslip_settings'=>'pay_payslip'];
 if(isset($configModules[$page])){require __DIR__.'/settings-view.php';return;}

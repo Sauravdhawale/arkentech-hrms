@@ -5,7 +5,7 @@ if(!$editing){$v['effective_from']=date('Y-m-01');if($module==='pay_settings')$v
 else{$v['effective_from']=date('Y-m-d');$v['effective_to']='';}
 if(($_POST['action']??'')==='pay_config'&&($_POST['module']??'')===$module&&$module==='pay_payslip')$v=array_replace($v,$_POST);
 ?>
-<nav class="pay-config-tabs" aria-label="Payroll configuration"><?php foreach(['salary_structures'=>'Salary Structure','salary_components'=>'Allowances & Deductions','payslip_settings'=>'Payslip Designer'] as $route=>$label):?><a href="?page=<?=h($route)?>" <?=($page===$route)?'aria-current="page"':''?>><?=h($label)?></a><?php endforeach;?></nav>
+<nav class="pay-config-tabs" aria-label="Payroll configuration"><?php foreach(['salary_structures'=>'Salary Structure','salary_components'=>'Allowances & Deductions','payslip_settings'=>'Payslip Designer'] as $route=>$label):?><a href="?page=<?=h($route)?>" <?=($page===$route)?'aria-current="page"':''?>><?=h($label)?></a><?php endforeach;if($module==='pay_structure'&&can($pdo,$user,'payroll.salary.view')):?><a href="?page=employee_salary">Employee salary assignments</a><?php endif;?></nav>
 <p class="pay-muted">Changes create dated revisions. Existing salary assignments and finalized payroll retain their snapshots. To change a saved code, open its latest revision below.</p>
 <?php if(can($pdo,$user,'payroll.settings.manage')):?>
 <details class="card pay-card" <?=($editing||!$records)?'open':''?>><summary><?=$editing?'Create a new revision':($module==='pay_component'?'Create allowance / deduction':($module==='pay_structure'?'Create salary structure':($module==='pay_payslip'?'Create payslip design':'Add configuration')))?></summary>
