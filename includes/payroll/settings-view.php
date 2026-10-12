@@ -12,9 +12,12 @@ $configurationTabs=[['salary_structures','','Salary Structures'],['salary_compon
 if($module!=='pay_payslip'):?>
 <nav class="pay-config-tabs pay-reference-tabs" aria-label="Payroll configuration"><?php foreach($configurationTabs as [$route,$category,$label]):$active=$page===$route&&(!$category||$componentCategory===$category);?><a href="?page=<?=h($route)?><?=$category?'&amp;category='.h($category):''?>" <?=$active?'aria-current="page"':''?>><?=h($label)?></a><?php endforeach;?></nav>
 <?php endif;?>
+<?php if($module!=='pay_payslip'&&can($pdo,$user,'payroll.settings.manage')):?>
+<section class="card pay-card"><div class="pay-panel-heading"><div><h2>Recommended payroll setup</h2><p class="pay-muted">Basic 50% · HRA 50% of Basic · Bonus 8.33% of Basic · balancing Special Allowance. Optional variable pay up to 5%, PF and recoveries start at zero. No income tax is added.</p></div><?php pay_form('pay_starter');?><button class="button primary">Add recommended setup</button></form></div><p class="pay-muted">Adds missing starter records once. Existing configurations and employee salaries stay unchanged. Then select “Arkentech Annexure A” when assigning salary.</p></section>
+<?php endif;?>
 <p class="pay-muted">Manage your payroll setup. Changes apply from the effective date; previous payroll stays unchanged.</p>
 <?php if(can($pdo,$user,'payroll.settings.manage')):?>
-<details class="card pay-card" <?=($editing||!$records)?'open':''?>><summary><?=$editing?'Create a new revision':($module==='pay_component'?'Create allowance / deduction':($module==='pay_structure'?'Create salary structure':($module==='pay_payslip'?'Create payslip design':'Add configuration')))?></summary>
+<details class="card pay-card" <?=($editing||($_SERVER['REQUEST_METHOD']==='POST'&&!empty($error)))?'open':''?>><summary><?=$editing?'Create a new revision':($module==='pay_component'?'Create allowance / deduction':($module==='pay_structure'?'Create salary structure':($module==='pay_payslip'?'Create payslip design':'Add configuration')))?></summary>
 <?php pay_form('pay_config',['module'=>$module,'previous_id'=>$editing['id']??0]);?>
 <div class="pay-grid"><?php pay_text('title','Name',$v,'text',true);if(!in_array($module,['pay_settings','pay_payslip'],true))pay_text('code','Code',$v,'text',true);pay_text('effective_from','Effective from',$v,'date',true);pay_text('effective_to','Effective to (optional)',$v,'date');pay_check('active','Active',$v);?></div>
 <?php if($module==='pay_component'):?>
@@ -36,6 +39,7 @@ pay_check('variable_enabled','Enable variable pay',$v);choose('rounding','Roundi
 <?php $latest=[];foreach($records as $r):$d=$r['values'];$isLatest=!isset($latest[$d['code']]);$latest[$d['code']]=true;?>
 <tr><td><?=h($r['title'])?></td><td><?=h($d['code'])?></td><td><?=h($d['effective_from'].' → '.($d['effective_to']?:'Open'))?></td><td><?=h($r['status'])?></td><td><details><summary>View configuration</summary><pre class="pay-detail"><?=h(json_encode($d,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE))?></pre></details></td><td><?php if($isLatest&&can($pdo,$user,'payroll.settings.manage')):?><a href="?page=<?=h($page)?>&revision=<?=$r['id']?>">New revision</a><?php endif;?></td></tr>
 <?php endforeach;if(!$records)echo '<tr><td colspan="6">No configuration saved yet.</td></tr>';?></tbody></table></div></section></details>
+
 
 
 

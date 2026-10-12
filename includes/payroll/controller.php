@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/service.php';
+require_once __DIR__.'/starter.php';
 $payPages=[
  'payroll_dashboard'=>['Payroll dashboard','payroll.view'],
  'payroll_loans'=>['Loans & Salary Advances','payroll.view'],
@@ -19,6 +20,7 @@ function pay_handle_post(PDO $db,array $actor,string $action,array $in):string {
  if($action==='pay_workflow_install'){pay_workflow_install($db,$actor);return 'Payroll workflow, attendance snapshots and payslip template foundation enabled. Existing payroll preserved.';}
  if(!pay_ready($db))throw new InvalidArgumentException('Install the Payroll upgrade first.');
  switch($action){
+  case 'pay_starter':$id=pay_install_starter($db,$actor);return 'Recommended payroll setup is ready. Select Arkentech Annexure A when assigning an employee salary.';
   case 'pay_config':pay_save_config($db,$actor,$in);return 'Configuration revision saved.';
   case 'pay_preview':
    pay_allow($db,$actor,'payroll.salary.manage');$preview=pay_assignment_preview($db,$in);
@@ -56,4 +58,5 @@ function pay_export(PDO $db,array $actor,array $in):void {
   fputcsv($out,array_map(fn($v)=>is_string($v)&&preg_match('/^[=+@\-\t\r]/',$v)?"'".$v:$v,$row));
  }fclose($out);exit;
 }
+
 

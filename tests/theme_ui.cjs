@@ -26,6 +26,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    await page.goto(base+'/super-admin.php?page='+route);await check();
    if(route==='payroll_dashboard')assert.equal(await page.locator('.pay-kpi').count(),6);
    if(route==='salary_components'){
+    assert.equal(await page.locator('dialog[open]').count(),0,'Configuration must not auto-open a form');
     await page.locator('[data-pay-method="Fixed"]').click();
     await page.locator('[data-pay-search]').fill('no-such-component-123');
     assert.equal(await page.locator('[data-pay-row]:visible').count(),0);

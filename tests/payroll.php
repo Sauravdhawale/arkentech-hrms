@@ -96,3 +96,12 @@ file_put_contents('/tmp/payroll-fixture.json',pay_json(['employee'=>$employee,'r
 require dirname(__DIR__).'/includes/payroll/pdf.php';$pdf=pay_pdf(['Payslip','Gross 100.00','Net 90.00']);pc(str_starts_with($pdf,'%PDF-1.4')&&str_contains($pdf,'startxref'),'PDF output');
 echo "PASS: Payroll additive migration, components, formulas, balancing, CTC, statutory configuration, LOP, OT approval, variable limits, proration, permissions, concurrency, workflow, finalization locks, salary history, snapshot stability and PDF.\n";
 
+require dirname(__DIR__).'/includes/payroll/starter.php';
+$oldSettings=chr_rows($db,'pay_settings');$oldSalaries=$db->query('SELECT * FROM hr_salary_assignments ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+pd(fn()=>pay_install_starter($db,$viewer),'Starter permission bypass');
+$starter=pay_install_starter($db,$admin);$recordCount=(int)$db->query('SELECT COUNT(*) FROM hr_records')->fetchColumn();
+pc(pay_install_starter($db,$admin)===$starter,'Starter repeat changed structure');pc((int)$db->query('SELECT COUNT(*) FROM hr_records')->fetchColumn()===$recordCount,'Starter duplicated records');
+pc(chr_rows($db,'pay_settings')===$oldSettings,'Starter replaced payroll rules');pc($db->query('SELECT * FROM hr_salary_assignments ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)===$oldSalaries,'Starter assigned employee salaries');
+$starterRow=chr_record($db,'pay_structure',$starter);$breakup=pay_breakup($starterRow['values'],1900000,['ARK_VARIABLE'=>'0','ARK_PF'=>'0','ARK_LOAN'=>'0','ARK_ADVANCE'=>'0']);
+pc($breakup['gross']===1900000&&$breakup['net']===1900000,'Starter introduced deductions');
+echo "PASS: starter salary structure, zero optional recoveries, permissions, repeat safety and preservation.\n";
