@@ -118,3 +118,24 @@ $again=pay_generate_monthly($db,$admin,'2025-12');pc(!$again['created']&&$again[
 pc($db->query('SELECT * FROM hr_attendance ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)===$attendanceBefore,'Automation altered attendance');
 $published=$db->prepare('SELECT COUNT(*) FROM hr_payroll_entries WHERE run_id=? AND published_at IS NOT NULL');$published->execute([$generated['run_id']]);pc((int)$published->fetchColumn()===0,'Automation published without review');
 echo "PASS: monthly automation permissions, closed periods, idempotency, attendance preservation and unpublished drafts.\n";
+
+require dirname(__DIR__).'/includes/payroll/profile-salary.php';
+$profileInput=['structure_id'=>$structure,'salary_basis'=>'Monthly Gross','salary_amount'=>'42000','effective_from'=>'2025-04-01','reason'=>'Profile salary revision'];
+$salaryCount=(int)$db->query('SELECT COUNT(*) FROM hr_salary_assignments')->fetchColumn();
+$pendingProfile=pay_profile_preview($db,$admin,$employee,$profileInput);
+pc((int)$db->query('SELECT COUNT(*) FROM hr_salary_assignments')->fetchColumn()===$salaryCount,'Profile preview wrote salary');
+pd(fn()=>pay_profile_preview($db,$viewer,$employee,$profileInput),'Profile salary permission bypass');
+pd(fn()=>pay_profile_input($db,$admin,array_merge($profileInput,['effective_from'=>'2024-12-01']),'2025-01-01'),'Salary before joining accepted');
+pd(fn()=>pay_profile_preview($db,$admin,$employee,array_merge($profileInput,['effective_from'=>'2025-02-01'])),'Profile overwrote salary history');
+$confirmation=['confirm'=>1,'salary_preview_token'=>$pendingProfile['token']];
+pd(fn()=>pay_profile_confirm($db,$admin,$employee,$pendingProfile,['confirm'=>1,'salary_preview_token'=>'bad']),'Wrong salary preview token accepted');
+pd(fn()=>pay_profile_confirm($db,$admin,$employee+1,$pendingProfile,$confirmation),'Cross employee salary confirmation accepted');
+pd(fn()=>pay_profile_confirm($db,$viewer,$employee,$pendingProfile,$confirmation),'Profile confirmation permission bypass');
+pd(fn()=>pay_profile_confirm($db,$admin,$employee,$pendingProfile,['salary_preview_token'=>$pendingProfile['token']]),'Unconfirmed profile salary accepted');
+$savedProfile=pay_profile_confirm($db,$admin,$employee,$pendingProfile,$confirmation+['salary_amount'=>'1','employee_id'=>1]);
+$savedSalary=$db->query('SELECT * FROM hr_salary_assignments WHERE id='.$savedProfile)->fetch(PDO::FETCH_ASSOC);
+pc((int)$savedSalary['employee_id']===$employee&&(int)$savedSalary['monthly_gross']===4200000,'Profile salary did not use reviewed server snapshot');
+pd(fn()=>pay_profile_confirm($db,$admin,$employee,$pendingProfile,$confirmation),'Profile salary replay duplicated revision');
+pc($db->query('SELECT snapshot FROM hr_payroll_entries WHERE id='.$locked['id'])->fetchColumn()===$locked['snapshot'],'Profile revision changed published payslip');
+echo "PASS: profile salary preview, effective dates, permissions, employee binding, confirmation, replay protection and payslip preservation.\n";
+

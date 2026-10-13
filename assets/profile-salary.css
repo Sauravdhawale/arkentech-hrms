@@ -1,0 +1,14 @@
+.profile-salary fieldset{border:0;padding:0;margin:20px 0 0;min-width:0}
+.profile-salary-toggle{display:flex!important;align-items:center;gap:10px;margin:16px 0}
+.profile-salary-toggle input{width:18px!important;height:18px;flex:0 0 18px}
+.profile-salary .card-heading{display:flex;gap:16px;justify-content:space-between;align-items:start;flex-wrap:wrap}
+.profile-salary-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;padding:20px 0}
+.profile-salary-summary span,.profile-salary-summary small{display:block;color:var(--muted,#707880);font-size:12px}
+.profile-salary-summary strong{display:block;font-size:20px;line-height:1.4;margin:6px 0;overflow-wrap:anywhere}
+.profile-salary details>summary{cursor:pointer;font-weight:600;padding:14px 0}
+.profile-salary-preview{margin-top:24px;border-top:1px solid var(--border,#ddd);padding-top:20px}
+.profile-salary .form-grid{align-items:start}
+.profile-salary .table-scroll{overflow:auto}
+.profile-salary table{min-width:520px;width:100%}
+.profile-salary table th:nth-last-child(-n+2),.profile-salary table td:nth-last-child(-n+2){text-align:right;white-space:nowrap}
+@media(max-width:720px){.profile-salary-summary{grid-template-columns:1fr;gap:12px}.profile-salary .form-grid.three{grid-template-columns:1fr}.profile-salary .button{white-space:normal}}

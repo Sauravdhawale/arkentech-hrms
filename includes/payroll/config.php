@@ -67,14 +67,17 @@ function pay_save_config(PDO $db,array $actor,array $in):int {
   $db->prepare('INSERT INTO hr_records(module,title,status,data,created_by) VALUES(?,?,?,?,?)')->execute([$module,$name,$status,pay_json($v),$actor['id']]);$id=(int)$db->lastInsertId();faudit($db,$actor,'payroll.config.created',$id);$db->commit();return $id;
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
-function pay_assignment_preview(PDO $db,array $in):array {
- $employee=foundation_employee($db,(int)($in['employee_id']??0));if(!$employee||!$employee['active']||$employee['employment_status']!=='Active')throw new InvalidArgumentException('Choose an active employee.');
+function pay_assignment_terms(PDO $db,array $in):array {
  $from=chr_date((string)($in['effective_from']??''));$to=fdate($in,'effective_to');if($to&&$to<$from)throw new InvalidArgumentException('Invalid salary effective period.');
  $s=chr_record($db,'pay_structure',(int)($in['structure_id']??0));if(!$s||$s['status']!=='Active'||$s['values']['effective_from']>$from||(!empty($s['values']['effective_to'])&&$s['values']['effective_to']<$from))throw new InvalidArgumentException('Choose an effective salary structure.');
  $s['values']['statutory']=array_map(fn($r)=>$r['values']+['record_id'=>$r['id'],'record_version'=>$r['version']],array_values(pay_current($db,'pay_statutory',$from)));
  $manual=(array)($in['manual']??[]);$basis=pay_enum($in,'salary_basis',['Monthly Gross','Annual CTC'],'Monthly Gross');$amount=pay_money($in['salary_amount']??'0');if(!$amount)throw new InvalidArgumentException('Salary must be greater than zero.');
  $breakup=$basis==='Monthly Gross'?pay_breakup($s['values'],$amount,$manual):pay_from_ctc($s['values'],$amount,$manual);
- return ['employee'=>array_intersect_key($employee,array_flip(['user_id','name','employee_code','department_name','designation_name','joining_date'])),'structure_id'=>(int)$s['id'],'structure_name'=>$s['title'],'structure_version'=>(int)$s['version'],'effective_from'=>$from,'effective_to'=>$to,'structure'=>$s['values'],'breakup'=>$breakup,'manual'=>$manual,'ot_rate'=>pay_money(($in['employee_ot_rate']??'')?:'0'),'bank_last4'=>ftext($in,'bank_last4',4),'pan_last4'=>ftext($in,'pan_last4',4)];
+ return ['structure_id'=>(int)$s['id'],'structure_name'=>$s['title'],'structure_version'=>(int)$s['version'],'effective_from'=>$from,'effective_to'=>$to,'structure'=>$s['values'],'breakup'=>$breakup,'manual'=>$manual,'ot_rate'=>pay_money(($in['employee_ot_rate']??'')?:'0'),'bank_last4'=>ftext($in,'bank_last4',4),'pan_last4'=>ftext($in,'pan_last4',4)];
+}
+function pay_assignment_preview(PDO $db,array $in):array {
+ $employee=foundation_employee($db,(int)($in['employee_id']??0));if(!$employee||!$employee['active']||$employee['employment_status']!=='Active')throw new InvalidArgumentException('Choose an active employee.');
+ return ['employee'=>array_intersect_key($employee,array_flip(['user_id','name','employee_code','department_name','designation_name','joining_date']))]+pay_assignment_terms($db,$in);
 }
 function pay_assign(PDO $db,array $actor,array $in):int {
  pay_allow($db,$actor,'payroll.salary.manage');$reason=ftext($in,'reason',1000,true);
@@ -88,4 +91,5 @@ function pay_assign(PDO $db,array $actor,array $in):int {
   $db->prepare('INSERT INTO hr_salary_assignments(employee_id,structure_id,effective_from,effective_to,monthly_gross,annual_ctc,snapshot,reason,notes,created_by) VALUES(?,?,?,?,?,?,?,?,?,?)')->execute([$p['employee']['user_id'],$p['structure_id'],$p['effective_from'],$p['effective_to'],$p['breakup']['gross'],$p['breakup']['annual_ctc'],pay_json($p),$reason,ftext($in,'notes',3000),$actor['id']]);$id=(int)$db->lastInsertId();faudit($db,$actor,'payroll.salary.assigned',$id);$db->commit();return $id;
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
+
 

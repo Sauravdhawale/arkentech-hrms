@@ -7,6 +7,7 @@ if(!isset($pages[$page])){http_response_code(404);exit('Page not found.');}
 if($pages[$page][1])need($pdo,$user,$pages[$page][1]);
 if(in_array($page,['devices','mapping','punch_log','sync','raw_logs'],true)&&!att_biometric_enabled($pdo)){http_response_code(403);exit('Biometric attendance is disabled. Manual attendance remains available.');}
 if($page==='employee-view'&&($_GET['tab']??'')==='documents')need($pdo,$user,'documents.view');
+require_once dirname(__DIR__).'/payroll/profile-salary.php';
 $error='';$notice=$_SESSION['foundation_notice']??'';unset($_SESSION['foundation_notice']);
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
 if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
@@ -25,6 +26,19 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   }elseif($action==='organization_apply'){
    $preview=$_SESSION['organization_preview']??null;if(!$preview||$preview['actor']!==(int)$user['id']||!hash_equals($preview['plan']['fingerprint'],(string)($_POST['fingerprint']??'')))throw new InvalidArgumentException('Preview this organization update first.');
    $report=org_apply($pdo,$user,(string)$_POST['fingerprint']);unset($_SESSION['organization_preview']);$_SESSION['foundation_notice']=$report['changed'].' organization records updated. Existing employees and IDs preserved.';header('Location: ?page=departments&organization_report='.$report['report_id']);exit;
+  }elseif(in_array($action,['profile_salary_preview','profile_salary_save'],true)){
+   if($page!=='employee-edit')throw new InvalidArgumentException('Open Edit employee to change salary.');
+   $salaryEmployeeId=(int)($_GET['id']??0);
+   if($action==='profile_salary_preview'){
+    unset($_SESSION['profile_salary_preview']);
+    $_SESSION['profile_salary_preview']=pay_profile_preview($pdo,$user,$salaryEmployeeId,$_POST['salary']??[]);
+    unset($_SESSION['profile_salary_draft']);$notice='Review the salary breakup below. Salary has not been saved yet.';
+   }else{
+    pay_profile_confirm($pdo,$user,$salaryEmployeeId,$_SESSION['profile_salary_preview']??[],$_POST);
+    unset($_SESSION['profile_salary_preview'],$_SESSION['profile_salary_draft']);
+    $_SESSION['foundation_notice']='Salary revision saved. Payroll will use it from its effective date.';
+    header('Location: ?page=employee-view&id='.$salaryEmployeeId.'&tab=payroll');exit;
+   }
   }elseif(str_starts_with($action,'pay_')){$notice=pay_handle_post($pdo,$user,$action,$_POST);
   }elseif(str_starts_with($action,'att_')){$notice=att_handle_post($pdo,$user,$action,$_POST,$_FILES);
   }elseif(str_starts_with($action,'core_')){$notice=chr_handle_post($pdo,$user,$action,$_POST,$_FILES);
@@ -35,7 +49,20 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
    if($action==='bulk_employees'){
     $notice=foundation_bulk_employees($pdo,$user,$_POST);
    }elseif($action==='save_employee'){
-    need($pdo,$user,empty($_POST['id'])?'employees.create':'employees.edit');$id=save_employee($pdo,$user,$_POST,$_FILES);$_SESSION['foundation_notice']='Employee saved.';header('Location: ?page=employee-view&id='.$id);exit;
+    need($pdo,$user,empty($_POST['id'])?'employees.create':'employees.edit');$salaryDraft=null;
+    if(empty($_POST['id'])&&!empty($_POST['setup_salary'])){
+     if(!can($pdo,$user,'employees.edit'))throw new InvalidArgumentException('Employee edit permission is required to complete salary setup.');
+     if(($_POST['employment_status']??'')!=='Active')throw new InvalidArgumentException('Initial salary setup requires an active employee.');
+     $salaryDraft=pay_profile_input($pdo,$user,$_POST['salary']??[],(string)($_POST['joining_date']??''));
+    }
+    $id=save_employee($pdo,$user,$_POST,$_FILES);$_SESSION['foundation_notice']='Employee saved.';
+    if($salaryDraft!==null){
+     $_SESSION['profile_salary_draft']=['actor'=>(int)$user['id'],'employee_id'=>$id,'input'=>$salaryDraft];
+     unset($_SESSION['profile_salary_preview']);
+     $_SESSION['foundation_notice']='Employee saved. Review and confirm the salary below to apply it.';
+     header('Location: ?page=employee-edit&id='.$id.'#profile-salary');exit;
+    }
+    header('Location: ?page=employee-view&id='.$id);exit;
    }elseif($action==='reset_employee_password'){
     if($user['role']!=='super_admin')throw new InvalidArgumentException('Only Super Admin can reset employee passwords.');$id=(int)($_POST['id']??0);$target=foundation_employee($pdo,$id);if(!$target||$id===(int)$user['id'])throw new InvalidArgumentException('Employee not found.');$temporary=(string)($_POST['temporary_password']??'');if($temporary!==''&&(strlen($temporary)<12||strlen($temporary)>72))throw new InvalidArgumentException('Use 12–72 characters or leave blank for User@123.');$pdo->beginTransaction();$q=$pdo->prepare("UPDATE users SET password_hash=?,must_change_password=1,session_version=session_version+1 WHERE id=? AND role='employee'");$q->execute([password_hash($temporary?:'User@123',PASSWORD_DEFAULT),$id]);if(!$q->rowCount())throw new InvalidArgumentException('This account is protected.');$pdo->prepare('UPDATE password_resets SET used_at=NOW() WHERE user_id=? AND used_at IS NULL')->execute([$id]);faudit($pdo,$user,'employee.password_reset',$id);$pdo->commit();$notice='Temporary password set. The employee must change it at sign-in.';
    }elseif(in_array($action,['toggle_employee','delete_employee'],true)){
@@ -110,5 +137,6 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
 if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
 require __DIR__.'/layout.php';
+
 
 
