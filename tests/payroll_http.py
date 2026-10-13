@@ -24,7 +24,7 @@ try:
   assert all(x not in h for x in ['Fatal error','Warning:','Parse error']),page
   assert 'Payroll' in h,page
  _,h=get(a,'super-admin.php?page=payroll_processing&run='+str(f['run']));assert 'Paid' in h and 'Payroll Test' in h
- _,h=get(a,'super-admin.php?page=employee_salary&assignment=1');assert 'Open salary detail' in h and 'Print salary breakup' in h
+ _,h=get(a,'super-admin.php?page=employee_salary&assignment=1');assert 'salary-detail' in h and 'Print / Save salary breakup' in h and 'not a monthly payslip' in h
  _,h=get(a,'super-admin.php?page=employee_salary');_,h=post(a,'super-admin.php?page=employee_salary',{'csrf':token(h),'action':'pay_preview','employee_id':f['employee'],'structure_id':f['structure'],'salary_basis':'Monthly Gross','salary_amount':'45000','effective_from':'2025-04-01','employee_ot_rate':'','reason':'HTTP preview test'})
  assert 'Salary preview' in h and '45000.00' in h and 'Fatal error' not in h and 'Warning:' not in h
  _,h=get(a,'payroll-slip.php?entry='+str(f['entry']));assert 'Payroll Test' in h and 'Net pay' in h
