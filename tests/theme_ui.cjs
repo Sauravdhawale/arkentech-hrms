@@ -43,7 +43,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.ok(await salaryLink.count(),'Salary fixture missing');await salaryLink.click();await check();
   assert.equal(await page.locator('.salary-summary>div').count(),3);
   assert.ok(await page.locator('.salary-detail').innerText().then(t=>t.includes('not a monthly payslip')));
-  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/salary-detail-'+width+'.png',fullPage:true});}
+  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(400);await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/salary-detail-'+width+'.png',fullPage:true});}
   await page.setViewportSize({width:794,height:1123});await page.emulateMedia({media:'print'});
   assert.equal(await page.locator('.pay-toolbar').isVisible(),false);
   assert.equal(await page.locator('.salary-detail').isVisible(),true);
