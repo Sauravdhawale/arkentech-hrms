@@ -112,9 +112,9 @@ pd(fn()=>pay_generate_monthly($db,$admin,date('Y-m')),'Current month automation 
 $existingRun=pay_run($db,$run);$existingResult=pay_generate_monthly($db,$admin,$existingRun['month']);
 pc(!$existingResult['created']&&pay_run($db,$run)===$existingRun,'Automation changed existing payroll');
 $attendanceBefore=$db->query('SELECT * FROM hr_attendance ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
-$generated=pay_generate_monthly($db,$admin,'2025-06');pc($generated['created'],'Monthly draft not created');
+$generated=pay_generate_monthly($db,$admin,'2025-12');pc($generated['created'],'Monthly draft not created');
 $generatedRun=pay_run($db,$generated['run_id']);pc($generatedRun['status']==='Calculated','Monthly draft not calculated');
-$again=pay_generate_monthly($db,$admin,'2025-06');pc(!$again['created']&&$again['run_id']===$generated['run_id'],'Monthly duplicate created');
+$again=pay_generate_monthly($db,$admin,'2025-12');pc(!$again['created']&&$again['run_id']===$generated['run_id'],'Monthly duplicate created');
 pc($db->query('SELECT * FROM hr_attendance ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)===$attendanceBefore,'Automation altered attendance');
 $published=$db->prepare('SELECT COUNT(*) FROM hr_payroll_entries WHERE run_id=? AND published_at IS NOT NULL');$published->execute([$generated['run_id']]);pc((int)$published->fetchColumn()===0,'Automation published without review');
 echo "PASS: monthly automation permissions, closed periods, idempotency, attendance preservation and unpublished drafts.\n";
