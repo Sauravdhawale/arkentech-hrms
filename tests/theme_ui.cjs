@@ -37,6 +37,20 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    await page.setViewportSize({width:1440,height:1000});
   }
   assert.equal(await page.locator('.pay-nav a').count(),4);
+  await page.goto(base+'/super-admin.php?page=employee_salary');await check();
+  assert.equal(await page.locator('table table').count(),0,'Salary history must not contain nested tables');
+  const salaryLink=page.getByRole('link',{name:'View salary breakup',exact:true}).first();
+  assert.ok(await salaryLink.count(),'Salary fixture missing');await salaryLink.click();await check();
+  assert.equal(await page.locator('.salary-summary>div').count(),3);
+  assert.ok(await page.locator('.salary-detail').innerText().then(t=>t.includes('not a monthly payslip')));
+  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/salary-detail-'+width+'.png',fullPage:true});}
+  await page.setViewportSize({width:794,height:1123});await page.emulateMedia({media:'print'});
+  assert.equal(await page.locator('.pay-toolbar').isVisible(),false);
+  assert.equal(await page.locator('.salary-detail').isVisible(),true);
+  for(const wrap of await page.locator('.salary-detail .app-table-scroll').all())assert.equal(await wrap.evaluate(e=>e.scrollHeight<=e.clientHeight+1&&e.scrollWidth<=e.clientWidth+1),true,'Printed salary table clipped');
+  await page.screenshot({path:'/tmp/shrms-ui-screenshots/salary-print.png',fullPage:true});
+  await page.emulateMedia({media:'screen'});await page.setViewportSize({width:1440,height:1000});
+
   for(const route of ['settings','leave_routes','time_policies']){await page.goto(base+'/super-admin.php?page='+route);for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await check();assert.equal(await page.locator('dialog[open]').count(),0,'Settings browsing must not open a modal');assert.equal(await page.locator('.settings-category[aria-current="true"]').count(),1);assert.equal(await page.locator('.settings-section-tabs a[aria-current="page"]').count(),1);assert.ok(await page.locator('.settings-menu').evaluate(e=>e.getBoundingClientRect().height<180),'Settings navigation too tall');await page.screenshot({path:'/tmp/shrms-ui-screenshots/settings-'+route+'-'+width+'.png',fullPage:true});}}
   await page.setViewportSize({width:1440,height:1000});
   await page.goto(base+'/super-admin.php?page=payslip_settings');
@@ -92,6 +106,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 
 
