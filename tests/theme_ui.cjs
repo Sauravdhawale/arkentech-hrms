@@ -50,7 +50,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   await page.waitForURL(u=>u.searchParams.get('tab')==='payroll');
   await check();assert.match(await page.locator('main').innerText(),/30000.00/);
   await page.getByRole('link',{name:'Set / revise salary',exact:true}).click();
-  await page.locator('#profile-salary > details > summary').click();
+  assert(await page.locator('#profile-salary [name="salary[salary_amount]"]').isVisible(),'Salary amount is visible directly on edit');
   await page.locator('[name="salary[salary_amount]"]').fill('32000');
   await page.locator('[name="salary[effective_from]"]').fill('2025-02-01');
   await page.getByRole('button',{name:'Preview salary breakup',exact:true}).click();

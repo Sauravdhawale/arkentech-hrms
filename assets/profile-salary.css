@@ -12,3 +12,8 @@
 .profile-salary table{min-width:520px;width:100%}
 .profile-salary table th:nth-last-child(-n+2),.profile-salary table td:nth-last-child(-n+2){text-align:right;white-space:nowrap}
 @media(max-width:720px){.profile-salary-summary{grid-template-columns:1fr;gap:12px}.profile-salary .form-grid.three{grid-template-columns:1fr}.profile-salary .button{white-space:normal}}
+
+.profile-salary-editor{border-top:1px solid var(--border,#ddd);padding-top:20px;margin-top:8px}
+.profile-salary-editor h3{margin:0 0 8px;font-size:16px}
+.profile-salary-editor>.hint{margin:0 0 20px}
+.profile-salary [name="salary[salary_amount]"]{font-size:20px;font-weight:600}

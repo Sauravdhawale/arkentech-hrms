@@ -2,9 +2,9 @@
 $salaryStructures=chr_rows($pdo,'pay_structure');
 ?>
 <div class="form-grid three">
- <label>Salary structure *<select name="salary[structure_id]" required><option value="">Choose salary structure</option><?php foreach($salaryStructures as $r)if($r['status']==='Active'):?><option value="<?=(int)$r['id']?>" <?=($salaryInput['structure_id']??'')==$r['id']?'selected':''?>><?=h($r['title'].' · from '.$r['values']['effective_from'])?></option><?php endif;?></select></label>
- <label>Salary input<select name="salary[salary_basis]"><?php foreach(['Monthly Gross','Annual CTC'] as $basis):?><option <?=($salaryInput['salary_basis']??'Monthly Gross')===$basis?'selected':''?>><?=h($basis)?></option><?php endforeach;?></select></label>
- <label>Amount (₹) *<input name="salary[salary_amount]" type="number" min="0.01" step="0.01" value="<?=h($salaryInput['salary_amount']??'')?>" required><span class="hint">Gross is before deductions. Annual CTC is the yearly cost to company.</span></label>
+ <label>Salary amount (₹) *<input name="salary[salary_amount]" type="number" min="0.01" step="0.01" value="<?=h($salaryInput['salary_amount']??'')?>" required><span class="hint">Enter the agreed amount; the salary breakup is calculated from the selected rules.</span></label>
+ <label>Amount is<select name="salary[salary_basis]"><?php foreach(['Monthly Gross','Annual CTC'] as $basis):?><option <?=($salaryInput['salary_basis']??'Monthly Gross')===$basis?'selected':''?>><?=h($basis)?></option><?php endforeach;?></select></label>
+ <label>Salary structure / rules *<select name="salary[structure_id]" required><option value="">Choose salary structure</option><?php foreach($salaryStructures as $r)if($r['status']==='Active'):?><option value="<?=(int)$r['id']?>" <?=($salaryInput['structure_id']??'')==$r['id']?'selected':''?>><?=h($r['title'].' · from '.$r['values']['effective_from'])?></option><?php endif;?></select></label>
  <label>Effective from<input name="salary[effective_from]" type="date" value="<?=h($salaryInput['effective_from']??'')?>"><span class="hint">Blank uses the joining date. A revision must start after the latest saved salary.</span></label>
  <label>Effective until (optional)<input name="salary[effective_to]" type="date" value="<?=h($salaryInput['effective_to']??'')?>"><span class="hint">Leave blank for an ongoing salary.</span></label>
  <label>Reason for assignment / revision *<input name="salary[reason]" maxlength="1000" value="<?=h($salaryInput['reason']??'')?>" required></label>
