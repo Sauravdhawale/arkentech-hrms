@@ -32,12 +32,15 @@ try:
   assert r.headers['Content-Type'].startswith('application/pdf') and r.read().startswith(b'%PDF-1.4')
  with a.open(base+'super-admin.php?page=payroll_reports&month=2025-02&export=csv') as r:
   assert 'text/csv' in r.headers['Content-Type'];assert 'PAY-CI-001' in r.read().decode()
+ _,h=get(a,'payroll-test-preview.php');assert 'TEST COPY' in h and 'NOT FOR PAYMENT' in h and 'Payroll Test' in h
  owner=login('payroll.ci','Payroll-CI-2026!')
  _,own=get(owner,'payroll-slip.php?entry='+str(f['entry']));assert 'Payroll Test' in own and 'Net pay' in own
  _,own=get(owner,'employee.php?page=payroll');assert 'Published payslips' in own and 'Current salary' in own
  _,own=get(owner,'employee.php?page=profile&tab=payroll');assert 'Current salary' in own
  _,h=get(a,'super-admin.php?page=employee-view&id='+str(f['employee'])+'&tab=payroll');assert 'Current salary' in h and 'Set / revise salary' in h
  viewer=login('test.two' ,'User@123')
+ try:get(viewer,'payroll-test-preview.php');raise AssertionError('Unauthorized test salary preview')
+ except urllib.error.HTTPError as e:assert e.code==403
  for page in pages:
   try:get(viewer,'super-admin.php?page='+page);raise AssertionError('Unauthorized payroll page '+page)
   except urllib.error.HTTPError as e:assert e.code==403
@@ -52,4 +55,5 @@ try:
  print('PASS: Payroll pages, report CSV, PDF, published snapshot, permission checks, IDOR and CSRF.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
+
 

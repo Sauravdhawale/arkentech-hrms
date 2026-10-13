@@ -25,6 +25,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   for(const route of ['payroll_dashboard','salary_components','salary_structures','payroll_payslips','payroll_loans']){
    await page.goto(base+'/super-admin.php?page='+route);await check();
    if(route==='payroll_dashboard')assert.equal(await page.locator('.pay-kpi').count(),6);
+   if(route==='payroll_payslips'){assert.equal(await page.locator('[aria-label="Payslip tools"]').count(),0);await page.getByRole('button',{name:'+ Create',exact:true}).click();assert.equal(await page.locator('#create-monthly-payroll').evaluate(e=>e.open),true);await page.getByRole('button',{name:'Close create payroll'}).click();}
    if(route==='salary_components'){
     assert.equal(await page.locator('dialog[open]').count(),0,'Configuration must not auto-open a form');
     await page.locator('[data-pay-method="Fixed"]').click();
@@ -36,7 +37,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/'+route+'-'+width+'.png',fullPage:true,animations:'disabled'});}
    await page.setViewportSize({width:1440,height:1000});
   }
-  assert.equal(await page.locator('.pay-nav a').count(),4);
+  assert.equal(await page.locator('.pay-nav a').count(),3);
   await page.goto(base+'/super-admin.php?page=employee_salary');await check();
   assert.equal(await page.locator('table table').count(),0,'Salary history must not contain nested tables');
   const salaryLink=page.getByRole('link',{name:'View salary breakup',exact:true}).first();
@@ -106,6 +107,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 
 

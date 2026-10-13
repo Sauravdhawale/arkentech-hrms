@@ -1,4 +1,5 @@
 <?php
+echo '<link rel="stylesheet" href="assets/payroll-create.css?v=1">';
 echo '<script src="assets/payroll-ui.js?v=2" defer></script>';
 function pay_hidden(string $key,$value):void {if(is_array($value)){foreach($value as $k=>$v)pay_hidden($key.'['.$k.']',$v);return;}echo '<input type="hidden" name="'.h($key).'" value="'.h((string)$value).'">';}
 function pay_form(string $action,array $hidden=[]):void {echo '<form method="post">';ftoken();pay_hidden('action',$action);foreach($hidden as $k=>$v)pay_hidden($k,$v);}
@@ -17,13 +18,9 @@ if(!pay_ready($pdo)):?>
 if(!pay_workflow_ready($pdo)&&$page==='payroll_settings'):?>
 <section class="card pay-card"><h2>Enable Payroll Workflow Upgrade</h2><p>Add attendance snapshots, payroll exception records, lock/reopen audit fields, controlled overrides and versioned payslip templates. Existing payroll data remains unchanged.</p><?php if($user['role']==='super_admin'){pay_form('pay_workflow_install');echo '<button class="button primary">Enable Payroll Workflow</button></form>';}else echo '<p>Ask your Super Admin to enable the Payroll Workflow upgrade.</p>';?></section>
 <?php endif;
-// Configuration lives in Company Settings; payroll work stays in Payslips.
-if(in_array($page,['payroll_payslips','payroll_processing','payroll_history','payroll_reports','employee_salary'],true)){
- echo '<nav class="pay-actions" aria-label="Payslip tools">';
- foreach(['payroll_payslips'=>'Payslips','employee_salary'=>'Set employee salary','payroll_processing'=>'Generate payroll','payroll_reports'=>'Reports'] as $route=>$label)if($route!==$page&&can($pdo,$user,$payPages[$route][1]))echo '<a class="button" href="?page='.h($route).'">'.h($label).'</a>';
- echo '</nav>';
-}
-if($page==='payroll_loans'){require __DIR__.'/loans-view.php';return;}
+// Keep the main workspace to Dashboard, Payslips and Configuration.
+if(in_array($page,['payroll_processing','payroll_history','payroll_reports','employee_salary'],true))echo '<div class="pay-actions"><a class="button" href="?page=payroll_payslips">← Payslips</a></div>';
+if($page==='payroll_loans'){echo '<section class="card pay-card"><h2>This section has been retired</h2><p>Continue in Dashboard, Payslips or Configuration.</p><a class="button" href="?page=payroll_payslips">Open Payslips</a></section>';return;}
 $configModules=['salary_components'=>'pay_component','salary_structures'=>'pay_structure','statutory_settings'=>'pay_statutory','payroll_settings'=>'pay_settings','payslip_settings'=>'pay_payslip'];
 if(isset($configModules[$page])){require __DIR__.'/settings-view.php';return;}
 $employeeOptions=[''=>'All employees'];foreach($pdo->query('SELECT e.user_id,e.employee_code,u.name FROM employees e JOIN users u ON u.id=e.user_id ORDER BY u.name') as $e)$employeeOptions[$e['user_id']]=$e['name'].' · '.$e['employee_code'];
@@ -55,6 +52,7 @@ if($page==='payroll_reports'){
   echo '<section class="card pay-card"><h2>Component and statutory totals</h2><div class="pay-table"><table><thead><tr><th>Component</th><th>Amount</th></tr></thead><tbody>';foreach($summary as $key=>$value)echo '<tr><td>'.h($key).'</td><td>'.pay_amount($value).'</td></tr>';echo '</tbody></table></div></section>';
  }
 }
+
 
 
 
