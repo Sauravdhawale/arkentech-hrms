@@ -105,3 +105,16 @@ pc(chr_rows($db,'pay_settings')===$oldSettings,'Starter replaced payroll rules')
 $starterRow=chr_record($db,'pay_structure',$starter);$breakup=pay_breakup($starterRow['values'],1900000,['ARK_VARIABLE'=>'0','ARK_PF'=>'0','ARK_LOAN'=>'0','ARK_ADVANCE'=>'0']);
 pc($breakup['gross']===1900000&&$breakup['net']===1900000,'Starter introduced deductions');
 echo "PASS: starter salary structure, zero optional recoveries, permissions, repeat safety and preservation.\n";
+
+require dirname(__DIR__).'/includes/payroll/automation.php';
+pd(fn()=>pay_generate_monthly($db,$viewer,'2025-06'),'Monthly automation permission bypass');
+pd(fn()=>pay_generate_monthly($db,$admin,date('Y-m')),'Current month automation accepted');
+$existingRun=pay_run($db,$run);$existingResult=pay_generate_monthly($db,$admin,$existingRun['month']);
+pc(!$existingResult['created']&&pay_run($db,$run)===$existingRun,'Automation changed existing payroll');
+$attendanceBefore=$db->query('SELECT * FROM hr_attendance ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+$generated=pay_generate_monthly($db,$admin,'2025-06');pc($generated['created'],'Monthly draft not created');
+$generatedRun=pay_run($db,$generated['run_id']);pc($generatedRun['status']==='Calculated','Monthly draft not calculated');
+$again=pay_generate_monthly($db,$admin,'2025-06');pc(!$again['created']&&$again['run_id']===$generated['run_id'],'Monthly duplicate created');
+pc($db->query('SELECT * FROM hr_attendance ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)===$attendanceBefore,'Automation altered attendance');
+$published=$db->prepare('SELECT COUNT(*) FROM hr_payroll_entries WHERE run_id=? AND published_at IS NOT NULL');$published->execute([$generated['run_id']]);pc((int)$published->fetchColumn()===0,'Automation published without review');
+echo "PASS: monthly automation permissions, closed periods, idempotency, attendance preservation and unpublished drafts.\n";
