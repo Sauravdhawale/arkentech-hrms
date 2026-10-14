@@ -81,7 +81,8 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/'+route+'-'+width+'.png',fullPage:true,animations:'disabled'});}
    await page.setViewportSize({width:1440,height:1000});
   }
-  assert.equal(await page.locator('.pay-nav a').count(),3);
+  assert.equal(await page.locator('.pay-nav a').count(),4);
+  assert.equal(await page.locator('.pay-nav a[href="?page=payslip_settings"]').count(),1);
   await page.goto(base+'/super-admin.php?page=employee_salary');await check();
   assert.equal(await page.locator('table table').count(),0,'Salary history must not contain nested tables');
   const salaryLink=page.getByRole('link',{name:'View salary breakup',exact:true}).first();
