@@ -16,8 +16,9 @@ $counts=['Draft'=>0,'Review'=>0,'Confirmed'=>0,'Paid'=>0];foreach($rows as $r)$c
 <dialog id="create-monthly-payroll" class="pay-create-dialog" aria-labelledby="create-payroll-title">
 <div class="pay-panel-heading"><h2 id="create-payroll-title">Create monthly payslips</h2><button type="button" class="button" onclick="this.closest('dialog').close()" aria-label="Close create payroll">✕</button></div>
 <p>Choose a month and employees. Payroll uses their saved salary and attendance for that month.</p>
-<?php pay_form('pay_create');?><div class="pay-grid"><?php pay_text('month','Payroll month',['month'=>$month],'month',true);pay_select('employee_id','Employees','',$employeeOptions);?></div>
+<?php pay_form('pay_create');?><div class="pay-grid"><?php pay_text('month','Payroll month',['month'=>$month],'month',true);pay_select('employee_id','Employees',$_GET['employee_id']??'',$employeeOptions);?></div>
 <p class="pay-muted">Review absences, unpaid leave and missing punches before finalizing. Creating a draft does not publish payslips.</p><button class="button primary">Create draft</button></form>
 </dialog>
+<?php if(($_GET['create']??'')==='1'):?><script>document.getElementById('create-monthly-payroll').showModal();</script><?php endif;?>
 <details class="card pay-card"><summary>Test a full-attendance payslip</summary><p class="pay-muted">Preview last month using a saved salary and no absence deductions. Test copies are clearly marked and do not change attendance or publish payroll.</p><a class="button" href="payroll-test-preview.php" target="_blank" rel="noopener">Preview last month · full attendance</a></details>
 <?php endif;?>

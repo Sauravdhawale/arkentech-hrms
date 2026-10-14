@@ -2,6 +2,12 @@
 $salaryEmployee=(int)($_GET['employee_id']??0);$structures=[''=>'Choose salary structure'];foreach(chr_rows($pdo,'pay_structure') as $r)if($r['status']==='Active')$structures[$r['id']]=$r['title'].' · '.$r['values']['effective_from'];
 $designationOptions=[''=>'All designations'];foreach($pdo->query('SELECT id,name FROM designations ORDER BY name') as $designation)$designationOptions[$designation['id']]=$designation['name'];
 ?>
+<?php if($salaryEmployee&&isset($employeeOptions[$salaryEmployee])):?>
+<section class="card pay-card"><div class="pay-panel-heading"><div><h2><?=h($employeeOptions[$salaryEmployee])?></h2><p class="pay-muted">1. Set salary once · 2. Add dated increments · 3. Generate monthly payslips using saved salary and attendance.</p></div><div class="pay-actions">
+<?php if(can($pdo,$user,'payroll.salary.manage')&&can($pdo,$user,'employees.edit')):?><a class="button primary" href="?page=employee-edit&amp;id=<?=$salaryEmployee?>#profile-salary">Set / increase salary</a><?php endif;?>
+<?php if(can($pdo,$user,'payroll.process.manage')):?><a class="button" href="?page=payroll_payslips&amp;employee_id=<?=$salaryEmployee?>&amp;create=1">Generate payslip</a><?php endif;?>
+</div></div><p class="pay-muted">An increment starts on its effective date. Previous salary history and published payslips are preserved.</p></section>
+<?php endif;?>
 <p class="pay-muted salary-intro">Set an employee’s salary here. To issue a monthly payslip, use Generate payroll after saving the salary.</p>
 <form method="get" class="card pay-card pay-toolbar"><?php pay_hidden('page','employee_salary');pay_select('employee_id','Employee',$salaryEmployee,$employeeOptions);pay_select('department_id','Department',$_GET['department_id']??'',$departmentOptions);pay_select('designation_id','Designation',$_GET['designation_id']??'',$designationOptions);pay_select('structure_id','Salary structure',$_GET['structure_id']??'',[''=>'All structures']+array_diff_key($structures,[''=>true]));pay_select('salary_status','Status',$_GET['salary_status']??'',[''=>'All periods','Current'=>'Current','Future'=>'Future','Ended'=>'Ended']);?><button class="button primary">View salary history</button></form>
 <?php if(can($pdo,$user,'payroll.salary.manage')):

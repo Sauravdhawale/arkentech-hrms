@@ -19,14 +19,18 @@ if($error&&($_POST['action']??'')==='profile_salary_preview'){$salaryInput=$_POS
  <div class="profile-salary-summary"><div><span>Latest salary · <?=h($salaryState)?></span><strong>₹<?=pay_amount((int)$latestSalary['monthly_gross'])?></strong><small>Monthly gross, before deductions</small></div><div><span>Salary structure</span><strong><?=h($salarySnapshot['structure_name']??'')?></strong></div><div><span>Effective period</span><strong><?=h($latestSalary['effective_from'])?></strong><small>Until <?=h($latestSalary['effective_to']?:'ongoing')?></small></div></div>
  <?php else:?><p class="hint">No salary assigned yet. Choose a structure and amount below.</p><?php endif;?>
  <?php if(isset($salaryDraftError)):?><div class="alert error"><?=h($salaryDraftError)?></div><?php endif;?>
- <div class="profile-salary-editor"><h3><?=$latestSalary?'Update employee salary':'Set employee salary'?></h3>
- <p class="hint">Enter the salary amount below. The selected structure calculates the breakup using your configured earnings and deduction rules. Review it before saving.</p>
+ <div class="profile-salary-editor"><h3><?=$latestSalary?'Increase / revise salary':'Set employee salary'?></h3>
+ <p class="hint">Enter the new salary and the date it starts. Existing rules calculate the breakup. A dated revision preserves the old salary; monthly payslips use the salary applicable to their period.</p>
  <form method="post" action="?page=employee-edit&amp;id=<?=$id?>#profile-salary"><?php ftoken();?><input type="hidden" name="action" value="profile_salary_preview">
  <?php require __DIR__.'/profile-salary-fields.php';?>
  <div class="form-actions"><button class="button primary">Preview salary breakup</button></div></form>
  </div>
+ <?php if(can($pdo,$user,'payroll.process.manage')):?><div class="form-actions"><a class="button" href="?page=payroll_payslips&amp;employee_id=<?=$id?>&amp;create=1">Generate payslip</a></div><p class="hint">Save and confirm salary first. Then choose the payroll month, calculate, review and publish the payslip.</p><?php endif;?>
  <?php if($pending):$p=$pending['preview'];?>
- <section class="profile-salary-preview" aria-label="Salary preview"><h3>Review salary · <?=h($p['employee']['name'])?></h3><p><?=h($p['structure_name'])?> · <?=h($p['effective_from'])?> → <?=h($p['effective_to']?:'ongoing')?></p>
+ <section class="profile-salary-preview" aria-label="Salary preview">
+<?php if($latestSalary):$salaryDifference=(int)$p['breakup']['gross']-(int)$latestSalary['monthly_gross'];?>
+<div class="profile-salary-summary"><div><span>Previous monthly gross</span><strong>₹<?=pay_amount((int)$latestSalary['monthly_gross'])?></strong></div><div><span>New monthly gross</span><strong>₹<?=pay_amount((int)$p['breakup']['gross'])?></strong></div><div><span><?=($salaryDifference>=0?'Increase':'Decrease')?> per month</span><strong>₹<?=pay_amount(abs($salaryDifference))?></strong><small>From <?=h($p['effective_from'])?></small></div></div>
+<?php endif;?><h3>Review salary · <?=h($p['employee']['name'])?></h3><p><?=h($p['structure_name'])?> · <?=h($p['effective_from'])?> → <?=h($p['effective_to']?:'ongoing')?></p>
  <div class="table-scroll"><table><thead><tr><th>Component</th><th>Type</th><th>Monthly (₹)</th><th>Annualized (₹)</th></tr></thead><tbody><?php foreach($p['breakup']['components'] as $part):?><tr><td><?=h($part['name']??$part['code'])?></td><td><?=h($part['category'])?></td><td><?=pay_amount((int)$part['amount'])?></td><td><?=pay_amount((int)$part['amount']*12)?></td></tr><?php endforeach;?></tbody></table></div>
  <div class="profile-salary-summary"><div><span>Monthly gross</span><strong>₹<?=pay_amount($p['breakup']['gross'])?></strong></div><div><span>Monthly net estimate</span><strong>₹<?=pay_amount($p['breakup']['net'])?></strong></div><div><span>Annual CTC</span><strong>₹<?=pay_amount($p['breakup']['annual_ctc'])?></strong></div></div>
  <p class="hint">This is the salary breakup, not a payslip. Monthly pay uses attendance and approved adjustments. Existing payslips remain unchanged.</p>
