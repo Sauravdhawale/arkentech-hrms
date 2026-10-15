@@ -1,5 +1,6 @@
 <?php
 $module=$configModules[$page];$records=chr_rows($pdo,$module);$editing=null;foreach($records as $record)if((int)$record['id']===(int)($_GET['revision']??0)){$editing=$record;break;}
+if($module==='pay_payslip'&&!$editing&&$records)$editing=$records[0];
 $v=$editing?$editing['values']:[];$v['title']=$editing['title']??$pages[$page][0];$v['active']=$editing?$editing['status']==='Active':true;
 if(!$editing){$v['effective_from']=date('Y-m-01');if($module==='pay_settings')$v+=pay_setting_defaults();if($module==='pay_payslip')$v+=pay_slip_defaults();if($module==='pay_structure')$v+=['variable_cap'=>'0'];if($module==='pay_statutory')$v+=['employee_value'=>'0','employer_value'=>'0','basis'=>'GROSS','method'=>'Percentage'];if($module==='pay_component')$v+=['category'=>'Earning','calculation'=>'Fixed','section'=>'Fixed','basis'=>'GROSS','value'=>'0','visible'=>true,'proratable'=>true,'include_gross'=>true,'include_ctc'=>true];}
 else{$v['effective_from']=date('Y-m-d');$v['effective_to']='';}
@@ -17,7 +18,7 @@ if($module!=='pay_payslip'):?>
 <?php endif;?>
 <p class="pay-muted">Manage your payroll setup. Changes apply from the effective date; previous payroll stays unchanged.</p>
 <?php if(can($pdo,$user,'payroll.settings.manage')):?>
-<details class="card pay-card" <?=($module==='pay_payslip'||$editing||($_SERVER['REQUEST_METHOD']==='POST'&&!empty($error)))?'open':''?>><summary><?=$editing?'Create a new revision':($module==='pay_component'?'Create allowance / deduction':($module==='pay_structure'?'Create salary structure':($module==='pay_payslip'?'Create payslip design':'Add configuration')))?></summary>
+<details class="card pay-card" <?=($module==='pay_payslip'||$editing||($_SERVER['REQUEST_METHOD']==='POST'&&!empty($error)))?'open':''?>><summary><?=$editing?($module==='pay_payslip'?'Edit payslip design':'Create a new revision'):($module==='pay_component'?'Create allowance / deduction':($module==='pay_structure'?'Create salary structure':($module==='pay_payslip'?'Create payslip design':'Add configuration')))?></summary>
 <?php pay_form('pay_config',['module'=>$module,'previous_id'=>$editing['id']??0]);?>
 <div class="pay-grid"><?php pay_text('title','Name',$v,'text',true);if(!in_array($module,['pay_settings','pay_payslip'],true))pay_text('code','Code',$v,'text',true);pay_text('effective_from','Effective from',$v,'date',true);pay_text('effective_to','Effective to (optional)',$v,'date');pay_check('active','Active',$v);?></div>
 <?php if($module==='pay_component'):?>
@@ -33,15 +34,11 @@ pay_check('ot_enabled','Enable overtime',$v);choose('ot_method','Overtime rate',
 pay_check('variable_enabled','Enable variable pay',$v);choose('rounding','Rounding',$v,['Paise','Nearest Rupee']);pay_check('approval_required','Require approval before finalization',$v);pay_check('auto_payslip','Publish payslips on finalization',$v);pay_text('currency','Currency code',$v,'text',true);choose('currency_position','Currency position',$v,['Before','After']);
 ?></div>
 <?php else:?><div class="pay-grid"><?php foreach(['show_logo'=>'Show company logo','show_address'=>'Show company address','show_attendance'=>'Show attendance summary','show_bank'=>'Show masked bank suffix','show_pan'=>'Show masked PAN suffix'] as $k=>$label)pay_check($k,$label,$v);pay_hidden('mask_sensitive','1');pay_text('number_format','Payslip number format',$v,'text',true);pay_text('signatory','Authorized signatory',$v);pay_text('footer','Footer',$v);?></div><p class="pay-muted">Available placeholders: {YYYY}, {MM}, {ID}. Only the last four characters of sensitive details are stored.</p><?php require __DIR__.'/template-editor.php';endif;?>
-<?php pay_text('description','Description / revision notes',$v);?><div class="pay-actions"><button class="button primary">Save dated revision</button><?php if($editing):?><a class="button" href="?page=<?=h($page)?>">Cancel</a><?php endif;?></div></form></details><?php endif;?>
+<?php pay_text('description','Description / revision notes',$v);?><div class="pay-actions"><button class="button primary"><?=$module==='pay_payslip'?'Save payslip design':'Save dated revision'?></button><?php if($editing):?><a class="button" href="?page=<?=h($page)?>">Cancel</a><?php endif;?></div></form></details><?php endif;?>
 <?php if(in_array($module,['pay_component','pay_structure','pay_payslip'],true))require __DIR__.'/config-list.php';?>
+<?php if($module!=='pay_payslip'):?>
 <details class="card pay-panel"><summary>Configuration history · all revisions</summary><section><div class="pay-table"><table><thead><tr><th>Name</th><th>Code</th><th>Effective period</th><th>Status</th><th>Details</th><th></th></tr></thead><tbody>
 <?php $latest=[];foreach($records as $r):$d=$r['values'];$isLatest=!isset($latest[$d['code']]);$latest[$d['code']]=true;?>
 <tr><td><?=h($r['title'])?></td><td><?=h($d['code'])?></td><td><?=h($d['effective_from'].' → '.($d['effective_to']?:'Open'))?></td><td><?=h($r['status'])?></td><td><details><summary>View configuration</summary><pre class="pay-detail"><?=h(json_encode($d,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE))?></pre></details></td><td><?php if($isLatest&&can($pdo,$user,'payroll.settings.manage')):?><a href="?page=<?=h($page)?>&revision=<?=$r['id']?>">New revision</a><?php endif;?></td></tr>
 <?php endforeach;if(!$records)echo '<tr><td colspan="6">No configuration saved yet.</td></tr>';?></tbody></table></div></section></details>
-
-
-
-
-
-
+<?php endif;?>
