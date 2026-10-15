@@ -170,3 +170,15 @@ echo "PASS: paid/unpaid/half days, unresolved attendance, scheduled drafts, idem
 
 
 
+
+require_once __DIR__.'/../includes/payroll/simple-workspace.php';
+$open=pay_run($db,$auto['run_id']);
+pd(fn()=>pay_simple_post($db,$viewer,'pay_generate_simple',['month'=>$open['month'],'version'=>$open['version']]),'Simplified generation permission bypass');
+pd(fn()=>pay_simple_post($db,$admin,'pay_generate_simple',['month'=>$open['month'],'version'=>-1]),'Simplified generation stale version accepted');
+pay_simple_post($db,$admin,'pay_generate_simple',['month'=>$open['month'],'version'=>$open['version']]);
+$afterSimple=pay_run($db,$open['id']);
+pc((int)$afterSimple['version']>(int)$open['version'],'Generation did not update version');
+$q=$db->prepare('SELECT snapshot,exceptions FROM hr_payroll_entries WHERE run_id=?');$q->execute([$open['id']]);
+foreach($q as $row){$ss=json_decode($row['snapshot'],true);pc(($row['exceptions']==='')===!empty($ss['draft_generated_at']),'Only valid entries should have generated drafts');}
+pc($db->query('SELECT snapshot FROM hr_payroll_entries WHERE id='.$locked['id'])->fetchColumn()===$locked['snapshot'],'Simplified generation changed finalized payroll');
+echo "PASS: simplified generation permissions, version checks, exceptions and snapshot preservation.\n";
