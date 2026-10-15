@@ -14,7 +14,7 @@ if($error&&in_array($_POST['action']??'',['profile_salary_preview','profile_sala
 ?>
 <link rel="stylesheet" href="assets/profile-salary.css?v=2">
 <section class="card profile-salary" id="profile-salary">
- <div class="card-heading"><div><h2>Payroll / Salary</h2><p class="hint">Set salary here once. Employee Salaries and monthly payroll use the same record.</p></div><?php if(can($pdo,$user,'payroll.salary.view')):?><a class="button" href="?page=employee_salary&amp;employee_id=<?=$id?>">Salary history</a><?php endif;?></div>
+ <div class="card-heading"><div><h2>Payroll / Salary</h2><p class="hint">Set salary here once. Employee Salaries and monthly payroll use the same record.</p></div></div>
  <?php if($latestSalary):$salaryState=$latestSalary['effective_from']>date('Y-m-d')?'Future':($latestSalary['effective_to']&&$latestSalary['effective_to']<date('Y-m-d')?'Ended':'Current');?>
  <div class="profile-salary-summary"><div><span>Latest salary · <?=h($salaryState)?></span><strong>₹<?=pay_amount((int)$latestSalary['monthly_gross'])?></strong><small>Monthly gross, before deductions</small></div><div><span>Salary structure</span><strong><?=h($salarySnapshot['structure_name']??'')?></strong></div><div><span>Effective period</span><strong><?=h($latestSalary['effective_from'])?></strong><small>Until <?=h($latestSalary['effective_to']?:'ongoing')?></small></div></div>
  <?php else:?><p class="hint">No salary assigned yet. Choose a structure and amount below.</p><?php endif;?>
@@ -22,10 +22,9 @@ if($error&&in_array($_POST['action']??'',['profile_salary_preview','profile_sala
  <div class="profile-salary-editor"><h3><?=$latestSalary?'Increase / revise salary':'Set employee salary'?></h3>
  <p class="hint">Enter the monthly salary and effective date, then Save salary. Your existing structure calculates the breakup, available in the employee’s Payroll tab.</p>
  <form method="post" action="?page=employee-edit&amp;id=<?=$id?>#profile-salary"><?php ftoken();?><input type="hidden" name="salary_previous_id" value="<?=(int)($latestSalary['id']??0)?>">
- <?php require __DIR__.'/profile-salary-fields.php';?>
- <div class="form-actions"><button class="button primary" name="action" value="profile_salary_quick_save">Save salary</button><button class="button" name="action" value="profile_salary_preview">Preview salary breakup</button></div></form>
+ <?php $simpleSalaryEditor=true; require __DIR__.'/profile-salary-fields.php'; unset($simpleSalaryEditor);?>
+ <div class="form-actions"><button class="button primary" name="action" value="profile_salary_quick_save">Save salary</button></div></form>
  </div>
- <?php if(can($pdo,$user,'payroll.process.manage')):?><div class="form-actions"><a class="button" href="?page=payroll_payslips&amp;employee_id=<?=$id?>&amp;create=1">Generate payslip</a></div><p class="hint">Save and confirm salary first. Then choose the payroll month, calculate, review and publish the payslip.</p><?php endif;?>
  <?php if($pending):$p=$pending['preview'];?>
  <section class="profile-salary-preview" aria-label="Salary preview">
 <?php if($latestSalary):$salaryDifference=(int)$p['breakup']['gross']-(int)$latestSalary['monthly_gross'];?>
@@ -38,4 +37,7 @@ if($error&&in_array($_POST['action']??'',['profile_salary_preview','profile_sala
  <label class="profile-salary-toggle"><input type="checkbox" name="confirm" value="1" required>I reviewed this breakup and effective period</label><div class="form-actions"><button class="button primary">Confirm & save salary</button></div></form>
  </section>
  <?php endif;?>
+ <?php if(can($pdo,$user,'payroll.salary.view')):$historyQuery=$pdo->prepare('SELECT monthly_gross,effective_from,effective_to FROM hr_salary_assignments WHERE employee_id=? ORDER BY effective_from DESC,id DESC');$historyQuery->execute([$id]);$salaryHistory=$historyQuery->fetchAll(PDO::FETCH_ASSOC);if($salaryHistory):?>
+ <details class="profile-salary-history"><summary>Salary history</summary><div class="table-scroll"><table><thead><tr><th>Monthly salary</th><th>Applies from</th><th>Applies until</th></tr></thead><tbody><?php foreach($salaryHistory as $history):?><tr><td>₹<?=pay_amount((int)$history['monthly_gross'])?></td><td><?=h($history['effective_from'])?></td><td><?=h($history['effective_to']?:'Ongoing')?></td></tr><?php endforeach;?></tbody></table></div></details>
+ <?php endif;endif;?>
 </section>

@@ -3,6 +3,19 @@ $salaryStructures=chr_rows($pdo,'pay_structure');
 $activeSalaryStructures=array_values(array_filter($salaryStructures,fn($r)=>$r['status']==='Active'));
 if(empty($salaryInput['structure_id'])&&count($activeSalaryStructures)===1)$salaryInput['structure_id']=$activeSalaryStructures[0]['id'];
 ?>
+<?php if(!empty($simpleSalaryEditor)):?>
+<div class="form-grid three">
+ <label>Monthly salary (₹) *<input name="salary[salary_amount]" type="number" min="0.01" step="0.01" value="<?=h($salaryInput['salary_amount']??'')?>" required></label>
+ <label>Applies from *<input name="salary[effective_from]" type="date" value="<?=h($salaryInput['effective_from']??'')?>" required></label>
+ <label>Applies until<input name="salary[effective_to]" type="date" value="<?=h($salaryInput['effective_to']??'')?>"><span class="hint">Leave blank to continue until the next salary change.</span></label>
+</div>
+<?php if(empty($salaryInput['structure_id'])):?>
+<label>Salary structure *<select name="salary[structure_id]" required><option value="">Choose salary structure</option><?php foreach($activeSalaryStructures as $r):?><option value="<?=(int)$r['id']?>"><?=h($r['title'])?></option><?php endforeach;?></select></label>
+<?php else:?><input type="hidden" name="salary[structure_id]" value="<?=(int)$salaryInput['structure_id']?>"><?php endif;?>
+<input type="hidden" name="salary[salary_basis]" value="Monthly Gross">
+<?php foreach(['reason','employee_ot_rate','bank_last4','pan_last4','notes'] as $salaryField):?><input type="hidden" name="salary[<?=h($salaryField)?>]" value="<?=h($salaryInput[$salaryField]??'')?>"><?php endforeach;?>
+<?php foreach(($salaryInput['manual']??[]) as $salaryCode=>$salaryValue):?><input type="hidden" name="salary[manual][<?=h($salaryCode)?>]" value="<?=h($salaryValue)?>"><?php endforeach;?>
+<?php else:?>
 <div class="form-grid">
  <label><?=h(($salaryInput['salary_basis']??'Monthly Gross')==='Annual CTC'?'Annual CTC (₹)':'Monthly salary (₹)')?> *<input name="salary[salary_amount]" type="number" min="0.01" step="0.01" value="<?=h($salaryInput['salary_amount']??'')?>" required><span class="hint">The amount uses the basis in Additional salary options (Monthly Gross by default). Rules calculate the breakup automatically.</span></label>
 <?php if(empty($salaryInput['structure_id'])):?> <label>Salary structure / rules *<select name="salary[structure_id]" required><option value="">Choose salary structure</option><?php foreach($salaryStructures as $r)if($r['status']==='Active'):?><option value="<?=(int)$r['id']?>" <?=($salaryInput['structure_id']??'')==$r['id']?'selected':''?>><?=h($r['title'].' · from '.$r['values']['effective_from'])?></option><?php endif;?></select></label><?php endif;?>
@@ -19,3 +32,4 @@ if(empty($salaryInput['structure_id'])&&count($activeSalaryStructures)===1)$sala
  <label>PAN last 4 characters<input name="salary[pan_last4]" maxlength="4" value="<?=h($salaryInput['pan_last4']??'')?>"></label>
  <label class="full">Notes<textarea name="salary[notes]" maxlength="3000"><?=h($salaryInput['notes']??'')?></textarea></label>
 </div></details>
+<?php endif;?>
