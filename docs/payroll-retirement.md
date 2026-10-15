@@ -18,3 +18,5 @@ First command reports database name and affected row counts without deleting. Se
 Employee identities, employee documents outside these payroll records, attendance, biometric punches, leave, departments and designations are not deleted. External backups/downloaded PDFs are not accessible to this command. Database cleanup is not executed merely by deploying GitHub changes.
 
 The cleanup is transactional and verified. Unknown payroll tables abort for inspection. An unknown foreign-key dependency rolls back; do not disable foreign keys to bypass it.
+
+Payroll-only permission grants, payslip inbox state and payroll audit references are also removed by the explicit cleanup command. Recruitment salary ranges are unrelated job-advertisement fields and are preserved.

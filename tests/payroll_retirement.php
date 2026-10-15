@@ -19,7 +19,7 @@ $db->prepare("INSERT INTO hr_payroll_overrides(run_id,entry_id,field_name,old_va
 $db->prepare("INSERT INTO hr_payroll_exceptions(run_id,entry_id,employee_id,code,details) VALUES(?,?,?,'Test','Test')")->execute([$run,$entry,$owner]);
 $db->prepare("INSERT INTO hr_payroll_attendance_snapshots(run_id,employee_id,payroll_month,snapshot,source_hash,captured_by,captured_at) VALUES(?,?,'2099-01','{}',?, ?,NOW())")->execute([$run,$owner,str_repeat('a',64),$actor]);
 $protected=['users','employees','departments','designations','hr_attendance','hr_requests','hr_punches'];$before=[];foreach($protected as $table)$before[$table]=$db->query('SELECT * FROM '.$table)->fetchAll(PDO::FETCH_ASSOC);
-$unrelated=$db->query("SELECT * FROM hr_records WHERE module NOT IN ('salary','payroll','contracts','advances','components','pay_component','pay_structure','pay_statutory','pay_settings','pay_payslip','payroll_archive') ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+$unrelated=$db->query("SELECT * FROM hr_records WHERE module NOT IN ('salary','payroll','contracts','advances','components','pay_component','pay_structure','pay_statutory','pay_settings','pay_payslip','payroll_archive') AND NOT (module='inbox_state' AND title LIKE 'payslip:%') ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
 $preview=payroll_cleanup($db);if($preview['applied']||($preview['rows']['payroll_hr_records']??0)<1)throw new RuntimeException('Expected legacy payroll fixtures and dry-run.');
 $result=payroll_cleanup($db,true);if(!$result['applied']||array_sum($result['remaining'])!==0)throw new RuntimeException('Payroll cleanup failed.');
 foreach($protected as $table)if($before[$table]!==$db->query('SELECT * FROM '.$table)->fetchAll(PDO::FETCH_ASSOC))throw new RuntimeException('Changed protected data: '.$table);

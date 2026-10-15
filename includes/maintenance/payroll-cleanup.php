@@ -12,6 +12,15 @@ function payroll_cleanup(PDO $db,bool $apply=false):array {
   foreach(['hr_files','hr_acknowledgements'] as $table)if(isset($tables[$table])){$where='record_id IN (SELECT id FROM hr_records WHERE module IN ('.$placeholders.'))';$q=$db->prepare('SELECT COUNT(*) FROM '.$table.' WHERE '.$where);$q->execute($modules);$plan[$table]=(int)$q->fetchColumn();$sql[]=['DELETE FROM '.$table.' WHERE '.$where,$modules];}
   $q=$db->prepare('SELECT COUNT(*) FROM hr_records WHERE module IN ('.$placeholders.')');$q->execute($modules);$plan['payroll_hr_records']=(int)$q->fetchColumn();$sql[]=['DELETE FROM hr_records WHERE module IN ('.$placeholders.')',$modules];
  }
+ // Retired permission grants and notification/audit references belong to Payroll only.
+ foreach([
+  ['role_permissions',"permission_id IN (SELECT id FROM permissions WHERE code LIKE 'payroll.%')"],
+  ['permissions',"code LIKE 'payroll.%'"],
+  ['hr_audit',"action LIKE 'payroll.%'"],
+  ['hr_records',"module='inbox_state' AND title LIKE 'payslip:%'"]
+ ] as [$table,$where])if(isset($tables[$table])){
+  $key=$table.'_payroll_references';$plan[$key]=(int)$db->query('SELECT COUNT(*) FROM '.$table.' WHERE '.$where)->fetchColumn();$sql[]=['DELETE FROM '.$table.' WHERE '.$where,[]];
+ }
  if(!$apply)return ['applied'=>false,'rows'=>$plan];
  $db->beginTransaction();try{
   // Uses the application's shared write lock; deployed retirement blocks new payroll writes.
