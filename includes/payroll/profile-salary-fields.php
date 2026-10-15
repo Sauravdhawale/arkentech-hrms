@@ -28,9 +28,7 @@ if(empty($salaryInput['structure_id'])&&count($activeSalaryStructures)===1)$sala
  <label>Applies from *<input name="salary[effective_from]" type="date" value="<?=h($salaryInput['effective_from']??'')?>" required></label>
  <label>Applies until<input name="salary[effective_to]" type="date" value="<?=h($salaryInput['effective_to']??'')?>"><span class="hint">Leave blank to continue until the next salary change.</span></label>
 </div>
-<?php if(empty($salaryInput['structure_id'])):?>
-<label>Salary structure *<select name="salary[structure_id]" required><option value="">Choose salary structure</option><?php foreach($activeSalaryStructures as $r):?><option value="<?=(int)$r['id']?>"><?=h($r['title'])?></option><?php endforeach;?></select></label>
-<?php else:?><input type="hidden" name="salary[structure_id]" value="<?=(int)$salaryInput['structure_id']?>"><?php endif;?>
+<div class="form-grid"><label>Salary structure *<select name="salary[structure_id]" required><option value="">Choose an effective salary structure</option><?php foreach($activeSalaryStructures as $r):?><option value="<?=(int)$r['id']?>" <?=((int)($salaryInput['structure_id']??0)===(int)$r['id'])?'selected':''?>><?=h($r['title'].' · '.$r['values']['effective_from'].' → '.($r['values']['effective_to']?:'Ongoing'))?></option><?php endforeach;?></select><span class="hint">The structure must cover the Applies from date above.</span></label></div>
 <input type="hidden" name="salary[salary_basis]" value="Monthly Gross">
 <?php foreach(['reason','employee_ot_rate','bank_last4','pan_last4','notes'] as $salaryField):?><input type="hidden" name="salary[<?=h($salaryField)?>]" value="<?=h($salaryInput[$salaryField]??'')?>"><?php endforeach;?>
 <?php foreach(($salaryInput['manual']??[]) as $salaryCode=>$salaryValue):?><input type="hidden" name="salary[manual][<?=h($salaryCode)?>]" value="<?=h($salaryValue)?>"><?php endforeach;?>
