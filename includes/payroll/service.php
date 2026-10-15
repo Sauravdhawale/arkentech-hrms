@@ -38,13 +38,14 @@ function pay_calculate_employee(array $employee,array $days,array $salaries,arra
  $fixedWeight=$settings['proration']==='Fixed 30 Days'&&$activeDays===$totalDays?30/$totalDays:1;
  foreach($days as $day){
   if(in_array($day['status'],['Not started','Not active'],true))continue;
-  if(in_array($day['status'],['Unscheduled','Review needed','Open','Pending'],true)||$day['note']==='Check-out pending'||str_starts_with($day['note'],'Punch recorded during approved leave'))$exceptions[]=$day['date'].': '.$day['status'].($day['note']?' — '.$day['note']:'');
+  if(in_array($day['status'],['Unscheduled','Review needed','Open','Pending','Check-out missing','Leave Pending','Half Day Leave Pending'],true)||$day['note']==='Check-out pending'||str_starts_with($day['note'],'Punch recorded during approved leave'))$exceptions[]=$day['date'].': '.$day['status'].($day['note']?' — '.$day['note']:'');
   $assignment=null;foreach($salaries as $s)if($s['effective_from']<=$day['date']&&(!$s['effective_to']||$s['effective_to']>=$day['date'])){$assignment=$s;break;}
   if(!$assignment){$exceptions[]=$day['date'].': Missing Salary Configuration';continue;}
   $salary=json_decode($assignment['snapshot'],true);$structure=$salary['structure'];$structure['statutory']=$rulesByDay[$day['date']]??[];
   $parts=pay_breakup($structure,(int)$assignment['monthly_gross'],$salary['manual']);
   $segments[$assignment['id']]=['assignment_id'=>(int)$assignment['id'],'effective_from'=>$assignment['effective_from'],'effective_to'=>$assignment['effective_to'],'salary'=>$salary];
   $salaryByDay[$day['date']]=$salary;
+  $monthlyAmounts[$day['date']]=(int)$assignment['monthly_gross'];
   $weight=$settings['proration']==='Working Days'?(float)$day['working_days']:$fixedWeight;
   $values=['GROSS'=>(int)$assignment['monthly_gross']];foreach($parts['components'] as $part)$values[$part['code']]=$part['amount'];
   if(!array_key_exists($settings['lop_basis'],$values))throw new InvalidArgumentException('LOP basis component is missing: '.$settings['lop_basis']);
@@ -91,7 +92,7 @@ function pay_calculate_employee(array $employee,array $days,array $salaries,arra
  if($net<0)$exceptions[]='Deductions exceed earnings';
  if(!$activeDays)$exceptions[]='No eligible days in this month';
  $attendance=chr_monthly($days)[0]??[];$attendance['approved_overtime_hours']=$approvedOT;
- return ['employee'=>array_intersect_key($employee,array_flip(['user_id','name','employee_code','department_id','department_name','designation_name','joining_date'])),'components'=>$lines,'salary_segments'=>array_values($segments),'attendance'=>$attendance,'daily_attendance'=>$days,'adjustments'=>$adjustments,'statutory_rules'=>$rulesByDay,'gross'=>$gross,'deductions'=>$deductions,'net'=>$net,'employer'=>$employer,'lop'=>$lop,'variable'=>$variable,'ot_hours'=>$approvedOT,'ot_rate'=>(int)round($otRateWeight),'exceptions'=>array_values(array_unique($exceptions)),'bank_last4'=>$salary['bank_last4']??'','pan_last4'=>$salary['pan_last4']??''];
+ return ['calculation'=>['basis'=>$settings['proration'],'divisor'=>$denominator,'monthly_salaries'=>$monthlyAmounts??[],'lop_basis'=>$settings['lop_basis'],'daily_lop_basis'=>$basisByDay,'unpaid_days'=>array_sum(array_map(fn($d)=>min(1,(float)$d['unpaid_leave']+($settings['lop_days']==='Absent + unpaid leave'?(float)$d['absent']:0)),$days))], 'employee'=>array_intersect_key($employee,array_flip(['user_id','name','employee_code','department_id','department_name','designation_name','joining_date'])),'components'=>$lines,'salary_segments'=>array_values($segments),'attendance'=>$attendance,'daily_attendance'=>$days,'adjustments'=>$adjustments,'statutory_rules'=>$rulesByDay,'gross'=>$gross,'deductions'=>$deductions,'net'=>$net,'employer'=>$employer,'lop'=>$lop,'variable'=>$variable,'ot_hours'=>$approvedOT,'ot_rate'=>(int)round($otRateWeight),'exceptions'=>array_values(array_unique($exceptions)),'bank_last4'=>$salary['bank_last4']??'','pan_last4'=>$salary['pan_last4']??''];
 }
 function pay_calculate_run(PDO $db,array $actor,array $in):void {
  pay_allow($db,$actor,'payroll.process.manage');$db->beginTransaction();try{
@@ -110,6 +111,7 @@ function pay_calculate_run(PDO $db,array $actor,array $in):void {
     $a=$db->prepare('SELECT * FROM hr_payroll_adjustments WHERE entry_id=? ORDER BY id');$a->execute([$entry['id']]);
     $snapshot=pay_calculate_employee($e,$days,$s->fetchAll(PDO::FETCH_ASSOC),$settings,$rules,$a->fetchAll(PDO::FETCH_ASSOC),$scheduled);
    }catch(InvalidArgumentException $error){$snapshot=['gross'=>0,'deductions'=>0,'net'=>0,'employer'=>0,'exceptions'=>[$error->getMessage()]];}
+   $snapshot['draft_generated_at']=empty($snapshot['exceptions'])&&!empty($settings['auto_generate'])?date('Y-m-d H:i:s'):null;
    $db->prepare("UPDATE hr_payroll_entries SET status='Calculated',gross=?,deductions=?,net=?,employer_cost=?,snapshot=?,exceptions=? WHERE id=?")->execute([$snapshot['gross'],$snapshot['deductions'],$snapshot['net'],$snapshot['employer'],pay_json($snapshot),implode("\n",$snapshot['exceptions']),$entry['id']]);
   }
   $db->prepare("UPDATE hr_payroll_runs SET status='Calculated',version=version+1 WHERE id=?")->execute([$run['id']]);pay_event($db,$actor,'run.calculated',(int)$run['id']);$db->commit();
@@ -129,7 +131,13 @@ function pay_transition(PDO $db,array $actor,array $in):void {
  $action=(string)($in['transition']??'');$permission=match($action){'approve','approve_ot'=>'payroll.process.approve','finalize'=>'payroll.process.finalize','paid'=>'payroll.process.pay','publish'=>'payslip.generate',default=>'payroll.process.manage'};
  pay_allow($db,$actor,$permission);$reason=ftext($in,'reason',1000,true);if(empty($in['confirm']))throw new InvalidArgumentException('Confirm this payroll action.');
  $db->beginTransaction();try{chr_lock($db);$run=pay_run($db,(int)$in['run_id'],true);pay_version($run,$in);$id=(int)$run['id'];
-  if($action==='publish'){if(!in_array($run['status'],['Finalized','Paid'],true))throw new InvalidArgumentException('Finalize payroll before generating payslips.');pay_publish($db,$run);}
+  if($action==='reopen'){
+   if(($actor['role']??'')!=='super_admin'||!in_array($run['status'],['Finalized','Paid'],true))throw new InvalidArgumentException('Only Super Admin can reopen finalized payroll.');
+   $q=$db->prepare('SELECT * FROM hr_payroll_entries WHERE run_id=? ORDER BY id');$q->execute([$id]);$archive=['run'=>$run,'entries'=>$q->fetchAll(PDO::FETCH_ASSOC),'reason'=>$reason];
+   $db->prepare("INSERT INTO hr_records(module,title,status,data,created_by) VALUES('payroll_archive',?,'Archived',?,?)")->execute(['Payroll '.$run['month'].' version '.$run['version'],pay_json($archive),$actor['id']]);
+   $db->prepare("UPDATE hr_payroll_runs SET status='Draft',finalized_at=NULL,paid_at=NULL WHERE id=?")->execute([$id]);
+   $db->prepare("UPDATE hr_payroll_entries SET status='Draft',published_at=NULL,exceptions='Recalculate after reopening' WHERE run_id=?")->execute([$id]);
+  }elseif($action==='publish'){if(!in_array($run['status'],['Finalized','Paid'],true))throw new InvalidArgumentException('Finalize payroll before generating payslips.');pay_publish($db,$run);}
   elseif($action==='paid'){if($run['status']!=='Finalized')throw new InvalidArgumentException('Only finalized payroll can be marked paid.');$db->prepare("UPDATE hr_payroll_runs SET status='Paid',paid_at=NOW() WHERE id=?")->execute([$id]);$db->prepare("UPDATE hr_payroll_entries SET status='Paid' WHERE run_id=?")->execute([$id]);}
   else{
    pay_mutable($run);
@@ -194,3 +202,4 @@ function pay_bulk_adjust(PDO $db,array $actor,array $in):int {
   $db->prepare("UPDATE hr_payroll_runs SET status='Draft',version=version+1 WHERE id=?")->execute([$run['id']]);$db->commit();return count($ids);
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
+

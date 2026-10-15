@@ -2,14 +2,14 @@
 require_once __DIR__.'/service.php';
 require_once __DIR__.'/starter.php';
 $payPages=[
- 'payroll_dashboard'=>['Payroll dashboard','payroll.view'],
+ 'payroll_dashboard'=>['Overview','payroll.view'],
  'payroll_loans'=>['Loans & Salary Advances','payroll.view'],
  'employee_salary'=>['Employee Salary','payroll.salary.view'],
- 'payroll_processing'=>['Payroll Processing','payroll.process.view'],
+ 'payroll_processing'=>['Monthly Payroll','payroll.process.view'],
  'payroll_payslips'=>['Payslips','payslip.view'],
  'payroll_history'=>['Payroll History','payroll.process.view'],
  'payroll_reports'=>['Payroll Reports','payroll.reports'],
- 'salary_components'=>['Allowances & Deductions','payroll.settings.view'],
+ 'salary_components'=>['Payroll Settings','payroll.settings.view'],
  'salary_structures'=>['Salary Structure','payroll.settings.view'],
  'statutory_settings'=>['Statutory Settings','payroll.settings.view'],
  'payroll_settings'=>['Payroll Settings','payroll.settings.view'],
@@ -58,5 +58,6 @@ function pay_export(PDO $db,array $actor,array $in):void {
   fputcsv($out,array_map(fn($v)=>is_string($v)&&preg_match('/^[=+@\-\t\r]/',$v)?"'".$v:$v,$row));
  }fclose($out);exit;
 }
+
 
 

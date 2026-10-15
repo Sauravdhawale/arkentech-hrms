@@ -8,8 +8,11 @@ if(!$id){
  $q=$db->prepare('SELECT e.id,e.payslip_number,e.net,r.month FROM hr_payroll_entries e JOIN hr_payroll_runs r ON r.id=e.run_id WHERE e.employee_id=? AND e.published_at IS NOT NULL ORDER BY r.month DESC');$q->execute([$user['id']]);?>
  <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My payslips</title><link rel="stylesheet" href="assets/foundation.css"><?php require __DIR__.'/includes/theme-assets.php';?><body class="shrms-ui"><main><h1>My payslips</h1><p><a href="index.php">Back to workspace</a></p><section class="card"><?php $found=false;foreach($q as $row){$found=true;echo '<p><a href="?entry='.$row['id'].'">'.h($row['month'].' · '.$row['payslip_number']).'</a> · Net '.pay_amount((int)$row['net']).'</p>';}if(!$found)echo '<p>No published payroll payslips yet.</p>';?></section></main></html><?php exit;
 }
-$q=$db->prepare('SELECT e.*,r.month,r.settings_snapshot FROM hr_payroll_entries e JOIN hr_payroll_runs r ON r.id=e.run_id WHERE e.id=? AND e.published_at IS NOT NULL AND r.status IN ("Finalized","Paid")');$q->execute([$id]);$entry=$q->fetch(PDO::FETCH_ASSOC);
-if(!$entry||(!$all&&(int)$entry['employee_id']!==(int)$user['id'])){http_response_code(404);exit('Payslip not found.');}
+$q=$db->prepare('SELECT e.*,r.month,r.status AS run_status,r.settings_snapshot FROM hr_payroll_entries e JOIN hr_payroll_runs r ON r.id=e.run_id WHERE e.id=?');$q->execute([$id]);$entry=$q->fetch(PDO::FETCH_ASSOC);
+$draft=$entry&&(!$entry['published_at']||!in_array($entry['run_status'],['Finalized','Paid'],true));
+$draftAllowed=$draft&&can($db,$user,'payroll.process.view')&&$entry['exceptions']===''&&!empty(json_decode($entry['snapshot'],true)['draft_generated_at']);
+if(!$entry||($draft&&!$draftAllowed)||(!$all&&!$draftAllowed&&(int)$entry['employee_id']!==(int)$user['id'])){http_response_code(404);exit('Payslip not found.');}
+if($draft){$entry['payslip_number']='DRAFT-'.$id;$entry['status']='DRAFT — NOT FINAL';}
 $s=json_decode($entry['snapshot'],true);$settings=json_decode($entry['settings_snapshot'],true);$company=$settings['company'];$options=$settings['payslip'];$e=$s['employee'];$currency=$settings['payroll']['currency'];
 function slip_money(int $amount,array $settings):string{$v=pay_amount($amount);$p=$settings['payroll'];return $p['currency_position']==='After'?$v.' '.$p['currency']:$p['currency'].' '.$v;}
 $visible=array_values(array_filter($s['components'],fn($c)=>!empty($c['visible'])));
@@ -26,7 +29,7 @@ if(($_GET['download']??'')==='pdf'){
  header('Content-Type: application/pdf');header('Content-Disposition: attachment; filename="payslip-'.$id.'.pdf"');echo pay_pdf($lines);exit;
 }
 if(($options['template_mode']??'standard')==='html'&&!empty($options['html_template'])){
- $document=pay_template_document(pay_template_render($entry,$settings,$s,$visible));
+ $document=pay_template_document(($draft?'<h2 style="color:#b12625;text-align:center">DRAFT — NOT FINAL</h2>':'').pay_template_render($entry,$settings,$s,$visible));
  ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=h($entry['payslip_number'])?></title><style>body{margin:0;background:#f5f6f7;font:14px Arial}nav{padding:16px;display:flex;gap:16px;align-items:center}button{padding:10px 16px;cursor:pointer}iframe{display:block;width:min(100%,950px);border:0;margin:0 auto;background:white;min-height:1100px}@media print{nav{display:none}}</style></head><body><nav><a href="?">My payslips</a><button type="button" onclick="document.getElementById('payslip-document').contentWindow.print()">Print / Save branded PDF</button><a href="?entry=<?=$id?>&download=pdf">Download text PDF</a></nav><iframe id="payslip-document" title="Payslip document" sandbox="allow-same-origin allow-modals" srcdoc="<?=h($document)?>" onload="this.style.height=(this.contentDocument.documentElement.scrollHeight+30)+'px'"></iframe></body></html><?php exit;
 }
 ?><!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?=h($entry['payslip_number'])?></title><link rel="stylesheet" href="assets/foundation.css"><link rel="stylesheet" href="assets/payroll.css"><style>.slip{max-width:900px;margin:35px auto;padding:35px}.slip-logo{max-width:150px;max-height:75px}.slip table{min-width:0}@media print{.slip{margin:0;padding:10px;max-width:none}}</style><?php require __DIR__.'/includes/theme-assets.php';?></head><body class="shrms-ui"><main class="slip card">
@@ -40,5 +43,6 @@ if(($options['template_mode']??'standard')==='html'&&!empty($options['html_templ
 <div class="pay-grid"><p>Gross earnings<strong class="pay-stat"><?=h(slip_money((int)$entry['gross'],$settings))?></strong></p><p>Total deductions<strong class="pay-stat"><?=h(slip_money((int)$entry['deductions'],$settings))?></strong></p><p>Net pay<strong class="pay-stat"><?=h(slip_money((int)$entry['net'],$settings))?></strong></p></div><p><strong><?=h(pay_words((int)$entry['net']).' '.$currency)?></strong></p>
 <?php if($options['show_attendance']):?><h3>Attendance summary</h3><div class="pay-grid"><?php foreach(['working_days','present','absent','paid_leave','unpaid_leave','holidays','week_offs','approved_overtime_hours'] as $key):?><p><?=h(ucwords(str_replace('_',' ',$key)))?>: <?=h((string)($s['attendance'][$key]??0))?></p><?php endforeach;?></div><?php endif;?>
 <p><?=h($options['footer'])?></p><p>Authorized signatory: <?=h($options['signatory'])?></p></main></body></html>
+
 
 

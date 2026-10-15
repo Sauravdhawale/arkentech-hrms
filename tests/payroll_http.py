@@ -34,6 +34,9 @@ try:
   assert 'text/csv' in r.headers['Content-Type'];assert 'PAY-CI-001' in r.read().decode()
  _,h=get(a,'payroll-test-preview.php');assert 'TEST COPY' in h and 'NOT FOR PAYMENT' in h and 'Payroll Test' in h
  owner=login('payroll.ci','Payroll-CI-2026!')
+ _,draft=get(a,'payroll-slip.php?entry='+str(f['draft_entry']));assert 'DRAFT' in draft and 'Payroll Test' in draft
+ try:get(owner,'payroll-slip.php?entry='+str(f['draft_entry']));raise AssertionError('Employee accessed unpublished draft')
+ except urllib.error.HTTPError as e:assert e.code==404
  _,own=get(owner,'payroll-slip.php?entry='+str(f['entry']));assert 'Payroll Test' in own and 'Net pay' in own
  _,own=get(owner,'employee.php?page=payroll');assert 'Published payslips' in own and 'Current salary' in own
  _,own=get(owner,'employee.php?page=profile&tab=payroll');assert 'Current salary' in own
@@ -55,5 +58,6 @@ try:
  print('PASS: Payroll pages, report CSV, PDF, published snapshot, permission checks, IDOR and CSRF.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
+
 
 

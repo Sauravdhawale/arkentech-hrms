@@ -15,11 +15,9 @@ function pay_breakup_table(array $parts,bool $annual=true):void {
 if(!pay_ready($pdo)):?>
 <section class="card pay-card"><h2>Enable Payroll</h2><p>Add salary revisions and payroll snapshots to the existing workspace. Existing salaries and published payslips stay available.</p><?php if($user['role']==='super_admin'){pay_form('pay_install');echo '<button class="button primary">Install Payroll upgrade</button></form>';}else echo '<p>Ask your Super Admin to install the Payroll upgrade.</p>';?></section>
 <?php return;endif;
-if(!pay_workflow_ready($pdo)&&$page==='payroll_settings'):?>
-<section class="card pay-card"><h2>Enable Payroll Workflow Upgrade</h2><p>Add attendance snapshots, payroll exception records, lock/reopen audit fields, controlled overrides and versioned payslip templates. Existing payroll data remains unchanged.</p><?php if($user['role']==='super_admin'){pay_form('pay_workflow_install');echo '<button class="button primary">Enable Payroll Workflow</button></form>';}else echo '<p>Ask your Super Admin to enable the Payroll Workflow upgrade.</p>';?></section>
-<?php endif;
-// Keep the main workspace to Dashboard, Payslips and Configuration.
-if(in_array($page,['payroll_processing','payroll_history','payroll_reports','employee_salary'],true))echo '<div class="pay-actions"><a class="button" href="?page=payroll_payslips">← Payslips</a></div>';
+// Preserve existing routes while presenting one monthly payroll workflow.
+if($page==='salary_components'&&!isset($_GET['category'])&&!isset($_GET['revision'])&&$_SERVER['REQUEST_METHOD']!=='POST'){require __DIR__.'/settings-home.php';return;}
+if(in_array($page,['payroll_history','payroll_reports','employee_salary'],true))echo '<div class="pay-actions"><a class="button" href="?page=payroll_payslips">← Payslips</a></div>';
 if($page==='payroll_loans'){echo '<section class="card pay-card"><h2>This section has been retired</h2><p>Continue in Dashboard, Payslips or Configuration.</p><a class="button" href="?page=payroll_payslips">Open Payslips</a></section>';return;}
 $configModules=['salary_components'=>'pay_component','salary_structures'=>'pay_structure','statutory_settings'=>'pay_statutory','payroll_settings'=>'pay_settings','payslip_settings'=>'pay_payslip'];
 if(isset($configModules[$page])){require __DIR__.'/settings-view.php';return;}
@@ -34,9 +32,9 @@ $month=(string)($_GET['month']??date('Y-m'));try{pay_month($month);}catch(Invali
 <?php
 $q=$pdo->prepare('SELECT r.*,COUNT(e.id) employees,COALESCE(SUM(e.gross),0) gross,COALESCE(SUM(e.deductions),0) deductions,COALESCE(SUM(e.net),0) net,COALESCE(SUM(e.published_at IS NOT NULL),0) published,COALESCE(SUM(e.exceptions<>""),0) exceptions FROM hr_payroll_runs r LEFT JOIN hr_payroll_entries e ON e.run_id=r.id WHERE r.month=? GROUP BY r.id');$q->execute([$month]);$runs=$q->fetchAll(PDO::FETCH_ASSOC);
 if($page==='payroll_dashboard')require __DIR__.'/dashboard-view.php';
-if($page==='payroll_processing'&&can($pdo,$user,'payroll.process.manage')){echo '<section class="card pay-card"><h2>Create monthly payroll</h2>';pay_form('pay_create');pay_text('month','Month',['month'=>$month],'month',true);pay_select('employee_id','Employees for this run','',$employeeOptions);echo '<p class="pay-muted">The run stores this month’s settings. Configure salary, shifts and attendance before calculating. Finalization is available after the month closes.</p><button class="button primary">Create draft</button></form></section>';}
+if($page==='payroll_processing'&&can($pdo,$user,'payroll.process.manage')){echo '<section class="card pay-card"><h2>Prepare monthly payroll</h2>';pay_form('pay_create');pay_text('month','Month',['month'=>$month],'month',true);pay_select('employee_id','Employees for this run','',$employeeOptions);echo '<p class="pay-muted">The run stores this month’s settings. Configure salary, shifts and attendance before calculating. Finalization is available after the month closes.</p><button class="button primary">Create draft</button></form></section>';}
 if(in_array($page,['payroll_dashboard','payroll_processing','payroll_history'],true)){
- echo '<section class="card pay-card"><h2>Payroll runs</h2><div class="pay-table"><table><thead><tr><th>Month</th><th>Status</th><th>Employees</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Exceptions</th><th></th></tr></thead><tbody>';
+ echo '<section class="card pay-card"><h2>Monthly payroll</h2><div class="pay-table"><table><thead><tr><th>Month</th><th>Status</th><th>Employees</th><th>Gross</th><th>Deductions</th><th>Net</th><th>Exceptions</th><th></th></tr></thead><tbody>';
  foreach($runs as $r){echo '<tr><td>'.h($r['month']).'</td><td>'.h($r['status']).'</td><td>'.$r['employees'].'</td><td>'.pay_amount((int)$r['gross']).'</td><td>'.pay_amount((int)$r['deductions']).'</td><td>'.pay_amount((int)$r['net']).'</td><td>'.$r['exceptions'].'</td><td>';if(can($pdo,$user,'payroll.process.view'))echo '<a href="?page=payroll_processing&run='.$r['id'].'">Open run</a>';echo '</td></tr>';}
  if(!$runs)echo '<tr><td colspan="8">No payroll run for this month.</td></tr>';echo '</tbody></table></div></section>';
 
@@ -52,6 +50,7 @@ if($page==='payroll_reports'){
   echo '<section class="card pay-card"><h2>Component and statutory totals</h2><div class="pay-table"><table><thead><tr><th>Component</th><th>Amount</th></tr></thead><tbody>';foreach($summary as $key=>$value)echo '<tr><td>'.h($key).'</td><td>'.pay_amount($value).'</td></tr>';echo '</tbody></table></div></section>';
  }
 }
+
 
 
 

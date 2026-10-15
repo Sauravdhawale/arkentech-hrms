@@ -139,3 +139,33 @@ pd(fn()=>pay_profile_confirm($db,$admin,$employee,$pendingProfile,$confirmation)
 pc($db->query('SELECT snapshot FROM hr_payroll_entries WHERE id='.$locked['id'])->fetchColumn()===$locked['snapshot'],'Profile revision changed published payslip');
 echo "PASS: profile salary preview, effective dates, permissions, employee binding, confirmation, replay protection and payslip preservation.\n";
 
+// Explicit final-attendance cases: paid statuses, absent/LWP and unpaid half day.
+$cleanDays=$days;foreach($cleanDays as &$d){$d['status']='Present';$d['present']=1;$d['absent']=$d['leave']=$d['paid_leave']=$d['unpaid_leave']=$d['holidays']=$d['week_offs']=0;$d['note']='';}unset($d);
+foreach(['Present'=>0,'Leave'=>0,'Holiday'=>0,'Week Off'=>0,'Absent'=>100000,'LWP'=>100000,'Half Day'=>50000] as $status=>$expected){
+ $case=$cleanDays;$case[0]['status']=$status;
+ if($status==='Leave'){$case[0]['paid_leave']=1;$case[0]['present']=0;}
+ if($status==='Absent'){$case[0]['absent']=1;$case[0]['present']=0;}
+ if($status==='LWP'){$case[0]['unpaid_leave']=1;$case[0]['present']=0;}
+ if($status==='Half Day'){$case[0]['absent']=0.5;$case[0]['present']=0.5;}
+ $result=pay_calculate_employee($e,$case,$salaries,pay_setting_defaults(),[],[],30);pc($result['lop']===$expected,'Final status deduction: '.$status);
+}
+foreach(['Check-out missing','Leave Pending','Half Day Leave Pending'] as $status){$case=$cleanDays;$case[0]['status']=$status;$result=pay_calculate_employee($e,$case,$salaries,pay_setting_defaults(),[],[],30);pc(count($result['exceptions'])>0,'Unresolved attendance accepted: '.$status);}
+pc(!pay_scheduled_monthly($db,$admin,'2025-12')['created'],'Disabled schedule ran');
+$settingRow=chr_rows($db,'pay_settings')[0];$autoConf=array_merge($conf,['previous_id'=>$settingRow['id'],'effective_from'=>'2025-10-01','auto_payroll'=>1,'auto_generate'=>1,'schedule_time'=>'12:00']);pay_save_config($db,$admin,$autoConf);
+pc(!pay_scheduled_monthly($db,$admin,'2025-10',new DateTimeImmutable('2025-11-01 08:00',new DateTimeZone('Asia/Kolkata')))['created'],'Scheduler ran before configured time');
+$auto=pay_scheduled_monthly($db,$admin,'2025-10');pc($auto['created'],'Scheduled calculation did not run');
+$q=$db->prepare('SELECT * FROM hr_payroll_entries WHERE run_id=? AND employee_id=?');$q->execute([$auto['run_id'],$employee]);$draft=$q->fetch(PDO::FETCH_ASSOC);pc($draft['exceptions']===''&&!empty(json_decode($draft['snapshot'],true)['draft_generated_at']),'Draft payslip not generated');
+pc(!$draft['published_at'],'Approval-required payroll auto published');
+pc(!pay_scheduled_monthly($db,$admin,'2025-10')['created'],'Scheduler duplicated run');
+$oldDraft=$draft['snapshot'];$ctx=chr_report_context($db,'2025-10-01','2025-10-31');
+// A final sheet correction changes draft payroll, without mutating attendance punches.
+$db->prepare("INSERT INTO hr_records(module,employee_id,title,status,data,created_by) VALUES('attendance_sheet_status',?,'CI payroll correction','Active',?,1)")->execute([$employee,pay_json(['date'=>'2025-10-01','status'=>'Present','notes'=>'CI approved correction'])]);
+$state=pay_run($db,$auto['run_id']);pay_calculate_run($db,$admin,['run_id'=>$state['id'],'version'=>$state['version']]);$q->execute([$auto['run_id'],$employee]);$corrected=$q->fetch(PDO::FETCH_ASSOC);pc((int)$corrected['net']>(int)$draft['net']&&$corrected['snapshot']!==$oldDraft,'Final attendance correction did not update draft');
+$archiveRun=pay_run($db,$optionalRun);$archiveInput=['run_id'=>$optionalRun,'version'=>$archiveRun['version'],'transition'=>'reopen','reason'=>'CI correction with saved archive','confirm'=>1];
+pd(fn()=>pay_transition($db,$viewer,$archiveInput),'Employee reopened payroll');pay_transition($db,$admin,$archiveInput);pc(pay_run($db,$optionalRun)['status']==='Draft','Super Admin reopen failed');
+pc((int)$db->query("SELECT COUNT(*) FROM hr_records WHERE module='payroll_archive'")->fetchColumn()>0,'Reopen did not archive old snapshot');
+pc($db->query('SELECT snapshot FROM hr_payroll_entries WHERE id='.$locked['id'])->fetchColumn()===$locked['snapshot'],'Unrelated finalized payroll changed');
+$fixture=json_decode(file_get_contents('/tmp/payroll-fixture.json'),true);$fixture['draft_entry']=(int)$draft['id'];file_put_contents('/tmp/payroll-fixture.json',pay_json($fixture));
+echo "PASS: paid/unpaid/half days, unresolved attendance, scheduled drafts, idempotency, correction recalculation, audited reopen and historical preservation.\n";
+
+
