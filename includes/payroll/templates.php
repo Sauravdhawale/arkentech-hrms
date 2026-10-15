@@ -63,7 +63,7 @@ function pay_template_render(array $entry,array $settings,array $snapshot,array 
  return preg_replace_callback('/\[([a-z][a-z0-9_]*)\]/',fn($m)=>$v[$m[1]]??'',pay_template_clean($o['html_template']));
 }
 function pay_template_document(string $body):string {
- return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'; base-uri \'none\'; form-action \'none\'"><title>Payslip</title><style>body{font:14px Arial,sans-serif;color:#20252b;background:white;margin:0;padding:20px;overflow-wrap:anywhere}main{max-width:850px;margin:auto}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{border:1px solid #ddd;padding:9px;text-align:left}h1{font-size:24px}h2{font-size:19px}h3{font-size:15px}tr{break-inside:avoid}@media print{body{padding:0}}</style></head><body><main>'.$body.'</main></body></html>';
+ return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; style-src \'unsafe-inline\'; base-uri \'none\'; form-action \'none\'"><title>Payslip</title><style>body{font:14px Arial,sans-serif;color:#20252b;background:white;margin:0;padding:20px;overflow-wrap:anywhere}main{max-width:850px;margin:auto}table{width:100%;border-collapse:collapse;margin:16px 0}th,td{border:1px solid #ddd;padding:9px;text-align:left}h1{font-size:24px}h2{font-size:19px}h3{font-size:15px}tr{break-inside:avoid}@page{size:A4;margin:12mm}@media print{body{padding:0}}</style></head><body><main>'.$body.'</main></body></html>';
 }
 
 

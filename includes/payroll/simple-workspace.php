@@ -10,7 +10,9 @@ function pay_simple_post(PDO $db,array $actor,string $action,array $in):string {
  $q=$db->prepare('SELECT id FROM hr_payroll_runs WHERE month=?');$q->execute([$month]);$id=(int)$q->fetchColumn();
  if($action==='pay_generate_simple'){
   if(!$id)$id=pay_create_run($db,$actor,$month);
-  else{ $run=pay_run($db,$id);pay_version($run,$in);pay_mutable($run);if(!in_array($run['status'],['Draft','Calculated'],true))throw new InvalidArgumentException('This month is already under review. It cannot be regenerated.');pay_add_employees($db,$actor,['run_id'=>$id,'version'=>$run['version']]); }
+  else{ $run=pay_run($db,$id);pay_version($run,$in);pay_mutable($run);if(!in_array($run['status'],['Draft','Calculated'],true))throw new InvalidArgumentException('This month is already under review. It cannot be regenerated.');[, $end]=pay_month($month);
+   $missing=$db->prepare("SELECT COUNT(*) FROM employees e JOIN users u ON u.id=e.user_id WHERE e.deleted_at IS NULL AND u.active=1 AND e.employment_status='Active' AND (e.joining_date IS NULL OR e.joining_date<=?) AND NOT EXISTS(SELECT 1 FROM hr_payroll_entries p WHERE p.run_id=? AND p.employee_id=e.user_id)");
+   $missing->execute([$end,$id]);if($missing->fetchColumn())pay_add_employees($db,$actor,['run_id'=>$id,'version'=>$run['version']]); }
   $run=pay_run($db,$id);pay_calculate_run($db,$actor,['run_id'=>$id,'version'=>$run['version']]);
   $run=pay_run($db,$id);$expected=(int)$run['version'];$db->beginTransaction();try{
    chr_lock($db);$locked=pay_run($db,$id,true);pay_version($locked,['version'=>$expected]);
