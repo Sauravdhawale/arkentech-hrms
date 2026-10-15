@@ -47,6 +47,7 @@ jobs:
 
           php tests/employee_bulk.php
           php tests/employee_csv.php
+          php tests/payroll_retirement.php
           php tests/organization.php
           node tests/organization_filter.cjs
           python3 tests/organization_http.py
@@ -55,7 +56,6 @@ jobs:
           php tests/ess_punch_status.php
           php tests/ess_attendance_metrics.php
           python3 tests/ess_http.py
-          php tests/payroll_retirement.php
 
 
 
