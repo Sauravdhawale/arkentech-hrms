@@ -16,7 +16,10 @@ foreach($salaryStructureGroups as $structureRevisions){
   $dates=$revision['values'];
   if($dates['effective_from']<=$salaryStructureDate&&(!$dates['effective_to']||$dates['effective_to']>=$salaryStructureDate)){$structureChoice=$revision;break;}
  }
- foreach($structureRevisions as $revision)if((int)$revision['id']===(int)($salaryInput['structure_id']??0)){$structureChoice=$revision;break;}
+ foreach($structureRevisions as $revision)if((int)$revision['id']===(int)($salaryInput['structure_id']??0)){
+  // Keep the structure family, but advance its revision for the new salary date.
+  $salaryInput['structure_id']=$structureChoice['id'];break;
+ }
  $activeSalaryStructures[]=$structureChoice;
 }
 $salaryStructures=$activeSalaryStructures;
