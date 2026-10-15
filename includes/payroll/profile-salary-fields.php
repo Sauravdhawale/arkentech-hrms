@@ -31,7 +31,15 @@ if(empty($salaryInput['structure_id'])&&count($activeSalaryStructures)===1)$sala
 <div class="form-grid"><label>Salary structure *<select name="salary[structure_id]" required><option value="">Choose an effective salary structure</option><?php foreach($activeSalaryStructures as $r):?><option value="<?=(int)$r['id']?>" <?=((int)($salaryInput['structure_id']??0)===(int)$r['id'])?'selected':''?>><?=h($r['title'].' · '.$r['values']['effective_from'].' → '.($r['values']['effective_to']?:'Ongoing'))?></option><?php endforeach;?></select><span class="hint">The structure must cover the Applies from date above.</span></label></div>
 <input type="hidden" name="salary[salary_basis]" value="Monthly Gross">
 <?php foreach(['reason','employee_ot_rate','bank_last4','pan_last4','notes'] as $salaryField):?><input type="hidden" name="salary[<?=h($salaryField)?>]" value="<?=h($salaryInput[$salaryField]??'')?>"><?php endforeach;?>
-<?php foreach(($salaryInput['manual']??[]) as $salaryCode=>$salaryValue):?><input type="hidden" name="salary[manual][<?=h($salaryCode)?>]" value="<?=h($salaryValue)?>"><?php endforeach;?>
+<?php
+$salaryManualFields=[];
+foreach($salaryStructureGroups as $salaryRevisions)foreach($salaryRevisions as $salaryRevision)foreach(($salaryRevision['values']['components']??[]) as $salaryComponent){
+ if(($salaryComponent['calculation']??'')==='Manual'&&($salaryComponent['section']??'Fixed')!=='Variable')$salaryManualFields[$salaryComponent['code']]=$salaryComponent['name']??$salaryComponent['code'];
+}
+?>
+<?php if($salaryManualFields):?><details class="salary-manual-amounts" <?=($error?'open':'')?>><summary>Additional amounts (if applicable)</summary><p class="hint">Manual amounts such as PF cannot be calculated from salary alone. Enter the applicable amount; keep 0 only when none applies. Only components in the selected structure are used.</p><div class="form-grid"><?php foreach($salaryManualFields as $salaryCode=>$salaryLabel):?><label><?=h($salaryLabel)?> (₹)<input type="number" min="0" step="0.01" name="salary[manual][<?=h($salaryCode)?>]" value="<?=h($salaryInput['manual'][$salaryCode]??'0')?>" required></label><?php endforeach;?></div></details><?php endif;?>
+<?php foreach(($salaryInput['manual']??[]) as $salaryCode=>$salaryValue)if(!isset($salaryManualFields[$salaryCode])):?><input type="hidden" name="salary[manual][<?=h($salaryCode)?>]" value="<?=h($salaryValue)?>"><?php endif;?>
+
 <?php else:?>
 <div class="form-grid">
  <label><?=h(($salaryInput['salary_basis']??'Monthly Gross')==='Annual CTC'?'Annual CTC (₹)':'Monthly salary (₹)')?> *<input name="salary[salary_amount]" type="number" min="0.01" step="0.01" value="<?=h($salaryInput['salary_amount']??'')?>" required><span class="hint">The amount uses the basis in Additional salary options (Monthly Gross by default). Rules calculate the breakup automatically.</span></label>
