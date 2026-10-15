@@ -1,6 +1,25 @@
 <?php // Shared fields. The enclosing form defines the employee; no employee selector is accepted here.
 $salaryStructures=chr_rows($pdo,'pay_structure');
-$activeSalaryStructures=array_values(array_filter($salaryStructures,fn($r)=>$r['status']==='Active'));
+// Show one option per structure code, retaining the employee's selected revision.
+$salaryStructureGroups=[];
+foreach($salaryStructures as $salaryStructure){
+ if($salaryStructure['status']!=='Active')continue;
+ $structureKey=strtoupper(trim((string)($salaryStructure['values']['code']??$salaryStructure['title'])));
+ $salaryStructureGroups[$structureKey][]=$salaryStructure;
+}
+$activeSalaryStructures=[];
+$salaryStructureDate=($salaryInput['effective_from']??'')?:date('Y-m-d');
+foreach($salaryStructureGroups as $structureRevisions){
+ usort($structureRevisions,fn($a,$b)=>strcmp($b['values']['effective_from'],$a['values']['effective_from'])?:((int)$b['id']<=>(int)$a['id']));
+ $structureChoice=$structureRevisions[0];
+ foreach($structureRevisions as $revision){
+  $dates=$revision['values'];
+  if($dates['effective_from']<=$salaryStructureDate&&(!$dates['effective_to']||$dates['effective_to']>=$salaryStructureDate)){$structureChoice=$revision;break;}
+ }
+ foreach($structureRevisions as $revision)if((int)$revision['id']===(int)($salaryInput['structure_id']??0)){$structureChoice=$revision;break;}
+ $activeSalaryStructures[]=$structureChoice;
+}
+$salaryStructures=$activeSalaryStructures;
 if(empty($salaryInput['structure_id'])&&count($activeSalaryStructures)===1)$salaryInput['structure_id']=$activeSalaryStructures[0]['id'];
 ?>
 <?php if(!empty($simpleSalaryEditor)):?>
