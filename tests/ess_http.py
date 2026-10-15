@@ -13,7 +13,7 @@ def token(h):return re.search(r'name="csrf" value="([^"]+)"',h).group(1)
 try:
  time.sleep(1)
  c=client();h=get(c,'login.php');post(c,'login.php',{'csrf':token(h),'email':'ess.applicant','password':'User@123'})
- for page in ['overview','profile','my_shift','attendance','attendance_sheet','balances','leave_history','inbox','notifications','my_salary','tasks','documents','performance','reviews','helpdesk','leaves','payroll']:
+ for page in ['overview','profile','my_shift','attendance','attendance_sheet','balances','leave_history','inbox','notifications','tasks','documents','performance','reviews','helpdesk','leaves']:
   h=get(c,'employee.php?page='+page)
   assert 'Employee workspace' in h,(page,h[-1000:])
   assert 'Fatal error' not in h and 'Warning:' not in h,page
@@ -53,5 +53,6 @@ except Exception:
  raise
 finally:
  server.terminate();server.wait();log.close()
+
 
 

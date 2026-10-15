@@ -28,7 +28,6 @@ function suite_data(array $def,array $input): array {
  if(!empty($out['from'])&&!empty($out['to'])&&$out['to']<$out['from'])throw new InvalidArgumentException('End date must follow start date.');
  return $out;
 }
-function suite_net(array $d): float {return round((float)$d['basic']+(float)$d['hra']+(float)$d['other']+(float)$d['overtime']+(float)$d['incentive']-(float)$d['deductions']-(float)$d['lwp']-(float)$d['advance'],2);}
 function suite_csv(array $head,array $rows): void {
  header('Content-Type: text/csv; charset=utf-8');header('Content-Disposition: attachment; filename="peopleflow-export.csv"');$f=fopen('php://output','w');
  foreach(array_merge([$head],$rows) as $row){$safe=array_map(function($v){$s=(string)$v;return preg_match('/^[=+@\-\t\r\n]/',$s)?"'".$s:$s;},$row);fputcsv($f,$safe);}fclose($f);exit;
@@ -102,14 +101,6 @@ if($_SERVER['REQUEST_METHOD']==='POST' && str_starts_with((string)($_POST['actio
     if($def[3]){$q=$pdo->prepare("SELECT id FROM users WHERE id=? AND role='employee'");$q->execute([$employee]);if(!$q->fetchColumn())throw new InvalidArgumentException('Choose an employee account.');}
     $data=suite_data($def,$_POST);
     if($page==='settings'&&!in_array($data['timezone'],DateTimeZone::listIdentifiers(),true))throw new InvalidArgumentException('Use a timezone such as Asia/Kolkata.');
-    if($page==='payroll'){
-     require_once __DIR__.'/payroll/config.php';
-     if(pay_ready($pdo)){$newPayroll=$pdo->prepare("SELECT e.id FROM hr_payroll_entries e JOIN hr_payroll_runs r ON r.id=e.run_id WHERE e.employee_id=? AND r.month=? AND r.status IN ('Finalized','Paid') LIMIT 1");$newPayroll->execute([$employee,$data['month']]);if($newPayroll->fetchColumn())throw new InvalidArgumentException('This employee already has finalized payroll for the month. Use its existing payslip.');}
-     if(suite_net($data)<0)throw new InvalidArgumentException('Net pay cannot be negative.');
-     if(!$old && $status!=='Draft')throw new InvalidArgumentException('Create a payroll draft before approving it.');
-     if($old){$previous=json_decode($old['data'],true);if($old['status']==='Published')throw new InvalidArgumentException('Published payslips are locked. Create a separate adjustment next month.');if($status==='Published'&&($old['status']!=='Approved'||$data!==$previous||(int)$old['employee_id']!==$employee))throw new InvalidArgumentException('Approve the unchanged payroll before publishing it.');if($old['status']==='Approved'&&$data!==$previous&&$status!=='Draft')throw new InvalidArgumentException('Return to Draft to change approved payroll.');}
-     foreach(suite_rows($pdo,'payroll',$user,$def) as $r){$d=json_decode($r['data'],true);if((int)$r['id']!==$id&&(int)$r['employee_id']===$employee&&$d['month']===$data['month'])throw new InvalidArgumentException('This employee already has a payroll record for the month.');}
-    }
     if(in_array($page,['devices','mapping','employment'],true))foreach(suite_rows($pdo,$page,$user,$def) as $r){if((int)$r['id']===$id)continue;$d=json_decode($r['data'],true);if(($page==='devices'&&$d['device_code']===$data['device_code'])||($page==='mapping'&&$d['device_code']===$data['device_code']&&$d['biometric_id']===$data['biometric_id'])||($page==='employment'&&((int)$r['employee_id']===$employee||($data['employee_code']!==''&&($d['employee_code']??'')===$data['employee_code']))))throw new InvalidArgumentException('This identifier already has a record. Edit the existing record.');}
     if($page==='roster'){$q=$pdo->prepare("SELECT id FROM hr_records WHERE id=? AND module='shifts' AND status='Active'");$q->execute([$data['shift_id']]);if(!$q->fetchColumn())throw new InvalidArgumentException('Choose an active shift record ID.');}
     $encoded=json_encode($data,JSON_THROW_ON_ERROR);
@@ -135,7 +126,6 @@ function suite_render(PDO $pdo,array $user,string $page,array $def,bool $ready):
  $canCreate=$admin||in_array($page,['expenses','advances'],true);
  echo '<div class="suite-toolbar"><span>'.count($rows).' records · showing latest 1,000</span><a class="wide-button" href="?page='.h($page).'&export=1">Export CSV</a>';
  if($canCreate)echo '<a class="primary" href="?page='.h($page).'&new=1">+ Add record</a>';echo '</div>';
- if($page==='payroll')echo '<section class="panel"><h2>Monthly payroll review</h2><p>Enter verified earnings and deductions, save a draft, approve, then publish. Only published payslips are visible to employees. Statutory calculations and attendance deductions must be checked and entered by payroll staff.</p></section>';
  if($page==='balances')echo '<section class="panel"><p>Entitlements are annual calendar-day allowances. Approved leave is counted inclusively, including weekends and holidays. LWP is unpaid leave without an entitlement cap.</p></section>';
  if($page==='documents')echo '<section class="panel"><p>Track document receipt, verification and expiry. Upload PDF, JPEG or PNG files up to 4 MB. Downloads are restricted to the employee and Super Admin.</p></section>';
  if($canCreate && (isset($_GET['new'])||($edit&&$admin))){
@@ -146,9 +136,8 @@ function suite_render(PDO $pdo,array $user,string $page,array $def,bool $ready):
  echo '<button class="primary">Save record</button><a href="?page='.h($page).'">Cancel</a></form></section>';
  }
  echo '<section class="panel"><div class="suite-toolbar"><h2>'.h($def[0]).'</h2><label>Search <input class="record-search" type="search" placeholder="Search these records" aria-label="Search records"></label></div><div class="table-scroll"><table class="record-table"><thead><tr><th>ID / title</th><th>Employee</th><th>Status</th><th>Details</th><th>Action</th></tr></thead><tbody>';
- foreach($rows as $r){$d=json_decode($r['data'],true);echo '<tr><td>#'.(int)$r['id'].'<br><b>'.h($r['title']).'</b></td><td>'.h($r['employee_name']??'Company').'</td><td><span class="badge">'.h($r['status']).'</span></td><td><details><summary>View details</summary><dl class="record-detail">';foreach($def[5] as $k=>$f)echo '<dt>'.h($f[0]).'</dt><dd>'.nl2br(h($d[$k]??'—')).'</dd>';if($page==='balances'){require_once __DIR__.'/leave-balances.php';foreach(['CL','SL','PL'] as $type){$used=leave_used($pdo,(int)$r['employee_id'],$type,(int)$d['year']);echo '<dt>'.h($type).' used / remaining</dt><dd>'.$used.' / '.max(0,(float)$d[$type]-$used).'</dd>';}}if($page==='payroll')echo '<dt>Net payable</dt><dd>₹'.number_format(suite_net($d),2).'</dd>';echo '</dl></details></td><td>';
+ foreach($rows as $r){$d=json_decode($r['data'],true);echo '<tr><td>#'.(int)$r['id'].'<br><b>'.h($r['title']).'</b></td><td>'.h($r['employee_name']??'Company').'</td><td><span class="badge">'.h($r['status']).'</span></td><td><details><summary>View details</summary><dl class="record-detail">';foreach($def[5] as $k=>$f)echo '<dt>'.h($f[0]).'</dt><dd>'.nl2br(h($d[$k]??'—')).'</dd>';if($page==='balances'){require_once __DIR__.'/leave-balances.php';foreach(['CL','SL','PL'] as $type){$used=leave_used($pdo,(int)$r['employee_id'],$type,(int)$d['year']);echo '<dt>'.h($type).' used / remaining</dt><dd>'.$used.' / '.max(0,(float)$d[$type]-$used).'</dd>';}}echo '</dl></details></td><td>';
  if($admin)echo '<a href="?page='.h($page).'&edit='.(int)$r['id'].'">Edit</a>';
- if($page==='payroll'&&$r['status']==='Published')echo ' <a target="_blank" rel="noopener" href="payslip.php?id='.(int)$r['id'].'">Print / PDF</a>';
  if(!$admin&&in_array($page,['tasks','onboarding'],true)){echo '<form method="post">';token();echo '<input type="hidden" name="action" value="suite_progress"><input type="hidden" name="id" value="'.(int)$r['id'].'"><input type="hidden" name="version" value="'.(int)$r['version'].'"><select name="status" aria-label="Task status">';foreach(['To do','In progress','Completed'] as $s)echo '<option '.($r['status']===$s?'selected':'').'>'.h($s).'</option>';echo '</select><button class="primary">Update</button></form>';}
  if($page==='documents'){
   echo '<form method="post" enctype="multipart/form-data">';token();echo '<input type="hidden" name="action" value="suite_upload"><input type="hidden" name="id" value="'.(int)$r['id'].'"><input type="file" name="document" accept=".pdf,.jpg,.jpeg,.png" aria-label="Document file" required><button class="primary">Upload</button></form>';
@@ -161,3 +150,4 @@ function suite_render(PDO $pdo,array $user,string $page,array $def,bool $ready):
  echo '</td></tr>';}
  if(!$rows)echo '<tr><td colspan="5">No records yet.</td></tr>';echo '</tbody></table></div></section>';
 }
+

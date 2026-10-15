@@ -10,7 +10,6 @@ function ess_inbox(PDO $db,array $actor):array {
  foreach(['tasks','reviews'] as $module)foreach(ess_own_rows($db,(int)$actor['id'],$module) as $r){if($module==='reviews'&&$r['status']!=='Published')continue;$items[]=['key'=>'record:'.$r['id'].':'.$r['version'],'title'=>$module==='tasks'?'Task update':'Performance review published','text'=>$r['title'],'at'=>$r['updated_at']??$r['created_at'],'page'=>$module==='tasks'?'tasks':'performance'];}
  foreach($db->query('SELECT * FROM hr_announcements ORDER BY id DESC LIMIT 30') as $r)$items[]=['key'=>'notice:'.$r['id'],'title'=>'Company announcement','text'=>$r['title'],'at'=>$r['created_at'],'page'=>'announcements'];
  if(can($db,$actor,'leave.approve')){foreach($db->query("SELECT * FROM hr_requests WHERE kind='leave' AND status='Pending'") as $r)if(ess_can_review($db,$actor,$r))$items[]=['key'=>'approval:'.$r['id'],'title'=>'Leave approval required','text'=>$r['subject'],'at'=>$r['created_at'],'page'=>'approvals'];}
- require_once dirname(__DIR__).'/payroll/config.php';if(pay_ready($db)){$pq=$db->prepare('SELECT e.id,e.payslip_number,e.published_at,r.month FROM hr_payroll_entries e JOIN hr_payroll_runs r ON r.id=e.run_id WHERE e.employee_id=? AND e.published_at IS NOT NULL ORDER BY e.published_at DESC LIMIT 24');$pq->execute([$actor['id']]);foreach($pq as $p)$items[]=['key'=>'payslip:'.$p['id'],'title'=>'Payslip published','text'=>$p['month'].' · '.$p['payslip_number'],'at'=>$p['published_at'],'page'=>'payroll'];}
  $states=[];foreach(ess_own_rows($db,(int)$actor['id'],'inbox_state') as $r)$states[$r['title']]=$r['status'];foreach($items as &$i)$i['state']=$states[$i['key']]??'Unread';unset($i);usort($items,fn($a,$b)=>strcmp($b['at'],$a['at']));return $items;
 }
 function ess_post(PDO $db,array $actor,string $page,array $in,array $files=[]):void {
@@ -38,3 +37,4 @@ function ess_web_punch(PDO $db,array $actor,array $in):void {
 function ess_balances(PDO $db,int $owner,int $year):array {
  $out=[];foreach(chr_rows($db,'leave_policy') as $p){if($p['status']!=='Published')continue;$type=$p['values']['type'];$allocation=chr_entitlement($db,$owner,$type,$year)??0;$used=chr_used($db,$owner,$type,$year);$out[]=['type'=>$p['title'],'available'=>$allocation-$used];}return $out;
 }
+

@@ -19,116 +19,23 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   await page.goto(base+'/login.php');await check();assert.equal(await page.locator('.login-submit').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(159, 17, 12)');await page.screenshot({path:'/tmp/shrms-ui-screenshots/login.png'});
   await page.goto(base+'/forgot-password.php');await check();
   await login('test.admin');await page.goto(base+'/super-admin.php?page=employees');const profileLink=await page.locator('a[href*="employee-view&id="]').first().getAttribute('href');assert.ok(profileLink);await page.goto(base+'/super-admin.php'+profileLink);await check();
-  // Salary setup stays in employee Create/Edit and shares payroll assignments.
-  const salaryFixture=JSON.parse(require('node:fs').readFileSync('/tmp/payroll-fixture.json','utf8'));
-  await page.goto(base+'/super-admin.php?page=employee-add');
-  await page.locator('[name=first_name]').fill('ProfileSalary');
-  await page.locator('[name=last_name]').fill('UI');
-  await page.locator('[name=username]').fill('profile.salary.ui');
-  await page.locator('[name=joining_date]').fill('2025-01-01');
-  const compatible=await page.locator('[name=designation_id] option[data-department]').evaluateAll(es=>es.filter(e=>e.dataset.department).map(e=>({designation:e.value,department:e.dataset.department})));
-  assert.ok(compatible.length);
-  await page.locator('[name=department_id]').selectOption(compatible[0].department);
-  await page.locator('[name=designation_id]').selectOption(compatible[0].designation);
-  await page.locator('#setup-profile-salary').check();
-  if(!await page.locator('[name="salary[structure_id]"]').isVisible())await page.locator('.profile-salary-extra > summary').click();
-  await page.locator('[name="salary[structure_id]"]').selectOption(String(salaryFixture.structure));
-  await page.locator('[name="salary[salary_amount]"]').fill('30000');
-  await page.locator('[name="salary[effective_from]"]').fill('2025-01-01');
-  await page.getByRole('button',{name:'Save employee',exact:true}).click();
-  await page.waitForURL(u=>u.searchParams.get('page')==='employee-edit');
-  await check();
-  assert.match(await page.locator('.profile-salary-preview').innerText(),/30000.00/);
-  const createdProfile=new URL(page.url()).searchParams.get('id');
-  for(const width of [1440,390]){
-   await page.setViewportSize({width,height:1000});await layout();
-   await page.locator('#profile-salary').scrollIntoViewIfNeeded();
-   await page.screenshot({path:'/tmp/shrms-ui-screenshots/profile-salary-'+width+'.png',animations:'disabled'});
-  }
-  await page.setViewportSize({width:1440,height:1000});
-  await page.locator('.profile-salary-preview [name=confirm]').check();
-  await page.getByRole('button',{name:'Confirm & save salary',exact:true}).click();
-  await page.waitForURL(u=>u.searchParams.get('tab')==='payroll');
-  await check();assert.match(await page.locator('main').innerText(),/30000.00/);
-  await page.getByRole('link',{name:'Set / revise salary',exact:true}).click();
-  await page.waitForURL(u=>u.searchParams.get('page')==='employee-edit');
-  await page.locator('#profile-salary [name="salary[salary_amount]"]').waitFor({state:'visible'});
-  assert(await page.locator('#profile-salary [name="salary[salary_amount]"]').isVisible(),'Salary amount is visible directly on edit');
-  assert.equal(await page.locator('#profile-salary button').count(),1,'Salary editor has one save action');
-  assert.equal(await page.locator('#profile-salary a').count(),0,'Salary editor has no navigation shortcuts');
-  assert.equal(await page.locator('#profile-salary .profile-salary-extra').count(),0,'No advanced fields in salary editor');
-  assert(await page.locator('#profile-salary [name="salary[effective_to]"]').isVisible());
-  await page.locator('[name="salary[salary_amount]"]').fill('32000');
-  await page.locator('[name="salary[effective_from]"]').fill('2025-02-01');
-  await page.getByRole('button',{name:'Save salary',exact:true}).click();
-  await page.waitForURL(u=>u.searchParams.get('tab')==='payroll');
-  await check();assert.match(await page.locator('main').innerText(),/32000.00/);
-  await page.goto(base+'/super-admin.php?page=employee_salary&employee_id='+createdProfile);
-  assert.equal(await page.locator('.pay-modern-table tbody tr').count(),2,'One initial salary and one revision');
-  for(const route of ['overview','employees','employee-add','settings','departments','designations','roles','attendance_dashboard','attendance','manual_attendance','attendance_requests','daily_work_status','monthly','devices','mapping','punch_log','sync','leaves','payroll_dashboard','recruitment_dashboard','documents','announcements','performance','tasks','helpdesk','reports','account']){
+  for(const route of ['overview','employees','employee-add','settings','departments','designations','roles','attendance_dashboard','attendance','manual_attendance','attendance_requests','daily_work_status','monthly','devices','mapping','punch_log','sync','leaves','recruitment_dashboard','documents','announcements','performance','tasks','helpdesk','reports','account']){
    await page.goto(base+'/super-admin.php?page='+route);await check();assert.equal(await page.locator('body>aside').count(),1,route+' shell');
   }
-  for(const route of ['payroll_dashboard','salary_components','salary_structures','payroll_payslips','payroll_loans']){
-   await page.goto(base+'/super-admin.php?page='+route);await check();
-   if(route==='payroll_dashboard')assert.equal(await page.locator('.pay-kpi').count(),6);
-   if(route==='payroll_payslips')assert.equal(await page.locator('#create-monthly-payroll').count(),0);
-   if(route==='salary_components'){
-    assert.equal(await page.locator('dialog[open]').count(),0,'Configuration must not auto-open a form');
-    await page.getByRole('link',{name:'Open Allowances',exact:true}).click();await check();
-    await page.locator('[data-pay-method="Fixed"]').click();
-    await page.locator('[data-pay-search]').fill('no-such-component-123');
-    assert.equal(await page.locator('[data-pay-row]:visible').count(),0);
-    assert.equal(await page.locator('[data-pay-empty]').isVisible(),true);
-    await page.locator('[data-pay-search]').fill('');await page.locator('[data-pay-method=""]').click();
-   }
-   for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/'+route+'-'+width+'.png',fullPage:true,animations:'disabled'});}
-   await page.setViewportSize({width:1440,height:1000});
-  }
-  assert.equal(await page.locator('.pay-nav a').count(),5);
-  assert.equal(await page.locator('.pay-nav a[href="?page=payslip_settings"]').count(),1);
-  await page.goto(base+'/super-admin.php?page=employee_salary');await check();
-  assert.equal(await page.locator('table table').count(),0,'Salary history must not contain nested tables');
-  const salaryLink=page.getByRole('link',{name:'View salary breakup',exact:true}).first();
-  assert.ok(await salaryLink.count(),'Salary fixture missing');await salaryLink.click();await check();
-  assert.equal(await page.locator('.salary-summary>div').count(),3);
-  assert.ok(await page.locator('.salary-detail').innerText().then(t=>t.includes('not a monthly payslip')));
-  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(400);await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/salary-detail-'+width+'.png',fullPage:true});}
-  await page.setViewportSize({width:794,height:1123});await page.emulateMedia({media:'print'});
-  assert.equal(await page.locator('.pay-toolbar').isVisible(),false);
-  assert.equal(await page.locator('.salary-detail').isVisible(),true);
-  for(const wrap of await page.locator('.salary-detail .app-table-scroll').all())assert.equal(await wrap.evaluate(e=>e.scrollHeight<=e.clientHeight+1&&e.scrollWidth<=e.clientWidth+1),true,'Printed salary table clipped');
-  await page.screenshot({path:'/tmp/shrms-ui-screenshots/salary-print.png',fullPage:true});
-  await page.emulateMedia({media:'screen'});await page.setViewportSize({width:1440,height:1000});
-
+  assert.equal(await page.locator('.pay-nav').count(),0);
   for(const route of ['settings','leave_routes','time_policies']){await page.goto(base+'/super-admin.php?page='+route);for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await check();assert.equal(await page.locator('dialog[open]').count(),0,'Settings browsing must not open a modal');assert.equal(await page.locator('.settings-category[aria-current="true"]').count(),1);assert.equal(await page.locator('.settings-section-tabs a[aria-current="page"]').count(),1);assert.ok(await page.locator('.settings-menu').evaluate(e=>e.getBoundingClientRect().height<180),'Settings navigation too tall');await page.screenshot({path:'/tmp/shrms-ui-screenshots/settings-'+route+'-'+width+'.png',fullPage:true});}}
-  await page.setViewportSize({width:1440,height:1000});
-  await page.goto(base+'/super-admin.php?page=payslip_settings');
-  assert.equal(await page.locator('.settings-menu').count(),1);
-  assert.equal(await page.locator('.settings-menu a[href="?page=salary_components"]').count(),0);
-  assert.equal(await page.locator('.settings-menu a[href="?page=salary_structures"]').count(),0);
-  assert.equal(await page.locator('.settings-menu a[href="?page=payroll_settings"]').count(),0);
-  const editor=page.locator('[data-pay-template-editor]');assert.equal(await editor.count(),1);
-  await editor.evaluate(e=>{const details=e.closest('details');if(details)details.open=true;const dialog=e.closest('dialog');if(dialog&&!dialog.open)dialog.showModal();});
-  await editor.getByRole('button',{name:'Classic layout',exact:true}).click();
-  await editor.getByRole('button',{name:'Add attribute',exact:true}).click();
-  await editor.locator('[data-attribute-row] input').first().fill('office_label');
-  await editor.locator('[data-attribute-row] input').last().fill('Pune office');
-  await editor.getByRole('button',{name:'Preview sample payslip',exact:true}).click();
-  await page.waitForFunction(()=>document.querySelector('[data-template-message]')?.textContent.includes('Sample preview only'));
-  assert.ok(await editor.locator('[data-template-preview]').getAttribute('srcdoc').then(s=>s.includes('Sample Employee')));
-  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/payroll-template-'+width+'.png',fullPage:true});}
   await page.setViewportSize({width:1440,height:1000});
   await page.goto(base+'/super-admin.php?page=overview');
   const nav=page.locator('body>aside');assert.equal(await nav.evaluate(e=>Math.round(e.getBoundingClientRect().width)),250);
   await page.locator('.menu-toggle').click();assert.equal(await nav.evaluate(e=>Math.round(e.getBoundingClientRect().width)),76);await layout();
   assert.ok(await nav.locator('nav a').first().getAttribute('title'));await page.screenshot({path:'/tmp/shrms-ui-screenshots/admin-collapsed.png'});
-  await page.locator('.menu-toggle').click();await page.locator('.ui-search-trigger').click();await page.locator('#ui-menu-query').fill('payslip');assert.ok(await page.locator('.ui-search-results a').count()>0);await page.getByRole('button',{name:'Close search',exact:true}).click();assert.equal(await page.locator('.ui-search-dialog').evaluate(e=>e.open),false);
+  await page.locator('.menu-toggle').click();await page.locator('.ui-search-trigger').click();await page.locator('#ui-menu-query').fill('attendance');assert.ok(await page.locator('.ui-search-results a').count()>0);await page.getByRole('button',{name:'Close search',exact:true}).click();assert.equal(await page.locator('.ui-search-dialog').evaluate(e=>e.open),false);
   await page.locator('#theme-toggle').click();assert.equal(await page.locator('body').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(23, 25, 28)');await page.screenshot({path:'/tmp/shrms-ui-screenshots/admin-dark.png'});await page.locator('#theme-toggle').click();
   await page.screenshot({path:'/tmp/shrms-ui-screenshots/admin.png'});
   await page.setViewportSize({width:1024,height:900});await layout();
   await page.setViewportSize({width:390,height:844});await layout();assert.equal(await nav.evaluate(e=>e.inert),true);await page.locator('.menu-toggle').click();assert.equal(await nav.evaluate(e=>e.inert),false);await page.keyboard.press('Escape');assert.equal(await nav.evaluate(e=>e.inert),true);await page.screenshot({path:'/tmp/shrms-ui-screenshots/admin-mobile.png'});
   await page.context().clearCookies();await page.setViewportSize({width:1440,height:1000});await login('ess.applicant');
-  for(const route of ['overview','profile','my_shift','attendance','leaves','inbox','my_salary','tasks','documents','performance','helpdesk']){await page.goto(base+'/employee.php?page='+route);await check();}
+  for(const route of ['overview','profile','my_shift','attendance','leaves','inbox','tasks','documents','performance','helpdesk']){await page.goto(base+'/employee.php?page='+route);await check();}
   await page.goto(base+'/employee.php?page=attendance&month=2026-01');await check();
   assert.equal(await page.locator('.ess-attendance-scroll tbody tr').count(),31);
   assert.equal(await page.locator('.ess-attendance-scroll th').filter({hasText:'Early arrival'}).count(),1);
@@ -155,4 +62,5 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 

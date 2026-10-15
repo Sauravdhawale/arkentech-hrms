@@ -17,7 +17,7 @@ try:
   try:get(client(),'login.php');break
   except OSError:time.sleep(.1)
  admin,_,_=login('test.admin')
- pages=['overview','employees','employment','devices','mapping','shifts','roster','holidays','balances','leave_policy','restricted','salary','contracts','advances','components','payroll','jobs','recruitment','interviews','offers','onboarding','exit_tasks','performance','reviews','pip','assets','access','policies','tasks','documents','expenses','settings','departments','designations','attendance','monthly','raw_logs','sync','reports','leaves','regularisation','helpdesk','announcements','offboarding','system']
+ pages=['overview','employees','employment','devices','mapping','shifts','roster','holidays','balances','leave_policy','restricted','jobs','recruitment','interviews','offers','onboarding','exit_tasks','performance','reviews','pip','assets','access','policies','tasks','documents','expenses','settings','departments','designations','attendance','monthly','raw_logs','sync','reports','leaves','regularisation','helpdesk','announcements','offboarding','system']
  for page in pages:
   if page in ['devices','mapping','raw_logs','sync']:
    try:get(admin,'super-admin.php?page='+page);raise AssertionError('Biometric OFF route accessible')
@@ -25,8 +25,10 @@ try:
    continue
   _,h=get(admin,'super-admin.php?page='+page)
   assert 'Fatal error' not in h and 'Parse error' not in h,page
+ for route in ['super-admin.php?page=payroll_dashboard','employee.php?page=payroll','payroll-slip.php','payroll-template-preview.php','payroll-test-preview.php','payslip.php']:
+  try:get(admin,route);raise AssertionError('Retired payroll route accessible: '+route)
+  except urllib.error.HTTPError as e:assert e.code==410,(route,e.code)
  emp,_,_=login('test.one');_,h=get(emp,'employee.php?page=employment');assert 'Private One' in h and 'Private Two' not in h
- _,h=get(emp,'employee.php?page=payroll');assert 'Visible payslip' in h and 'Hidden draft' not in h
  _,h=get(emp,'employee.php?page=tasks');url,h=post(emp,'employee.php?page=tasks',{'csrf':token(h),'action':'suite_save','employee_id':'3','title':'Forbidden write','status':'Completed'});assert 'requires administrator access' in h
  _,h=get(admin,'super-admin.php?page=tasks&new=1');post(admin,'super-admin.php?page=tasks',{'csrf':token(h),'action':'suite_save','employee_id':'2','title':'HTTP assigned task','status':'To do','due':'2026-10-01','priority':'Normal','instructions':'A synthetic test task'})
  _,h=get(emp,'employee.php?page=tasks');assert 'HTTP assigned task' in h
@@ -34,3 +36,4 @@ try:
 finally:
  server.terminate();server.wait(timeout=10);log.close()
  if __import__('sys').exc_info()[0]: print(open('/tmp/peopleflow-http-test.log').read())
+
