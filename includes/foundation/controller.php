@@ -26,10 +26,17 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   }elseif($action==='organization_apply'){
    $preview=$_SESSION['organization_preview']??null;if(!$preview||$preview['actor']!==(int)$user['id']||!hash_equals($preview['plan']['fingerprint'],(string)($_POST['fingerprint']??'')))throw new InvalidArgumentException('Preview this organization update first.');
    $report=org_apply($pdo,$user,(string)$_POST['fingerprint']);unset($_SESSION['organization_preview']);$_SESSION['foundation_notice']=$report['changed'].' organization records updated. Existing employees and IDs preserved.';header('Location: ?page=departments&organization_report='.$report['report_id']);exit;
-  }elseif(in_array($action,['profile_salary_preview','profile_salary_save'],true)){
+  }elseif(in_array($action,['profile_salary_preview','profile_salary_save','profile_salary_quick_save'],true)){
    if($page!=='employee-edit')throw new InvalidArgumentException('Open Edit employee to change salary.');
    $salaryEmployeeId=(int)($_GET['id']??0);
-   if($action==='profile_salary_preview'){
+   if($action==='profile_salary_quick_save'){
+    $salaryReview=pay_profile_preview($pdo,$user,$salaryEmployeeId,$_POST['salary']??[]);
+    if((int)($_POST['salary_previous_id']??-1)!==(int)$salaryReview['input']['previous_id'])throw new InvalidArgumentException('Salary changed since this page was opened. Reload the employee before saving.');
+    pay_profile_confirm($pdo,$user,$salaryEmployeeId,$salaryReview,['confirm'=>1,'salary_preview_token'=>$salaryReview['token']]);
+    unset($_SESSION['profile_salary_preview'],$_SESSION['profile_salary_draft']);
+    $_SESSION['foundation_notice']='Salary saved. View the calculated breakup in Payroll.';
+    header('Location: ?page=employee-view&id='.$salaryEmployeeId.'&tab=payroll');exit;
+   }elseif($action==='profile_salary_preview'){
     unset($_SESSION['profile_salary_preview']);
     $_SESSION['profile_salary_preview']=pay_profile_preview($pdo,$user,$salaryEmployeeId,$_POST['salary']??[]);
     unset($_SESSION['profile_salary_draft']);$notice='Review the salary breakup below. Salary has not been saved yet.';

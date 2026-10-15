@@ -10,7 +10,7 @@ if($draft&&(int)$draft['actor']===(int)$user['id']&&(int)$draft['employee_id']==
  try{$pending=pay_profile_preview($pdo,$user,$id,$salaryInput);$_SESSION['profile_salary_preview']=$pending;unset($_SESSION['profile_salary_draft']);}catch(InvalidArgumentException $e){$salaryDraftError=$e->getMessage();}
 }
 if($pending)$salaryInput=$pending['input'];
-if($error&&($_POST['action']??'')==='profile_salary_preview'){$salaryInput=$_POST['salary']??$salaryInput;$pending=null;}
+if($error&&in_array($_POST['action']??'',['profile_salary_preview','profile_salary_quick_save'],true)){$salaryInput=$_POST['salary']??$salaryInput;$pending=null;}
 ?>
 <link rel="stylesheet" href="assets/profile-salary.css?v=2">
 <section class="card profile-salary" id="profile-salary">
@@ -20,10 +20,10 @@ if($error&&($_POST['action']??'')==='profile_salary_preview'){$salaryInput=$_POS
  <?php else:?><p class="hint">No salary assigned yet. Choose a structure and amount below.</p><?php endif;?>
  <?php if(isset($salaryDraftError)):?><div class="alert error"><?=h($salaryDraftError)?></div><?php endif;?>
  <div class="profile-salary-editor"><h3><?=$latestSalary?'Increase / revise salary':'Set employee salary'?></h3>
- <p class="hint">Enter the new salary and the date it starts. Existing rules calculate the breakup. A dated revision preserves the old salary; monthly payslips use the salary applicable to their period.</p>
- <form method="post" action="?page=employee-edit&amp;id=<?=$id?>#profile-salary"><?php ftoken();?><input type="hidden" name="action" value="profile_salary_preview">
+ <p class="hint">Enter the monthly salary and effective date, then Save salary. Your existing structure calculates the breakup, available in the employee’s Payroll tab.</p>
+ <form method="post" action="?page=employee-edit&amp;id=<?=$id?>#profile-salary"><?php ftoken();?><input type="hidden" name="salary_previous_id" value="<?=(int)($latestSalary['id']??0)?>">
  <?php require __DIR__.'/profile-salary-fields.php';?>
- <div class="form-actions"><button class="button primary">Preview salary breakup</button></div></form>
+ <div class="form-actions"><button class="button primary" name="action" value="profile_salary_quick_save">Save salary</button><button class="button" name="action" value="profile_salary_preview">Preview salary breakup</button></div></form>
  </div>
  <?php if(can($pdo,$user,'payroll.process.manage')):?><div class="form-actions"><a class="button" href="?page=payroll_payslips&amp;employee_id=<?=$id?>&amp;create=1">Generate payslip</a></div><p class="hint">Save and confirm salary first. Then choose the payroll month, calculate, review and publish the payslip.</p><?php endif;?>
  <?php if($pending):$p=$pending['preview'];?>
