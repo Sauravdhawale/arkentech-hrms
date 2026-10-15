@@ -2,3 +2,4 @@
 @media(max-width:1100px){.pay-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.pay-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.pay-dashboard-columns{grid-template-columns:1fr}}@media(max-width:600px){.pay-heading,.pay-month-actions{flex-direction:column;align-items:stretch}.pay-inline{flex-wrap:wrap}.pay-metrics,.pay-workspace .pay-grid,.pay-filters{grid-template-columns:1fr}.pay-workspace .card{padding:18px}.pay-metric strong{font-size:24px}}
 .pay-workspace [hidden]{display:none!important}
 @media(max-width:1000px){.pay-workspace .pay-template-columns{grid-template-columns:1fr}}
+.dark .pay-workspace,[data-theme=dark] .pay-workspace{color:#e5e7eb;--border:#3c4148;--surface:#292d31;--card:#23262b}.dark .pay-workspace .pay-muted,.dark .pay-heading p,.dark .pay-metric span,.dark .pay-metric small,.dark .pay-activity small{color:#b8bec8}

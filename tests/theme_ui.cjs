@@ -27,8 +27,14 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    await page.setViewportSize({width,height:1000});
    for(const route of ['payroll_dashboard','payroll_payslips','payslip_settings','salary_components']){
     await page.goto(base+'/super-admin.php?page='+route+'&month=2025-02');await check();
-    assert.deepEqual(await page.locator('.pay-nav a').allTextContents(),['Dashboard','Payslips','Payslip Designer','Configuration']);
+    assert.deepEqual((await page.locator('.pay-nav a').allTextContents()).map(t=>t.replace('↗','').trim()),['Dashboard','Payslips','Payslip Designer','Configuration']);
     await page.screenshot({path:'/tmp/shrms-ui-screenshots/'+route+'-'+width+'.png',fullPage:true});
+    if(route==='payroll_payslips'){
+     const detail=page.locator('[data-pay-detail]').first();assert.ok(await detail.count());
+     await detail.click();assert.equal(await page.locator('.pay-detail-drawer[open]').count(),1);
+     assert.ok((await page.locator('.pay-detail-drawer[open] iframe').getAttribute('src')).includes('payroll-slip.php'));
+     await page.keyboard.press('Escape');assert.equal(await page.locator('.pay-detail-drawer[open]').count(),0);
+    }
    }
   }
   await page.setViewportSize({width:1440,height:1000});
