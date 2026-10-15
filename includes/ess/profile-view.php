@@ -7,7 +7,7 @@ $initials=strtoupper(substr($employee['first_name']??'',0,1).substr($employee['l
  <div><span class="eyebrow">EMPLOYEE PROFILE</span><h2><?=h($user['name'])?></h2><p><?=h($employee['designation_name']?:'Designation not assigned')?></p><span class="badge"><?=h($employee['employee_code']?:'ID not assigned')?></span></div></div>
  <dl class="profile-contact"><div><dt>Work email</dt><dd><?=h($employee['email']?:'Not added')?></dd></div><div><dt>Department</dt><dd><?=h($employee['department_name']?:'Not assigned')?></dd></div><div><dt>Joined</dt><dd><?=h($employee['joining_date']?:'Not entered')?></dd></div><div><dt>Employment status</dt><dd><span class="badge"><?=h($employee['employment_status'])?></span></dd></div></dl>
 </section>
-<nav class="ess-tabs" aria-label="My profile sections"><?php foreach(['overview'=>['profile','Overview'],'shift'=>['my_shift','My Shift'],'documents'=>['documents','My Documents'],'security'=>['security','Login & Security']] as $tab=>$item):?><a href="?page=profile&amp;tab=<?=$tab?>" <?=$page===$item[0]?'aria-current="page"':''?>><?=$item[1]?></a><?php endforeach;?></nav>
+<nav class="ess-tabs" aria-label="My profile sections"><?php foreach(['overview'=>['profile','Overview'],'shift'=>['my_shift','My Shift'],'documents'=>['documents','My Documents'],'security'=>['security','Login & Security'],'payroll'=>['my_salary','Payroll']] as $tab=>$item):?><a href="?page=profile&amp;tab=<?=$tab?>" <?=$page===$item[0]?'aria-current="page"':''?>><?=$item[1]?></a><?php endforeach;?></nav>
 <?php if($page==='documents'){suite_render($pdo,$user,'documents',$suite['documents'],$suiteReady);return;}
 if($page==='my_shift'){require __DIR__.'/profile-shift.php';return;}
 if($page==='security'){require __DIR__.'/profile-security.php';return;}?>
