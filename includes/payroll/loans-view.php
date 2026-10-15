@@ -1,5 +1,0 @@
-<section class="card pay-panel"><div class="pay-section-head"><div><span class="eyebrow">PREVIEW ONLY</span><h2>Loans &amp; Salary Advances</h2><p class="pay-muted">Demo examples for reviewing repayment plans. These are not employee debts and do not affect payroll.</p></div><span class="badge">Demo</span></div>
-<div class="pay-grid"><article class="card pay-card"><h3>Employee loan</h3><p>Example principal</p><strong class="pay-stat">₹12,000</strong><p>6 monthly installments × ₹2,000</p><p>Interest-free example · no employee assigned</p></article><article class="card pay-card"><h3>Salary advance</h3><p>Example advance</p><strong class="pay-stat">₹3,000</strong><p>Recover ₹3,000 in one payroll month</p><p>No employee assigned · no recovery posted</p></article></div>
-<p>For an authorized real recovery, open a draft payroll from Payslips and add a Loan Recovery or Salary Advance Recovery adjustment. Review it before finalizing.</p>
-<?php if(can($pdo,$user,'payroll.process.view')):?><a class="button primary" href="?page=payroll_processing">Open draft payroll</a><?php endif;?></section>
-

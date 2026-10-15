@@ -2,6 +2,7 @@
 
 require __DIR__.'/includes/access.php';
 $user=require_user();
+require __DIR__.'/includes/payroll-retired.php';
 require_once __DIR__.'/includes/foundation/core.php';require_once __DIR__.'/includes/recruitment/service.php';
 if(($_GET['page']??'')==='regularisation')$_GET['page']='attendance_requests';
 $foundationPages=['leave_routes','overview','employees','employee-add','employee-edit','employee-view','settings','departments','designations','roles','account','system','shifts','roster','holidays','attendance','manual_attendance','attendance_history','monthly','leaves','leave_history','leave_policy','balances','attendance_settings','shift_defaults','time_policies','biometric_integration','attendance_dashboard','attendance_requests','daily_work_status','punch_log','attendance_exceptions','company_calendar','devices','mapping','sync','raw_logs','payroll_dashboard','payroll_loans','employee_salary','payroll_processing','payroll_payslips','payroll_history','payroll_reports','salary_components','salary_structures','statutory_settings','payroll_settings','payslip_settings','recruitment_dashboard','recruitment_jobs','recruitment_candidates','recruitment_applications','recruitment_interviews','recruitment_offers'];

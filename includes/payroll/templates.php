@@ -1,7 +1,7 @@
 <?php
 // Presentation only: all monetary values come from the run's stored calculation.
 function pay_template_fields():array {
- return ['company_name','company_address','company_logo','employee_name','employee_id','department','designation','joining_date','pay_month','payslip_number','gross_salary','total_deductions','net_salary','net_salary_words','working_days','present_days','absent_days','paid_leave','unpaid_leave','overtime_hours','bank_account','pan','earnings_table','deductions_table','earnings_annual_table','deductions_annual_table','attendance_table','authorized_signatory','footer_note'];
+ return ['logo','fname','company_name','company_address','company_logo','employee_name','employee_id','department','designation','joining_date','pay_month','payslip_number','gross_salary','total_deductions','net_salary','net_salary_words','working_days','present_days','absent_days','paid_leave','unpaid_leave','overtime_hours','bank_account','pan','earnings_table','deductions_table','earnings_annual_table','deductions_annual_table','attendance_table','authorized_signatory','footer_note'];
 }
 function pay_template_attributes(array $rows):array {
  if(count($rows)>40)throw new InvalidArgumentException('Use at most 40 custom attributes.');
@@ -9,7 +9,7 @@ function pay_template_attributes(array $rows):array {
   $name=trim((string)($row['name']??''));$value=trim((string)($row['value']??''));if($name===''&&$value==='')continue;
   if(!preg_match('/^[a-z][a-z0-9_]{0,39}$/D',$name)||in_array($name,pay_template_fields(),true)||isset($out[$name]))throw new InvalidArgumentException('Use unique lowercase attribute names; built-in names are reserved.');
   $source=(string)($row['source']??'text');if(!in_array($source,['text','field','component'],true)||strlen($value)>500)throw new InvalidArgumentException('Invalid attribute source or value.');
-  if($source==='field'&&(!in_array($value,pay_template_fields(),true)||in_array($value,['company_logo','earnings_table','deductions_table','earnings_annual_table','deductions_annual_table','attendance_table'],true)))throw new InvalidArgumentException('Choose a scalar field from the available attributes.');
+  if($source==='field'&&(!in_array($value,pay_template_fields(),true)||in_array($value,['logo','company_logo','earnings_table','deductions_table','earnings_annual_table','deductions_annual_table','attendance_table'],true)))throw new InvalidArgumentException('Choose a scalar field from the available attributes.');
   if($source==='component'&&!preg_match('/^[A-Z][A-Z0-9_]{0,39}$/D',$value))throw new InvalidArgumentException('Enter the exact salary component code, for example BASIC.');
   $out[$name]=['name'=>$name,'source'=>$source,'value'=>$value];
  }return array_values($out);
@@ -52,11 +52,13 @@ function pay_template_render(array $entry,array $settings,array $snapshot,array 
  $money=function($n)use($settings){$p=$settings['payroll'];$v=pay_amount((int)$n);return ($p['currency_position']??'Before')==='After'?$v.' '.$p['currency']:$p['currency'].' '.$v;};
  $v=['company_name'=>$company['name']??'','company_address'=>!empty($o['show_address'])?($company['address']??''):'','employee_name'=>$e['name']??'','employee_id'=>$e['employee_code']??'','department'=>$e['department_name']??'','designation'=>$e['designation_name']??'','joining_date'=>$e['joining_date']??'','pay_month'=>$entry['month'],'payslip_number'=>$entry['payslip_number'],'gross_salary'=>$money($entry['gross']),'total_deductions'=>$money($entry['deductions']),'net_salary'=>$money($entry['net']),'net_salary_words'=>pay_words((int)$entry['net']).' '.$settings['payroll']['currency'],'bank_account'=>!empty($o['show_bank'])?'****'.($snapshot['bank_last4']??''):'','pan'=>!empty($o['show_pan'])?'****'.($snapshot['pan_last4']??''):'','authorized_signatory'=>$o['signatory']??'','footer_note'=>$o['footer']??''];
  foreach(['working_days'=>'working_days','present_days'=>'present','absent_days'=>'absent','paid_leave'=>'paid_leave','unpaid_leave'=>'unpaid_leave','overtime_hours'=>'approved_overtime_hours'] as $key=>$source)$v[$key]=!empty($o['show_attendance'])?($a[$source]??0):'';
+ $v['fname']=$e['name']??'';
  foreach(pay_template_attributes($o['attributes']??[]) as $attr){$value=$attr['value'];if($attr['source']==='field')$value=$v[$value]??'';elseif($attr['source']==='component'){$sum=0;foreach($components as $c)if(($c['code']??'')===$value)$sum+=(int)$c['amount'];$value=$money($sum);}$v[$attr['name']]=$value;}
  $v=array_map($esc,$v);$v['company_logo']='';$logo=$company['logo']??'';if(!empty($o['show_logo'])&&preg_match('~^data:image/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$~D',$logo))$v['company_logo']='<img alt="Company logo" style="max-width:150px;max-height:75px" src="'.$esc($logo).'">';
  foreach(['earnings_table'=>'Earning','deductions_table'=>'Deduction'] as $key=>$category){$rows='';foreach($components as $c)if($c['category']===$category)$rows.='<tr><td>'.$esc($c['name']??$c['code']).'</td><td>'.$esc($money($c['amount'])).'</td></tr>';$v[$key]='<table><thead><tr><th>'.($category==='Earning'?'Earnings':'Deductions').'</th><th>Amount</th></tr></thead><tbody>'.$rows.'</tbody></table>';}
  foreach(['earnings_annual_table'=>'Earning','deductions_annual_table'=>'Deduction'] as $key=>$category){$rows='';$total=0;foreach($components as $c)if($c['category']===$category){$amount=(int)$c['amount'];$total+=$amount;$rows.='<tr><td>'.$esc($c['name']??$c['code']).'</td><td>'.$esc($money($amount)).'</td><td>'.$esc($money($amount*12)).'</td></tr>';}$v[$key]='<table><thead><tr><th>Component</th><th>This month</th><th>Annualized reference</th></tr></thead><tbody>'.$rows.'</tbody><tfoot><tr><th>Total</th><td>'.$esc($money($total)).'</td><td>'.$esc($money($total*12)).'</td></tr></tfoot></table>';}
  $v['attendance_table']='';if(!empty($o['show_attendance'])){$rows='';foreach(['working_days','present_days','absent_days','paid_leave','unpaid_leave','overtime_hours'] as $key)$rows.='<tr><th>'.$esc(ucwords(str_replace('_',' ',$key))).'</th><td>'.$v[$key].'</td></tr>';$v['attendance_table']='<table>'.$rows.'</table>';}
+ $v['logo']=$v['company_logo'];
  // Single pass prevents employee/custom text being interpreted as another token.
  return preg_replace_callback('/\[([a-z][a-z0-9_]*)\]/',fn($m)=>$v[$m[1]]??'',pay_template_clean($o['html_template']));
 }

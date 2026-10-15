@@ -26,8 +26,8 @@ try:
   _,h=get(admin,'super-admin.php?page='+page)
   assert 'Fatal error' not in h and 'Parse error' not in h,page
  emp,_,_=login('test.one')
- for route in ['super-admin.php?page=payroll_dashboard','employee.php?page=payroll','payroll-slip.php','payroll-template-preview.php','payroll-test-preview.php','payslip.php']:
-  try:get(emp if route.startswith('employee.php') else admin,route);raise AssertionError('Retired payroll route accessible: '+route)
+ for route in ['super-admin.php?page=payroll_processing','super-admin.php?page=payroll_loans','payslip.php']:
+  try:get(admin,route);raise AssertionError('Retired payroll route accessible: '+route)
   except urllib.error.HTTPError as e:assert e.code==410,(route,e.code)
  emp,_,_=login('test.one');_,h=get(emp,'employee.php?page=employment');assert 'Private One' in h and 'Private Two' not in h
  _,h=get(emp,'employee.php?page=tasks');url,h=post(emp,'employee.php?page=tasks',{'csrf':token(h),'action':'suite_save','employee_id':'3','title':'Forbidden write','status':'Completed'});assert 'requires administrator access' in h

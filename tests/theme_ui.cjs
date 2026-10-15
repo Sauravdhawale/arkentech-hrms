@@ -22,7 +22,16 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   for(const route of ['overview','employees','employee-add','settings','departments','designations','roles','attendance_dashboard','attendance','manual_attendance','attendance_requests','daily_work_status','monthly','devices','mapping','punch_log','sync','leaves','recruitment_dashboard','documents','announcements','performance','tasks','helpdesk','reports','account']){
    await page.goto(base+'/super-admin.php?page='+route);await check();assert.equal(await page.locator('body>aside').count(),1,route+' shell');
   }
-  assert.equal(await page.locator('.pay-nav').count(),0);
+  assert.equal(await page.locator('.pay-nav').count(),1);
+  for(const width of [1440,390]){
+   await page.setViewportSize({width,height:1000});
+   for(const route of ['payroll_dashboard','payroll_payslips','payslip_settings','salary_components']){
+    await page.goto(base+'/super-admin.php?page='+route+'&month=2025-02');await check();
+    assert.deepEqual(await page.locator('.pay-nav a').allTextContents(),['Dashboard','Payslips','Payslip Designer','Configuration']);
+    await page.screenshot({path:'/tmp/shrms-ui-screenshots/'+route+'-'+width+'.png',fullPage:true});
+   }
+  }
+  await page.setViewportSize({width:1440,height:1000});
   for(const route of ['settings','leave_routes','time_policies']){await page.goto(base+'/super-admin.php?page='+route);for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await check();assert.equal(await page.locator('dialog[open]').count(),0,'Settings browsing must not open a modal');assert.equal(await page.locator('.settings-category[aria-current="true"]').count(),1);assert.equal(await page.locator('.settings-section-tabs a[aria-current="page"]').count(),1);assert.ok(await page.locator('.settings-menu').evaluate(e=>e.getBoundingClientRect().height<180),'Settings navigation too tall');await page.screenshot({path:'/tmp/shrms-ui-screenshots/settings-'+route+'-'+width+'.png',fullPage:true});}}
   await page.setViewportSize({width:1440,height:1000});
   await page.goto(base+'/super-admin.php?page=overview');
