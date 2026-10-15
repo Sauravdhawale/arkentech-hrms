@@ -36,11 +36,11 @@ if(notificationRoot){
  };
  const candidates=[];
  document.querySelectorAll('details.card,details.core-editor,details.pay-card').forEach(source=>{
-  if(source.closest('dialog')||!source.querySelector('form'))return;
+  if(source.closest('dialog,[data-inline-editor]')||!source.querySelector('form'))return;
   const label=sourceLabel(source);if(eligible.test(label))candidates.push(source);
  });
  document.querySelectorAll('section.card').forEach(source=>{
-  if(source.closest('dialog')||!source.querySelector('form'))return;
+  if(source.closest('dialog,[data-inline-editor]')||!source.querySelector('form'))return;
   const label=sourceLabel(source);if(eligible.test(label))candidates.push(source);
  });
  [...new Set(candidates)].forEach((source,index)=>{
@@ -86,3 +86,4 @@ if(notificationRoot){
   if((wasOpen&&!source.closest('.settings-workspace'))||editMode||validationError)requestAnimationFrame(()=>{if(!dialog.open)dialog.showModal();});
  });
 })();
+

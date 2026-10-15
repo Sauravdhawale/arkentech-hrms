@@ -26,7 +26,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   for(const width of [1440,390]){
    await page.setViewportSize({width,height:1000});
    for(const route of ['payroll_dashboard','payroll_payslips','payslip_settings','salary_components']){
-    await page.goto(base+'/super-admin.php?page='+route+'&month=2025-02');await check();
+    await page.goto(base+'/super-admin.php?page='+route+'&month=2025-02');await check();assert.equal(await page.locator('dialog[open]').count(),0,'Payroll pages must not auto-open a popup');
     assert.deepEqual((await page.locator('.pay-nav a').allTextContents()).map(t=>t.replace('↗','').trim()),['Dashboard','Payslips','Payslip Designer','Configuration']);
     await page.screenshot({path:'/tmp/shrms-ui-screenshots/'+route+'-'+width+'.png',fullPage:true});
     if(route==='payroll_payslips'){

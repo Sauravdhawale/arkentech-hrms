@@ -16,7 +16,7 @@ if($module==='pay_component'&&!$editing)$v['category']=$componentCategory;
 <?php endif;?>
 <p class="pay-muted">Manage your payroll setup. Changes apply from the effective date; previous payroll stays unchanged.</p>
 <?php if(can($pdo,$user,'payroll.settings.manage')):?>
-<details class="card pay-card" <?=($module==='pay_payslip'||$editing||($_SERVER['REQUEST_METHOD']==='POST'&&!empty($error)))?'open':''?>><summary><?=$editing?($module==='pay_payslip'?'Edit payslip design':'Create a new revision'):($module==='pay_component'?'Create allowance / deduction':($module==='pay_structure'?'Create salary structure':($module==='pay_payslip'?'Create payslip design':'Add configuration')))?></summary>
+<details data-inline-editor class="card pay-card" <?=($module==='pay_payslip'||$editing||($_SERVER['REQUEST_METHOD']==='POST'&&!empty($error)))?'open':''?>><summary><?=$editing?($module==='pay_payslip'?'Edit payslip design':'Create a new revision'):($module==='pay_component'?'Create allowance / deduction':($module==='pay_structure'?'Create salary structure':($module==='pay_payslip'?'Create payslip design':'Add configuration')))?></summary>
 <?php pay_form('pay_config',['module'=>$module,'previous_id'=>$editing['id']??0]);?>
 <div class="pay-grid"><?php pay_text('title','Name',$v,'text',true);if(!in_array($module,['pay_settings','pay_payslip'],true))pay_text('code','Code',$v,'text',true);pay_text('effective_from','Effective from',$v,'date',true);pay_text('effective_to','Effective to (optional)',$v,'date');pay_check('active','Active',$v);?></div>
 <?php if($module==='pay_component'):?>

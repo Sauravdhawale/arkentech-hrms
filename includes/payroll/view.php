@@ -5,7 +5,7 @@ function pay_hidden(string $key,$value):void {if(is_array($value)){foreach($valu
 function pay_form(string $action,array $hidden=[]):void {echo '<form method="post">';ftoken();pay_hidden('action',$action);foreach($hidden as $k=>$v)pay_hidden($k,$v);}
 function pay_select(string $key,string $label,$value,array $options):void {echo '<label>'.h($label).'<select name="'.h($key).'">';foreach($options as $k=>$v)echo '<option value="'.h((string)$k).'" '.((string)$value===(string)$k?'selected':'').'>'.h($v).'</option>';echo '</select></label>';}
 function pay_check(string $key,string $label,array $v):void {echo '<label class="pay-check"><input type="checkbox" name="'.h($key).'" value="1" '.(!empty($v[$key])?'checked':'').'>'.h($label).'</label>';}
-function pay_text(string $key,string $label,array $v,string $type='text',bool $required=false):void {field($key,$label,$v,$type,$required,2000);}
+function pay_text(string $key,string $label,array $v,string $type='text',bool $required=false):void {echo '<label><span>'.h($label).($required?' <span aria-label="required">*</span>':'').'</span><input type="'.h($type).'" name="'.h($key).'" value="'.h((string)($v[$key]??'')).'" maxlength="2000" '.($required?'required':'').'></label>';}
 function pay_options(array $values):array{return array_combine($values,$values);}
 function pay_breakup_table(array $parts,bool $annual=true):void {
  echo '<div class="pay-table"><table><thead><tr><th>Component</th><th>Type / section</th><th>Calculation</th><th>'.($annual?'Monthly':'Amount').'</th>'.($annual?'<th>Annual</th>':'').'</tr></thead><tbody>';
