@@ -97,6 +97,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    await page.setViewportSize({width,height:1000});await page.goto(base+'/employee.php?page=my_salary');await check();
    assert.ok(await page.getByRole('link',{name:/Download .* payslip PDF/}).count()>0);
    assert.equal(await page.locator('.salary-history').getAttribute('open'),null);
+   if(width===390)assert.ok(await page.locator('.ess-payslips').evaluate(e=>e.getBoundingClientRect().bottom>=e.querySelector('tbody').getBoundingClientRect().bottom),'Mobile payslip cards escape their panel');
    await page.locator('.salary-history>summary').click();assert.ok(await page.locator('.salary-history table').isVisible());
    await page.evaluate(()=>window.scrollTo(0,0));
    if(width===390)assert.ok(await page.locator('.ess-slip-actions').first().evaluate(e=>e.getBoundingClientRect().right<=innerWidth),'Mobile download action offscreen');
