@@ -16,5 +16,6 @@ $module=$page==='payslip_settings'?'pay_payslip':match($tab){'rules'=>(($_GET['k
 <?php if($tab==='attendance'):?><section class="pay-config-help"><h3>Paid and unpaid days</h3><p><strong>No attendance deduction:</strong> present days, paid leave, paid holidays and paid week offs.</p><p><strong>Deduct pay:</strong> absence and unpaid leave, according to the rule below. Half days use their recorded paid fraction. Correct missing or incomplete attendance before making payslips final.</p></section><?php endif;?>
 <?php if($tab==='statutory'):?><section class="pay-config-help"><h3>Optional company deductions and contributions</h3><p>Keep only the rules your company uses. Adding a rule here does not change an employee’s saved salary structure automatically.</p></section><?php endif;?>
 <?php if($tab==='payslip'):?><section class="pay-config-help"><h3>What appears on the payslip</h3><p>Company name, address and logo come from Company Settings. Choose the details to display below. Change the shared HTML layout in <a href="?page=payslip_settings">Payslip Designer</a>.</p></section><?php endif;?>
-<?php endif; require __DIR__.'/settings-view.php';?>
+<?php endif; require __DIR__.'/settings-view.php';
+if($page==='salary_components'&&$tab==='general')require __DIR__.'/setup-date-view.php';?>
 <script src="assets/payroll-four.js?v=2" defer></script>

@@ -10,6 +10,7 @@ $tables=['users','employees','hr_attendance','hr_records','hr_requests','hr_leav
 pay_install($db,$admin);pay_install($db,$admin);
 foreach($tables as $t)pc($before[$t]===$db->query('SELECT * FROM '.$t)->fetchAll(PDO::FETCH_ASSOC),'Migration changed existing '.$t);
 pd(fn()=>pay_install($db,$viewer),'Migration permission bypass');
+require __DIR__.'/payroll_setup_date.php';
 pc(pay_money('123.45')===12345,'Minor units');
 pd(fn()=>pay_money('-1'),'Negative input');pd(fn()=>pay_expression('PHPINFO()',[]),'Executable expression accepted');
 pc(pay_expression('(GROSS * 0.4) + 10',['GROSS'=>1000])===410.0,'Formula arithmetic');

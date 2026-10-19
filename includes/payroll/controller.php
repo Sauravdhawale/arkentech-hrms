@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__.'/service.php';
 require_once __DIR__.'/starter.php';
+require_once __DIR__.'/setup-date.php';
 $payPages=[
  'payroll_dashboard'=>['Payroll Dashboard','payroll.view'],
  'payroll_payslips'=>['Payslips','payslip.view'],
@@ -14,6 +15,13 @@ function pay_handle_post(PDO $db,array $actor,string $action,array $in):string {
  if($action==='pay_workflow_install'){pay_workflow_install($db,$actor);return 'Payroll workflow, attendance snapshots and payslip template foundation enabled. Existing payroll preserved.';}
  if(!pay_ready($db))throw new InvalidArgumentException('Install the Payroll upgrade first.');
  switch($action){
+  case 'pay_setup_date_preview':
+   unset($_SESSION['pay_setup_date_preview']);
+   $_SESSION['pay_setup_date_preview']=['actor'=>(int)$actor['id'],'plan'=>pay_setup_date_plan($db,$actor,(int)($in['employee_id']??0),(string)($in['effective_from']??''),(string)($in['reason']??''))];return 'Review the date correction below. Nothing has changed yet.';
+  case 'pay_setup_date_apply':
+   $pending=$_SESSION['pay_setup_date_preview']??null;
+   if(!$pending||(int)$pending['actor']!==(int)$actor['id']||!hash_equals($pending['plan']['fingerprint'],(string)($in['fingerprint']??'')))throw new InvalidArgumentException('Preview the initial payroll date correction first.');
+   $p=$pending['plan'];pay_setup_date_apply($db,$actor,['employee_id'=>$p['employee']['id'],'effective_from'=>$p['from'],'reason'=>$p['reason'],'fingerprint'=>$p['fingerprint'],'confirm'=>$in['confirm']??0]);unset($_SESSION['pay_setup_date_preview']);return 'Initial payroll start date corrected. Salary amounts, attendance and saved payslips preserved.';
   case 'pay_starter':$id=pay_install_starter($db,$actor);return 'Recommended payroll setup is ready. Select Arkentech Annexure A when assigning an employee salary.';
   case 'pay_config':pay_save_config($db,$actor,$in);return 'Configuration revision saved.';
   case 'pay_preview':
@@ -52,6 +60,7 @@ function pay_export(PDO $db,array $actor,array $in):void {
   fputcsv($out,array_map(fn($v)=>is_string($v)&&preg_match('/^[=+@\-\t\r]/',$v)?"'".$v:$v,$row));
  }fclose($out);exit;
 }
+
 
 
 
