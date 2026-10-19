@@ -3,7 +3,9 @@
   const form=editor.closest('form'), html=editor.querySelector('[name=html_template]'), mode=editor.querySelector('[name=template_mode]'), rows=editor.querySelector('[data-attribute-rows]'), message=editor.querySelector('[data-template-message]');
   let next=rows.children.length;
   editor.querySelector('[data-token-search]')?.addEventListener('input',event=>{
-   editor.querySelectorAll('[data-template-token]').forEach(button=>button.hidden=!button.dataset.templateToken.includes(event.target.value.trim().toLowerCase().replaceAll(' ','_')));
+   const query=event.target.value.trim().toLowerCase().replaceAll(' ','_');
+   editor.querySelectorAll('[data-template-token]').forEach(button=>button.hidden=!button.dataset.templateToken.includes(query));
+   editor.querySelectorAll('.pay-token-group').forEach(group=>{group.hidden=!!query&&!group.querySelector('[data-template-token]:not([hidden])');group.open=!!query;});
   });
   editor.addEventListener('click',async event => {
    const button=event.target.closest('button');if(!button)return;
@@ -21,10 +23,12 @@
    }
    if(button.hasAttribute('data-preview-template')){
     button.disabled=true;message.textContent='Preparing preview…';
-    try{const response=await fetch('payroll-template-preview.php',{method:'POST',body:new FormData(form),credentials:'same-origin'});const result=await response.json();if(!response.ok||result.error)throw new Error(result.error||'Preview unavailable.');const frame=editor.querySelector('[data-template-preview]');frame.srcdoc=result.html;frame.hidden=false;editor.querySelector('[data-print-preview]').disabled=false;message.textContent='Sample preview only. Save a dated revision to use this design for new payroll runs.';}
+    try{const response=await fetch('payroll-template-preview.php',{method:'POST',body:new FormData(form),credentials:'same-origin'});const result=await response.json();if(!response.ok||result.error)throw new Error(result.error||'Preview unavailable.');const frame=editor.querySelector('[data-template-preview]');frame.srcdoc=result.html;frame.hidden=false;editor.querySelector('[data-preview-empty]').hidden=true;editor.querySelector('[data-print-preview]').disabled=false;message.textContent='Sample preview only. Save a dated revision to use this design for new payroll runs.';}
     catch(error){message.textContent=error.message||'Unable to preview. Check your session and try again.';}finally{button.disabled=false;}
    }
   });
+  if(mode.value==='html'&&html.value.trim())editor.querySelector('[data-preview-template]').click();
  });
 })();
+
 
