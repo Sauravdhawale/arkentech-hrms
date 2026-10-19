@@ -27,8 +27,9 @@
     catch(error){message.textContent=error.message||'Unable to preview. Check your session and try again.';}finally{button.disabled=false;}
    }
   });
-  if(mode.value==='html'&&html.value.trim())editor.querySelector('[data-preview-template]').click();
+  if(mode.value==='standard'||html.value.trim())editor.querySelector('[data-preview-template]').click();
  });
 })();
+
 
 

@@ -10,7 +10,7 @@ $events=array_values(array_filter(ess_events($pdo,$employee),fn($e)=>$e['end']>=
  <?php endforeach;?>
 </div>
 <form method="get" class="panel work-form ess-overview-filter"><input type="hidden" name="page" value="overview"><div><h2>Your monthly overview</h2><p>Attendance, calendar and birthdays in one place.</p></div><label>Month<input type="month" name="month" value="<?=h($month)?>" required></label><button class="primary">Apply</button></form>
-<section class="panel ess-dashboard-panel"><div class="ess-panel-heading"><div><span class="ess-kicker">TIME OFF</span><h2>Leave balance</h2><p><?=h($dashboardYear)?> · Available days</p></div><a class="ess-text-link" href="?page=balances">View leave →</a></div>
+<section class="panel ess-dashboard-panel"><div class="ess-panel-heading"><div><span class="ess-kicker">TIME OFF</span><h2>Leave balance</h2><p><?=h($dashboardYear)?> · Available days</p></div><a class="ess-text-link" href="?page=balances&amp;year=<?=$dashboardYear?>">View leave →</a></div>
  <div class="ess-balance-grid"><?php foreach($balances as $balance):?><div><span><?=h($balance['type'])?></span><strong><?=h($balance['available'])?><small>days</small></strong></div><?php endforeach;if(!$balances):?><p class="ess-panel-empty">Your leave balances will appear after HR allocates them.</p><?php endif;?></div>
 </section>
 <section class="panel ess-dashboard-panel"><div class="ess-panel-heading"><div><span class="ess-kicker">ATTENDANCE</span><h2><?=h(date('F Y',strtotime($from)))?></h2><p>Your monthly attendance breakdown</p></div><a class="ess-text-link" href="?page=attendance&amp;month=<?=h($month)?>">View details →</a></div>
@@ -25,3 +25,4 @@ $b=$pdo->prepare("SELECT u.name,DATE_FORMAT(e.birth_date,'%d %b') birthday FROM 
 <section class="panel ess-dashboard-panel"><div class="ess-panel-heading"><div><span class="ess-kicker">CELEBRATE TOGETHER</span><h2>Birthdays this month</h2></div></div><div class="ess-birthday-list"><?php foreach($birthdays as $person):?><div><span class="ess-colleague-avatar" aria-hidden="true"><?=h(preg_match('/^./u',$person['name'],$initial)?$initial[0]:'')?></span><strong><?=h($person['name'])?></strong><span><?=h($person['birthday'])?></span></div><?php endforeach;if(!$birthdays):?><div class="ess-panel-empty"><strong>No birthdays this month</strong><p>Check next month for upcoming celebrations.</p></div><?php endif;?></div></section>
 <?php endif;?>
 <div class="quick-links ess-dashboard-links"><a href="?page=leaves">Apply for leave</a><a href="?page=inbox">Open inbox</a><a href="?page=profile">My profile</a></div>
+

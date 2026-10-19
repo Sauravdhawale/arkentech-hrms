@@ -38,6 +38,20 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    }
   }
   const salaryFixture=JSON.parse(readFileSync('/tmp/payroll-fixture.json','utf8'));
+  // Published payslips use the same print document at desktop and phone widths.
+  for(const width of [1440,390]){
+   await page.setViewportSize({width,height:1000});
+   await page.goto(base+'/payroll-slip.php?entry='+salaryFixture.entry);await layout();
+   const slip=page.frameLocator('#payslip-document');
+   await slip.getByText('MONTHLY PAYSLIP',{exact:true}).waitFor();
+   assert.equal(await slip.locator('body').evaluate(e=>e.scrollWidth<=innerWidth+1),true,'Payslip iframe overflow');
+   assert.equal(await page.getByRole('link',{name:'Download PDF',exact:true}).count(),1);
+   assert.equal(await page.getByText('Download text PDF').count(),0);
+   assert.equal(await slip.getByRole('img',{name:'Company logo'}).count(),1);
+   await page.screenshot({path:'/tmp/shrms-ui-screenshots/monthly-payslip-'+width+'.png',fullPage:true});
+  }
+  await page.goto('file:///tmp/shrms-ui-screenshots/sample-payslip.html');
+  await page.pdf({path:'/tmp/shrms-ui-screenshots/sample-payslip-print.pdf',format:'A4',printBackground:true,displayHeaderFooter:false});
   for(const width of [1440,390]){
    await page.setViewportSize({width,height:1000});await page.goto(base+'/super-admin.php?page=payroll_payslips&month=2025-10');await check();
    const choices=page.locator('[data-pay-select]');assert.ok(await choices.count()>0,'Ready payslips have no selection');
@@ -76,6 +90,16 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   await page.screenshot({path:'/tmp/shrms-ui-screenshots/admin.png'});
   await page.setViewportSize({width:1024,height:900});await layout();
   await page.setViewportSize({width:390,height:844});await layout();assert.equal(await nav.evaluate(e=>e.inert),true);await page.locator('.menu-toggle').click();assert.equal(await nav.evaluate(e=>e.inert),false);await page.keyboard.press('Escape');assert.equal(await nav.evaluate(e=>e.inert),true);await page.screenshot({path:'/tmp/shrms-ui-screenshots/admin-mobile.png'});
+  await page.context().clearCookies();await page.goto(base+'/login.php');
+  await page.locator('[name=email]').fill('payroll.ci');await page.locator('[name=password]').fill('Payroll-CI-2026!');
+  await Promise.all([page.waitForURL(u=>!u.pathname.endsWith('/login.php')),page.locator('.login-submit').click()]);
+  for(const width of [1440,390]){
+   await page.setViewportSize({width,height:1000});await page.goto(base+'/employee.php?page=my_salary');await check();
+   assert.ok(await page.getByRole('link',{name:/Download .* payslip PDF/}).count()>0);
+   assert.equal(await page.locator('.salary-history').getAttribute('open'),null);
+   await page.locator('.salary-history>summary').click();assert.ok(await page.locator('.salary-history table').isVisible());
+   await page.screenshot({path:'/tmp/shrms-ui-screenshots/employee-payroll-'+width+'.png',fullPage:true});
+  }
   await page.context().clearCookies();await page.setViewportSize({width:1440,height:1000});await login('ess.applicant');
   for(const route of ['overview','profile','my_shift','attendance','leaves','inbox','tasks','documents','performance','helpdesk']){await page.goto(base+'/employee.php?page='+route);await check();}
   await page.goto(base+'/employee.php?page=attendance&month=2026-01');await check();

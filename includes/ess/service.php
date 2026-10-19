@@ -36,6 +36,11 @@ function ess_web_punch(PDO $db,array $actor,array $in):void {
 }
 
 function ess_balances(PDO $db,int $owner,int $year):array {
- $out=[];foreach(chr_rows($db,'leave_policy') as $p){if($p['status']!=='Published')continue;$type=$p['values']['type'];$allocation=chr_entitlement($db,$owner,$type,$year)??0;$used=chr_used($db,$owner,$type,$year);$out[]=['type'=>$p['title'],'available'=>$allocation-$used];}return $out;
+ // Dashboard and Leave must use the same eligibility and ledger calculation.
+ $out=[];foreach(chr_eligible_leave_policies($db,$owner,$year.'-12-31') as $p){
+  $summary=chr_leave_balance_summary($db,$owner,$p['values']['type'],$year);
+  $out[]=['type'=>$p['title'],'allocated'=>$summary['entitled'],'used'=>$summary['used'],'pending'=>$summary['pending'],'available'=>$summary['available'],'requestable'=>$summary['requestable']];
+ }return $out;
 }
+
 

@@ -37,7 +37,11 @@ try:
   assert 'checked' not in control,'Failed save restored checked '+field
  _,h=get(a,'payroll-slip.php?entry='+str(f['entry']));assert 'Payroll Test' in h and 'Net pay' in h
  with a.open(base+'payroll-slip.php?entry='+str(f['entry'])+'&download=pdf') as r:
-  assert r.headers['Content-Type'].startswith('application/pdf') and r.read().startswith(b'%PDF-1.4')
+  pdf=r.read();assert r.headers['Content-Type'].startswith('application/pdf') and pdf.startswith(b'%PDF-1.4')
+  assert b'MONTHLY PAYSLIP' in pdf and b'Payroll Test' in pdf and b'NET PAY' in pdf
+ _,designer=get(a,'super-admin.php?page=payslip_settings')
+ _,preview=post(a,'payroll-template-preview.php',{'csrf':token(designer),'template_mode':'standard','show_logo':'1','show_attendance':'1'})
+ assert 'MONTHLY PAYSLIP' in json.loads(preview)['html']
  _,h=get(a,'payroll-test-preview.php');assert 'TEST COPY' in h and 'NOT FOR PAYMENT' in h and 'Payroll Test' in h
  owner=login('payroll.ci','Payroll-CI-2026!')
  _,draft=get(a,'payroll-slip.php?entry='+str(f['draft_entry']));assert 'DRAFT' in draft and 'Payroll Test' in draft
@@ -63,7 +67,7 @@ try:
  except urllib.error.HTTPError as e:assert e.code==403
  # A partially published month must expose only the owner's published entry.
  _,partial=get(owner,'payroll-slip.php?entry='+str(f['partial_entry']));assert 'Payroll Test' in partial and 'DRAFT' not in partial
- _,own=get(owner,'employee.php?page=payroll');assert '2025-09' in own
+ _,own=get(owner,'employee.php?page=payroll');assert 'September 2025' in own
  try:get(viewer,'payroll-slip.php?entry='+str(f['partial_entry']));raise AssertionError('Partially published payslip IDOR')
  except urllib.error.HTTPError as e:assert e.code==404
  path='super-admin.php?page=payroll_payslips&month=2025-11'
@@ -75,7 +79,7 @@ try:
  try:post(a,path,dict(data,csrf='bad'));raise AssertionError('Selected publication CSRF bypass')
  except urllib.error.HTTPError as e:assert e.code==403
  _,published=post(a,path,data);assert '1 selected payslip(s) published' in published
- _,own=get(owner,'employee.php?page=payroll');assert '2025-11' in own
+ _,own=get(owner,'employee.php?page=payroll');assert 'November 2025' in own
  _,own=get(owner,'payroll-slip.php?entry='+str(f['selected_http_entry']));assert 'DRAFT' not in own and 'Payroll Test' in own
  with owner.open(base+'payroll-slip.php?entry='+str(f['selected_http_entry'])+'&download=pdf') as r:assert r.read().startswith(b'%PDF-1.4')
  _,replayed=post(a,path,data);assert 'Payroll changed' in replayed

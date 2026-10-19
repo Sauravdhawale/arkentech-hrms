@@ -29,4 +29,16 @@ $cfg=chr_rows($db,'attendance_settings')[0]??null;att_save_settings($db,$admin,[
 $nonce=bin2hex(random_bytes(32));ess_web_punch($db,$a,['punch_action'=>'Check In','request_key'=>$nonce,'employee_id'=>$lead['id']]);$q=$db->prepare("SELECT * FROM hr_attendance WHERE employee_id=? AND source='Employee Web'");$q->execute([$a['id']]);expect((bool)$q->fetch(),'Own web punch missing');denied(fn()=>ess_web_punch($db,$a,['punch_action'=>'Check In','request_key'=>$nonce]),'Duplicate punch accepted');
 sleep(1);ess_web_punch($db,$a,['punch_action'=>'Check Out','request_key'=>bin2hex(random_bytes(32))]);$q->execute([$a['id']]);expect(!empty($q->fetch(PDO::FETCH_ASSOC)['check_out']),'Web check-out missing');denied(fn()=>ess_web_punch($db,$a,['punch_action'=>'Check In','request_key'=>bin2hex(random_bytes(32))]),'Closed attendance overwritten');
 $cfg=chr_rows($db,'attendance_settings')[0];att_save_settings($db,$admin,['version'=>$cfg['version'],'mode'=>'Manual Attendance']);denied(fn()=>ess_web_punch($db,$a,['punch_action'=>'Check Out','request_key'=>bin2hex(random_bytes(32))]),'Disabled web attendance accepted');
+// The dashboard must use the leave ledger, not the old policy-minus-used fallback.
+if(chr_leave_management_ready($db)){
+ $db->beginTransaction();try{
+  $balance=chr_leave_balance_bootstrap($db,$a['id'],'ESS',2030);
+  $db->prepare('UPDATE hr_leave_balances SET available=5 WHERE id=?')->execute([$balance['id']]);
+  $shown=array_values(array_filter(ess_balances($db,$a['id'],2030),fn($b)=>$b['type']==='ESS leave'));
+  expect(count($shown)===1&&(float)$shown[0]['available']===5.0,'Dashboard ignored leave ledger');
+  $detail=chr_leave_balance_summary($db,$a['id'],'ESS',2030);
+  expect($shown[0]['allocated']===$detail['entitled']&&$shown[0]['pending']===$detail['pending']&&$shown[0]['requestable']===$detail['requestable'],'Leave screens disagree');
+ }finally{$db->rollBack();}
+}
 file_put_contents('/tmp/ess-fixture.json',json_encode($actors));echo "PASS: ESS ownership, profile field allowlist, approval order, route snapshots, reasons, duplicate decisions, inbox ownership and web punch gates.\n";
+

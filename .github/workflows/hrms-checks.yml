@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PHP extensions
-        run: sudo apt-get update && sudo apt-get install -y php-cli php-mysql php-xml php-zip
+        run: sudo apt-get update && sudo apt-get install -y php-cli php-mysql php-xml php-zip php-gd
       - name: Check PHP syntax
         run: find . -name '*.php' -print0 | xargs -0 -n1 php -l
       - name: Check data isolation, payroll and import parsing
@@ -50,6 +50,7 @@ jobs:
           php tests/payroll.php
           php tests/profile_salary_simple.php
           php tests/payroll_templates.php
+          php tests/payslip_presentation.php
           python3 tests/payroll_http.py
           php tests/organization.php
           node tests/organization_filter.cjs
@@ -83,6 +84,7 @@ jobs:
           name: shrms-ui-screenshots
           path: /tmp/shrms-ui-screenshots/
           if-no-files-found: ignore
+
 
 
 
