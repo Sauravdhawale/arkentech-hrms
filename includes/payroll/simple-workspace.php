@@ -29,6 +29,9 @@ function pay_simple_post(PDO $db,array $actor,string $action,array $in):string {
  $run=pay_run($db,$id);pay_version($run,$in);
  if(empty($in['confirm']))throw new InvalidArgumentException('Confirm you reviewed the payroll totals.');
  $reason=ftext($in,'reason',1000,true);
+ // Check the closing date before advancing review/approval, so an early click
+ // cannot strand an editable month in an intermediate workflow state.
+ if(!in_array($run['status'],['Finalized','Paid'],true)&&date('Y-m-d')<pay_simple_publish_date($run))throw new InvalidArgumentException('This month is still open. You can publish payslips from '.pay_simple_publish_date($run).'. Drafts can be reviewed now.');
  foreach(['Calculated'=>'review','Reviewed'=>'approve','Approved'=>'finalize','Finalized'=>'publish'] as $status=>$transition){
   $run=pay_run($db,$id);if($run['status']===$status)pay_transition($db,$actor,['run_id'=>$id,'version'=>$run['version'],'transition'=>$transition,'reason'=>$reason,'confirm'=>1]);
  }
@@ -40,6 +43,21 @@ function pay_simple_stage(array $r):string {
  $s=json_decode($r['snapshot'],true)?:[];
  return !empty($s['draft_generated_at'])&&$r['exceptions']===''?'Generated':'Draft';
 }
+function pay_simple_publish_date(array $run):string {
+ [, $end]=pay_month($run['month']);$settings=json_decode($run['settings_snapshot'],true)?:[];
+ return (new DateTimeImmutable($end))->modify('+'.(int)($settings['payroll']['closing_day']??1).' days')->format('Y-m-d');
+}
+function pay_simple_label(array $row):string {
+ if($row['exceptions']!=='')return 'Needs attention';
+ $stage=pay_simple_stage($row);
+ if(in_array($stage,['Finalized','Paid'],true))return empty($row['published_at'])?'Ready to publish':($stage==='Paid'?'Paid':'Published');
+ return $stage==='Generated'?'Ready for review':'Not generated';
+}
+function pay_simple_missing_salaries(PDO $db,string $month):array {
+ [$from,$to]=pay_month($month);
+ $q=$db->prepare("SELECT e.user_id,u.name,e.employee_code,EXISTS(SELECT 1 FROM hr_salary_assignments s WHERE s.employee_id=e.user_id AND s.effective_from<=? AND (s.effective_to IS NULL OR s.effective_to>=?)) AS salary_saved FROM employees e JOIN users u ON u.id=e.user_id WHERE e.deleted_at IS NULL AND e.employment_status='Active' AND u.active=1 AND (e.joining_date IS NULL OR e.joining_date<=?) ORDER BY u.name");
+ $q->execute([$to,$from,$to]);return $q->fetchAll(PDO::FETCH_ASSOC);
+}
 function pay_workspace_ready(PDO $db):bool {
  if(!pay_ready($db))return false;
  // Retirement removes permission rows but retains historical migration markers.
@@ -48,3 +66,4 @@ function pay_workspace_ready(PDO $db):bool {
 function pay_config_url(string $module):string {
  return match($module){'pay_component'=>'?page=salary_components&tab=rules','pay_structure'=>'?page=salary_components&tab=rules&kind=structure','pay_statutory'=>'?page=salary_components&tab=statutory','pay_payslip'=>'?page=payslip_settings',default=>'?page=salary_components&tab=general'};
 }
+

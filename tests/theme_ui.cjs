@@ -1,7 +1,7 @@
 /* Actual authenticated browser checks, against the disposable CI database only. */
 const assert=require('node:assert/strict');
 const {spawn,execFileSync}=require('node:child_process');
-const {mkdirSync}=require('node:fs');
+const {mkdirSync,readFileSync}=require('node:fs');
 const {chromium}=require(process.env.UI_PLAYWRIGHT_PATH||'playwright');
 assert.equal(process.env.DB_NAME,'peopleflow_ci');
 execFileSync('php',['-r',`if(getenv('DB_NAME')!=='peopleflow_ci')exit(1);require 'auth.php';require 'includes/core-hr/service.php';$db=db();$r=chr_rows($db,'attendance_settings')[0]??[];att_save_settings($db,['id'=>1,'role'=>'super_admin'],['mode'=>'Manual + Biometric','biometric_enabled'=>1,'version'=>$r['version']??0]);`]);
@@ -36,6 +36,19 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
      await page.keyboard.press('Escape');assert.equal(await page.locator('.pay-detail-drawer[open]').count(),0);
     }
    }
+  }
+  const salaryFixture=JSON.parse(readFileSync('/tmp/payroll-fixture.json','utf8'));
+  for(const width of [1440,390]){
+   await page.setViewportSize({width,height:1000});
+   await page.goto(base+'/super-admin.php?page=employee-edit&id='+salaryFixture.employee+'#profile-salary');
+   await check();
+   assert.equal(await page.locator('[data-salary-editor]').count(),1);
+   const salaryDate=page.locator('[name="salary[effective_from]"]');
+   const initialDate=await salaryDate.inputValue();
+   await salaryDate.fill('2020-01-01');await salaryDate.dispatchEvent('change');
+   assert.match(await page.locator('[data-salary-rule-note]').innerText(),/available from|do not cover|No salary rules/);
+   await salaryDate.fill(initialDate);await salaryDate.dispatchEvent('change');
+   await page.locator('#profile-salary').screenshot({path:'/tmp/shrms-ui-screenshots/profile-salary-'+width+'.png'});
   }
   await page.setViewportSize({width:1440,height:1000});
   for(const route of ['settings','leave_routes','time_policies']){await page.goto(base+'/super-admin.php?page='+route);for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await page.waitForTimeout(350);await check();assert.equal(await page.locator('dialog[open]').count(),0,'Settings browsing must not open a modal');assert.equal(await page.locator('.settings-category[aria-current="true"]').count(),1);assert.equal(await page.locator('.settings-section-tabs a[aria-current="page"]').count(),1);assert.ok(await page.locator('.settings-menu').evaluate(e=>e.getBoundingClientRect().height<180),'Settings navigation too tall');await page.screenshot({path:'/tmp/shrms-ui-screenshots/settings-'+route+'-'+width+'.png',fullPage:true});}}
@@ -77,5 +90,6 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 

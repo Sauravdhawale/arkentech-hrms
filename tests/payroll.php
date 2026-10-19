@@ -182,3 +182,17 @@ $q=$db->prepare('SELECT snapshot,exceptions FROM hr_payroll_entries WHERE run_id
 foreach($q as $row){$ss=json_decode($row['snapshot'],true);pc(($row['exceptions']==='')===!empty($ss['draft_generated_at']),'Only valid entries should have generated drafts');}
 pc($db->query('SELECT snapshot FROM hr_payroll_entries WHERE id='.$locked['id'])->fetchColumn()===$locked['snapshot'],'Simplified generation changed finalized payroll');
 echo "PASS: simplified generation permissions, version checks, exceptions and snapshot preservation.\n";
+
+
+// Publishing before month close must not advance the month to Reviewed/Approved.
+$currentMonth=date('Y-m');
+$currentRun=pay_create_run($db,$admin,$currentMonth,[$employee]);
+$db->prepare("UPDATE hr_payroll_runs SET status='Calculated' WHERE id=?")->execute([$currentRun]);
+$db->prepare("UPDATE hr_payroll_entries SET status='Calculated',exceptions='' WHERE run_id=?")->execute([$currentRun]);
+$beforeEarly=pay_run($db,$currentRun);
+pd(fn()=>pay_simple_post($db,$admin,'pay_finalize_simple',['month'=>$currentMonth,'version'=>$beforeEarly['version'],'confirm'=>1,'reason'=>'CI early publish attempt']),'Current month published before closing date');
+pc(pay_run($db,$currentRun)===$beforeEarly,'Early publish advanced the payroll state');
+pc(pay_simple_label(['run_status'=>'Calculated','exceptions'=>'Missing salary','snapshot'=>'{}'])==='Needs attention','Failed calculation not clearly labelled');
+pc(pay_simple_label(['run_status'=>'Finalized','exceptions'=>'','snapshot'=>'{}','published_at'=>null])==='Ready to publish','Unpublished finalized entry labelled published');
+pc(pay_simple_label(['run_status'=>'Finalized','exceptions'=>'','snapshot'=>'{}','published_at'=>'2025-03-01'])==='Published','Published entry label incorrect');
+echo "PASS: month-close publication leaves drafts editable; status labels distinguish unpublished payslips.\n";

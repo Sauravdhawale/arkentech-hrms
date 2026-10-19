@@ -18,3 +18,20 @@
 .profile-salary-editor>.hint{margin:0 0 20px}
 .profile-salary [name="salary[salary_amount]"]{font-size:20px;font-weight:600}
 
+
+
+/* One salary form: the amount and start date are the everyday workflow. */
+.profile-salary .salary-primary-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.profile-salary .salary-primary-fields>label{min-width:0}
+.profile-salary .salary-primary-fields input{min-height:46px;width:100%;box-sizing:border-box}
+.profile-salary .salary-rules-note{padding:12px 15px;background:var(--surface-2,#f6f7f8);border:1px solid var(--border,#e7e7e7);border-radius:9px;font-size:13px;color:var(--muted,#626b73);margin:16px 0}
+.profile-salary .salary-rules-warning{border-color:#d3a34b;color:var(--text,#603f12)}
+.profile-salary .profile-salary-extra{border-top:1px solid var(--border,#e7e7e7);margin-top:16px}
+.profile-salary .profile-salary-extra>summary{padding:15px 0}
+.profile-salary .profile-salary-extra>summary span{font-size:12px;font-weight:400;color:var(--muted,#626b73);margin-left:8px}
+.profile-salary .salary-additional{border-top:1px solid var(--border,#e7e7e7);padding-top:16px;margin-top:16px}
+.profile-salary .salary-additional h4{margin:0 0 6px}
+.profile-salary>.profile-salary-summary{grid-template-columns:repeat(2,minmax(0,1fr));background:var(--surface-2,#f6f7f8);padding:18px;border-radius:10px;margin:14px 0}
+.profile-salary .profile-salary-history{border-top:1px solid var(--border,#e7e7e7);margin-top:20px}
+.profile-salary .profile-salary-history>summary{font-size:15px}
+@media(max-width:720px){.profile-salary .salary-primary-fields,.profile-salary>.profile-salary-summary{grid-template-columns:1fr}.profile-salary .profile-salary-extra>summary span{display:block;margin:4px 0 0}}

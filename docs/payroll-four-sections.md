@@ -34,3 +34,14 @@ The scheduler checks the configured closing day/time (Asia/Kolkata), completed m
 Payroll Runs, old Employee Salaries, Loans, Contracts and old report/configuration routes are not navigation items. Retired routes return 410. Salary management remains in employee profiles.
 
 The old cleanup CLI is now inert and refuses to delete newly created payroll data.
+
+
+
+## Simple daily workflow
+
+1. People → Edit employee → Salary: enter monthly gross and Applies from. A single applicable company rules family is chosen automatically. More salary options holds overrides, manual amounts, and optional end date. Multiple applicable families require an explicit selection; earlier unsupported dates show the available rule date. Salary increases add history and preserve published payslips.
+2. Payroll → Payslips: choose the month and Generate Payslips. The employee list shows gross, deductions, net salary and a plain status. Correct salary/attendance issues using the row links, then Update draft payslips.
+3. After the configured month closing date, Review & publish. Employees only see their own published payslips. Print / Save PDF opens the browser print window for the saved layout; choose Save as PDF. The optional text PDF remains available in the detail drawer.
+4. Dashboard shows the next action, employees needing salary, monthly net total and publication counts. Configuration retains all rules with grouped settings and optional details.
+
+Automatic month preparation still requires the existing Hostinger cron setup described above. The checkbox alone does not install the schedule. No schedule or production data is changed by deploying this UI update. No employee salary or historical rule is automatically backdated.
