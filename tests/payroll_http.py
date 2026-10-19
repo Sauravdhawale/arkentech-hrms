@@ -27,6 +27,14 @@ try:
  for tab in ['general','rules','attendance','statutory','payslip']:
   _,h=get(a,'super-admin.php?page=salary_components&tab='+tab)
   assert all(x not in h for x in ['Fatal error','Warning:','Parse error']),tab
+ # Invalid settings dates must preserve the entered values and unchecked boxes.
+ _,settings_html=get(a,'super-admin.php?page=salary_components&tab=general')
+ previous=re.search(r'name="previous_id" value="([^"]+)"',settings_html).group(1)
+ _,failed_settings=post(a,'super-admin.php?page=salary_components&tab=general',{'csrf':token(settings_html),'action':'pay_config','module':'pay_settings','previous_id':previous,'title':'CI keep my settings','effective_from':'2020-01-01','active':'1','schedule_time':'14:45','closing_day':'2','proration':'Calendar Days','lop_basis':'GROSS','lop_days':'Absent + unpaid leave','ot_method':'Fixed Hourly Rate','ot_rate':'0','ot_basis':'GROSS','hours_per_day':'8','rounding':'Paise','currency':'INR','currency_position':'Before'})
+ assert 'alert error' in failed_settings and 'CI keep my settings' in failed_settings and 'value="14:45"' in failed_settings
+ for field in ['auto_payroll','auto_generate','approval_required','auto_payslip']:
+  control=re.search(r'<input[^>]*name="'+field+r'"[^>]*>',failed_settings).group(0)
+  assert 'checked' not in control,'Failed save restored checked '+field
  _,h=get(a,'payroll-slip.php?entry='+str(f['entry']));assert 'Payroll Test' in h and 'Net pay' in h
  with a.open(base+'payroll-slip.php?entry='+str(f['entry'])+'&download=pdf') as r:
   assert r.headers['Content-Type'].startswith('application/pdf') and r.read().startswith(b'%PDF-1.4')
@@ -56,6 +64,7 @@ try:
  print('PASS: Payroll pages, report CSV, PDF, published snapshot, permission checks, IDOR and CSRF.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
+
 
 
 

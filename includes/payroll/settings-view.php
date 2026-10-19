@@ -6,6 +6,10 @@ if(!$editing){$v['effective_from']=date('Y-m-01');if($module==='pay_settings')$v
 else{$v['effective_from']=max(date('Y-m-d'),date('Y-m-d',strtotime($editing['values']['effective_from'].' +1 day')));$v['effective_to']='';}
 if($module==='pay_settings')$v+=pay_setting_defaults();
 if(($_POST['action']??'')==='pay_config'&&($_POST['module']??'')===$module&&$module==='pay_payslip')$v=array_replace($v,$_POST);
+if(!empty($error)&&($_POST['action']??'')==='pay_config'&&($_POST['module']??'')==='pay_settings'&&$module==='pay_settings'){
+ $v=array_replace($v,$_POST);
+ foreach(['active','auto_payroll','auto_generate','ot_enabled','variable_enabled','approval_required','auto_payslip'] as $key)$v[$key]=!empty($_POST[$key]);
+}
 ?>
 <?php
 $componentCategory=in_array($_GET['category']??'',['Earning','Deduction','Employer'],true)?$_GET['category']:'Earning';
