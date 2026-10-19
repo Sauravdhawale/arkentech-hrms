@@ -32,7 +32,7 @@ function pay_simple_post(PDO $db,array $actor,string $action,array $in):string {
  // Check the closing date before advancing review/approval, so an early click
  // cannot strand an editable month in an intermediate workflow state.
  if(!in_array($run['status'],['Finalized','Paid'],true)&&date('Y-m-d')<pay_simple_publish_date($run))throw new InvalidArgumentException('This month is still open. You can publish payslips from '.pay_simple_publish_date($run).'. Drafts can be reviewed now.');
- foreach(['Calculated'=>'review','Reviewed'=>'approve','Approved'=>'finalize','Finalized'=>'publish'] as $status=>$transition){
+ foreach(['Calculated'=>'review','Reviewed'=>'approve','Approved'=>'finalize','Finalized'=>'publish','Paid'=>'publish'] as $status=>$transition){
   $run=pay_run($db,$id);if($run['status']===$status)pay_transition($db,$actor,['run_id'=>$id,'version'=>$run['version'],'transition'=>$transition,'reason'=>$reason,'confirm'=>1]);
  }
  return 'Payslips finalized and published to employees.';

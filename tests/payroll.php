@@ -196,3 +196,11 @@ pc(pay_simple_label(['run_status'=>'Calculated','exceptions'=>'Missing salary','
 pc(pay_simple_label(['run_status'=>'Finalized','exceptions'=>'','snapshot'=>'{}','published_at'=>null])==='Ready to publish','Unpublished finalized entry labelled published');
 pc(pay_simple_label(['run_status'=>'Finalized','exceptions'=>'','snapshot'=>'{}','published_at'=>'2025-03-01'])==='Published','Published entry label incorrect');
 echo "PASS: month-close publication leaves drafts editable; status labels distinguish unpublished payslips.\n";
+
+// Existing paid months can still be published if publication was deferred.
+$db->prepare('UPDATE hr_payroll_entries SET published_at=NULL WHERE id=?')->execute([$locked['id']]);
+$paidUnpublished=pay_run($db,$run);
+pay_simple_post($db,$admin,'pay_finalize_simple',['month'=>$paidUnpublished['month'],'version'=>$paidUnpublished['version'],'confirm'=>1,'reason'=>'CI publish previously deferred paid payslip']);
+pc((bool)$db->query('SELECT published_at FROM hr_payroll_entries WHERE id='.(int)$locked['id'])->fetchColumn(),'Paid unpublished payslip could not be published');
+pc($db->query('SELECT snapshot FROM hr_payroll_entries WHERE id='.(int)$locked['id'])->fetchColumn()===$locked['snapshot'],'Publication changed the paid snapshot');
+echo "PASS: paid payslips can be published without recalculating salary.\n";
