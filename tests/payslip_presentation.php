@@ -15,6 +15,7 @@ slip_check($before===serialize([$entry,$settings,$snapshot,$components]),'Render
 slip_check(str_contains($html,'September 2026')&&str_contains($html,'INR 33,750.00'),'Monthly identity or net amount missing');
 slip_check(str_contains($pdf,'INR 33,750.00')&&str_contains($pdf,'/Subtype /Image'),'PDF net amount/logo missing');
 slip_check(!str_contains($html,'9876')&&!str_contains($pdf,'9876')&&!str_contains($pdf,'4321'),'Privacy flags ignored');
+slip_check(str_contains($pdf,'/FontFile2')&&str_contains($pdf,'/Count 1'),'Embedded font or compact A4 layout missing');
 slip_check(str_contains($pdf,'Sample Employee')&&str_contains($pdf,'Loss of Pay'),'Readable PDF text missing');
 slip_check(pay_statement_is_standard(['template_mode'=>'html','html_template'=>pay_template_starters()['Annexure A']]),'Legacy starter not upgraded');
 slip_check(!pay_statement_is_standard(['template_mode'=>'html','html_template'=>pay_template_starters()['Annexure A'].'<p>Custom note</p>']),'Custom HTML overridden');

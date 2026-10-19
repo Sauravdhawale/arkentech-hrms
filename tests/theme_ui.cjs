@@ -98,6 +98,8 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
    assert.ok(await page.getByRole('link',{name:/Download .* payslip PDF/}).count()>0);
    assert.equal(await page.locator('.salary-history').getAttribute('open'),null);
    await page.locator('.salary-history>summary').click();assert.ok(await page.locator('.salary-history table').isVisible());
+   await page.evaluate(()=>window.scrollTo(0,0));
+   if(width===390)assert.ok(await page.locator('.ess-slip-actions').first().evaluate(e=>e.getBoundingClientRect().right<=innerWidth),'Mobile download action offscreen');
    await page.screenshot({path:'/tmp/shrms-ui-screenshots/employee-payroll-'+width+'.png',fullPage:true});
   }
   await page.context().clearCookies();await page.setViewportSize({width:1440,height:1000});await login('ess.applicant');
