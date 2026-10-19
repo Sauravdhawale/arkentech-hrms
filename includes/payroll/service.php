@@ -102,7 +102,7 @@ function pay_calculate_run(PDO $db,array $actor,array $in):void {
   $allRules=chr_rows($db,'pay_statutory');foreach($dates as $day){$seen=[];$rules[$day]=[];foreach($allRules as $rule){$v=$rule['values'];if(isset($seen[$v['code']])||$v['effective_from']>$day||(!empty($v['effective_to'])&&$v['effective_to']<$day))continue;$seen[$v['code']]=true;if($rule['status']==='Active')$rules[$day][]=$v+['record_id'=>$rule['id'],'record_version'=>$rule['version']];}}
   $q=$db->prepare('SELECT * FROM hr_payroll_entries WHERE run_id=? ORDER BY id');$q->execute([$run['id']]);
   foreach($q->fetchAll(PDO::FETCH_ASSOC) as $entry){
-   if($entry['status']==='On Hold')continue;
+   if($entry['status']==='On Hold'||pay_entry_locked($entry))continue;
    try{
     $e=foundation_employee($db,(int)$entry['employee_id']);if(!$e||!$e['active']||$e['employment_status']!=='Active')throw new InvalidArgumentException('Employee is inactive or archived; review eligibility.');
     $days=[];$scheduled=0;$scheduleEmployee=$e;$scheduleEmployee['joining_date']=null;
@@ -122,7 +122,7 @@ function pay_adjust(PDO $db,array $actor,array $in):void {
  $amount=pay_money($in['amount']??'0');$units=pay_number($in['units']??0,1000);if(in_array($type,['Variable Percentage','Overtime'],true)?$units<=0:$amount<=0)throw new InvalidArgumentException('Enter a positive amount or units.');
  $db->beginTransaction();try{chr_lock($db);$run=pay_run($db,(int)$in['run_id'],true);pay_mutable($run);pay_version($run,$in);
   if(!in_array($run['status'],['Draft','Calculated'],true))throw new InvalidArgumentException('Return the payroll to Draft before adding adjustments.');
-  $q=$db->prepare('SELECT id FROM hr_payroll_entries WHERE id=? AND run_id=?');$q->execute([(int)$in['entry_id'],$run['id']]);if(!$q->fetchColumn())throw new InvalidArgumentException('Employee payroll not found.');
+  $q=$db->prepare('SELECT * FROM hr_payroll_entries WHERE id=? AND run_id=?');$q->execute([(int)$in['entry_id'],$run['id']]);$entry=$q->fetch(PDO::FETCH_ASSOC);if(!$entry)throw new InvalidArgumentException('Employee payroll not found.');pay_entry_mutable($entry);
   $db->prepare('INSERT INTO hr_payroll_adjustments(entry_id,type,component,amount,units,reason,created_by) VALUES(?,?,?,?,?,?,?)')->execute([(int)$in['entry_id'],$type,ftext($in,'component',80),$amount,$units,$reason,$actor['id']]);
   $db->prepare("UPDATE hr_payroll_runs SET status='Draft',version=version+1 WHERE id=?")->execute([$run['id']]);pay_event($db,$actor,'adjustment.added',(int)$run['id'],(int)$in['entry_id'],$reason);$db->commit();
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
@@ -132,7 +132,8 @@ function pay_transition(PDO $db,array $actor,array $in):void {
  pay_allow($db,$actor,$permission);$reason=ftext($in,'reason',1000,true);if(empty($in['confirm']))throw new InvalidArgumentException('Confirm this payroll action.');
  $db->beginTransaction();try{chr_lock($db);$run=pay_run($db,(int)$in['run_id'],true);pay_version($run,$in);$id=(int)$run['id'];
   if($action==='reopen'){
-   if(($actor['role']??'')!=='super_admin'||!in_array($run['status'],['Finalized','Paid'],true))throw new InvalidArgumentException('Only Super Admin can reopen finalized payroll.');
+   $published=$db->prepare('SELECT COUNT(*) FROM hr_payroll_entries WHERE run_id=? AND published_at IS NOT NULL');$published->execute([$id]);
+   if(($actor['role']??'')!=='super_admin'||(!in_array($run['status'],['Finalized','Paid'],true)&&!(int)$published->fetchColumn()))throw new InvalidArgumentException('Only Super Admin can reopen finalized or partially published payroll.');
    $q=$db->prepare('SELECT * FROM hr_payroll_entries WHERE run_id=? ORDER BY id');$q->execute([$id]);$archive=['run'=>$run,'entries'=>$q->fetchAll(PDO::FETCH_ASSOC),'reason'=>$reason];
    $db->prepare("INSERT INTO hr_records(module,title,status,data,created_by) VALUES('payroll_archive',?,'Archived',?,?)")->execute(['Payroll '.$run['month'].' version '.$run['version'],pay_json($archive),$actor['id']]);
    $db->prepare("UPDATE hr_payroll_runs SET status='Draft',finalized_at=NULL,paid_at=NULL WHERE id=?")->execute([$id]);
@@ -142,10 +143,12 @@ function pay_transition(PDO $db,array $actor,array $in):void {
   else{
    pay_mutable($run);
    if($action==='approve_ot'){
+    $q=$db->prepare('SELECT e.* FROM hr_payroll_entries e JOIN hr_payroll_adjustments a ON a.entry_id=e.id WHERE a.id=? AND e.run_id=?');$q->execute([(int)($in['adjustment_id']??0),$id]);$entry=$q->fetch(PDO::FETCH_ASSOC);if(!$entry)throw new InvalidArgumentException('Payroll adjustment not found.');pay_entry_mutable($entry);
     if(!in_array($run['status'],['Draft','Calculated'],true))throw new InvalidArgumentException('Return to Draft to approve overtime.');
     $db->prepare("UPDATE hr_payroll_adjustments a JOIN hr_payroll_entries e ON e.id=a.entry_id SET a.approved_by=?,a.approved_at=NOW() WHERE a.id=? AND e.run_id=? AND a.type='Overtime' AND a.approved_by IS NULL")->execute([$actor['id'],(int)($in['adjustment_id']??0),$id]);
     $db->prepare("UPDATE hr_payroll_runs SET status='Draft' WHERE id=?")->execute([$id]);
    }elseif($action==='hold'||$action==='release'){
+    $q=$db->prepare('SELECT * FROM hr_payroll_entries WHERE id=? AND run_id=?');$q->execute([(int)($in['entry_id']??0),$id]);$entry=$q->fetch(PDO::FETCH_ASSOC);if(!$entry)throw new InvalidArgumentException('Payroll entry not found.');pay_entry_mutable($entry);
     if(!in_array($run['status'],['Draft','Calculated'],true))throw new InvalidArgumentException('Return to Draft before changing holds.');
     $q=$db->prepare("UPDATE hr_payroll_entries SET status=?,exceptions=? WHERE id=? AND run_id=?");$q->execute([$action==='hold'?'On Hold':'Draft',$action==='hold'?$reason:'Recalculate after releasing hold',(int)$in['entry_id'],$id]);if(!$q->rowCount())throw new InvalidArgumentException('Payroll entry not found.');
     $db->prepare("UPDATE hr_payroll_runs SET status='Draft' WHERE id=?")->execute([$id]);
@@ -157,7 +160,7 @@ function pay_transition(PDO $db,array $actor,array $in):void {
     $q=$db->prepare("SELECT COUNT(*) FROM hr_payroll_entries WHERE run_id=? AND (exceptions<>'' OR status IN ('Draft','On Hold'))");$q->execute([$id]);if($q->fetchColumn())throw new InvalidArgumentException('Resolve all exceptions and holds, then recalculate.');
     $q=$db->prepare('SELECT COUNT(*) FROM hr_payroll_entries WHERE run_id=?');$q->execute([$id]);if(!$q->fetchColumn())throw new InvalidArgumentException('Cannot process an empty run.');
     if($action==='finalize'){$existing=$db->prepare('SELECT employee_id FROM hr_payroll_entries WHERE run_id=?');$existing->execute([$id]);foreach($existing as $entry)pay_legacy_check($db,(int)$entry['employee_id'],$run['month']);[, $to]=pay_month($run['month']);$closing=(new DateTimeImmutable($to))->modify('+'.(int)$settings['payroll']['closing_day'].' days')->format('Y-m-d');if(date('Y-m-d')<$closing)throw new InvalidArgumentException('Payroll can be finalized from '.$closing.' after the month closes.');}
-    $db->prepare('UPDATE hr_payroll_runs SET status=? WHERE id=?')->execute([$next[1],$id]);$db->prepare('UPDATE hr_payroll_entries SET status=? WHERE run_id=?')->execute([$next[1],$id]);
+    $db->prepare('UPDATE hr_payroll_runs SET status=? WHERE id=?')->execute([$next[1],$id]);$db->prepare('UPDATE hr_payroll_entries SET status=? WHERE run_id=? AND published_at IS NULL')->execute([$next[1],$id]);
     if($action==='finalize'){$db->prepare('UPDATE hr_payroll_runs SET finalized_at=NOW() WHERE id=?')->execute([$id]);if(!empty($settings['payroll']['auto_payslip']))pay_publish($db,$run);}
    }
   }
@@ -194,13 +197,14 @@ function pay_bulk_adjust(PDO $db,array $actor,array $in):int {
  $db->beginTransaction();try{
   chr_lock($db);$run=pay_run($db,(int)($in['run_id']??0),true);pay_mutable($run);pay_version($run,$in);
   if(!in_array($run['status'],['Draft','Calculated'],true))throw new InvalidArgumentException('Only draft or calculated payroll can receive allocations.');
-  $sql='SELECT e.id FROM hr_payroll_entries e JOIN employees p ON p.user_id=e.employee_id WHERE e.run_id=? AND '.($target==='Employee'?'e.id=?':'p.department_id=?').' ORDER BY e.id';
-  $q=$db->prepare($sql);$q->execute([$run['id'],$targetId]);$ids=$q->fetchAll(PDO::FETCH_COLUMN);
+  $sql='SELECT e.* FROM hr_payroll_entries e JOIN employees p ON p.user_id=e.employee_id WHERE e.run_id=? AND '.($target==='Employee'?'e.id=?':'p.department_id=?').' ORDER BY e.id';
+  $q=$db->prepare($sql);$q->execute([$run['id'],$targetId]);$entries=$q->fetchAll(PDO::FETCH_ASSOC);foreach($entries as $entry)pay_entry_mutable($entry);$ids=array_column($entries,'id');
   if(!$ids)throw new InvalidArgumentException('No employees in this payroll match the selected target.');
   $q=$db->prepare('INSERT INTO hr_payroll_adjustments(entry_id,type,component,amount,units,reason,created_by) VALUES(?,?,?,?,0,?,?)');
   foreach($ids as $id){$q->execute([$id,$type,$label,$amount,$reason,$actor['id']]);pay_event($db,$actor,'allocation.added',(int)$run['id'],(int)$id,$target.' #'.$targetId.': '.$reason);}
   $db->prepare("UPDATE hr_payroll_runs SET status='Draft',version=version+1 WHERE id=?")->execute([$run['id']]);$db->commit();return count($ids);
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
+
 
 

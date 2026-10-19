@@ -10,7 +10,7 @@ if(!$id){
  <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My payslips</title><link rel="stylesheet" href="assets/foundation.css"><?php require __DIR__.'/includes/theme-assets.php';?><body class="shrms-ui"><main><h1>My payslips</h1><p><a href="index.php">Back to workspace</a></p><section class="card"><?php $found=false;foreach($q as $row){$found=true;echo '<p><a href="?entry='.$row['id'].'">'.h($row['month'].' · '.$row['payslip_number']).'</a> · Net '.pay_amount((int)$row['net']).'</p>';}if(!$found)echo '<p>No published payroll payslips yet.</p>';?></section></main></html><?php exit;
 }
 $q=$db->prepare('SELECT e.*,r.month,r.status AS run_status,r.settings_snapshot FROM hr_payroll_entries e JOIN hr_payroll_runs r ON r.id=e.run_id WHERE e.id=?');$q->execute([$id]);$entry=$q->fetch(PDO::FETCH_ASSOC);
-$draft=$entry&&(!$entry['published_at']||!in_array($entry['run_status'],['Finalized','Paid'],true));
+$draft=$entry&&(!pay_entry_published($entry));
 $draftAllowed=$draft&&can($db,$user,'payroll.process.view')&&$entry['exceptions']===''&&!empty(json_decode($entry['snapshot'],true)['draft_generated_at']);
 if(!$entry||($draft&&!$draftAllowed)||(!$all&&!$draftAllowed&&(int)$entry['employee_id']!==(int)$user['id'])){http_response_code(404);exit('Payslip not found.');}
 if($draft){$entry['payslip_number']='DRAFT-'.$id;$entry['status']='DRAFT — NOT FINAL';}
@@ -44,6 +44,7 @@ if(($options['template_mode']??'standard')==='html'&&!empty($options['html_templ
 <div class="pay-grid"><p>Gross earnings<strong class="pay-stat"><?=h(slip_money((int)$entry['gross'],$settings))?></strong></p><p>Total deductions<strong class="pay-stat"><?=h(slip_money((int)$entry['deductions'],$settings))?></strong></p><p>Net pay<strong class="pay-stat"><?=h(slip_money((int)$entry['net'],$settings))?></strong></p></div><p><strong><?=h(pay_words((int)$entry['net']).' '.$currency)?></strong></p>
 <?php if($options['show_attendance']):?><h3>Attendance summary</h3><div class="pay-grid"><?php foreach(['working_days','present','absent','paid_leave','unpaid_leave','holidays','week_offs','approved_overtime_hours'] as $key):?><p><?=h(ucwords(str_replace('_',' ',$key)))?>: <?=h((string)($s['attendance'][$key]??0))?></p><?php endforeach;?></div><?php endif;?>
 <p><?=h($options['footer'])?></p><p>Authorized signatory: <?=h($options['signatory'])?></p></main><?php if($printRequested):?><script>window.addEventListener('load',()=>window.print(),{once:true});</script><?php endif;?></body></html>
+
 
 
 

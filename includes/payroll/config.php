@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/entry-state.php';
 require_once dirname(__DIR__).'/foundation/employees.php';
 require_once dirname(__DIR__).'/core-hr/service.php';
 require_once __DIR__.'/calculation.php';
@@ -92,6 +93,7 @@ function pay_assign(PDO $db,array $actor,array $in):int {
   $db->prepare('INSERT INTO hr_salary_assignments(employee_id,structure_id,effective_from,effective_to,monthly_gross,annual_ctc,snapshot,reason,notes,created_by) VALUES(?,?,?,?,?,?,?,?,?,?)')->execute([$p['employee']['user_id'],$p['structure_id'],$p['effective_from'],$p['effective_to'],$p['breakup']['gross'],$p['breakup']['annual_ctc'],pay_json($p),$reason,ftext($in,'notes',3000),$actor['id']]);$id=(int)$db->lastInsertId();faudit($db,$actor,'payroll.salary.assigned',$id);$db->commit();return $id;
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
+
 
 
 

@@ -205,3 +205,5 @@ pay_simple_post($db,$admin,'pay_finalize_simple',['month'=>$paidUnpublished['mon
 pc((bool)$db->query('SELECT published_at FROM hr_payroll_entries WHERE id='.(int)$locked['id'])->fetchColumn(),'Paid unpublished payslip could not be published');
 pc($db->query('SELECT snapshot FROM hr_payroll_entries WHERE id='.(int)$locked['id'])->fetchColumn()===$locked['snapshot'],'Publication changed the paid snapshot');
 echo "PASS: paid payslips can be published without recalculating salary.\n";
+require __DIR__.'/payroll_selected.php';
+

@@ -39,6 +39,20 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   }
   const salaryFixture=JSON.parse(readFileSync('/tmp/payroll-fixture.json','utf8'));
   for(const width of [1440,390]){
+   await page.setViewportSize({width,height:1000});await page.goto(base+'/super-admin.php?page=payroll_payslips&month=2025-10');await check();
+   const choices=page.locator('[data-pay-select]');assert.ok(await choices.count()>0,'Ready payslips have no selection');
+   assert.equal(await page.locator('[data-pay-review-selected]').isDisabled(),true);
+   await choices.first().check();assert.equal(await page.locator('[data-pay-selected-count]').textContent(),'1 selected');
+   await page.locator('[data-pay-review-selected]').click();assert.equal(await page.locator('#pay-publish-dialog').evaluate(e=>e.open),true);
+   assert.equal(await page.locator('[data-pay-publish-preview] tr').count(),1);
+   assert.equal(await page.locator('#pay-publish-dialog [name=confirm]').isChecked(),false);
+   await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/payslip-selection-'+width+'.png'});
+   await page.keyboard.press('Escape');await page.locator('[data-pay-select-all]').check();
+   assert.equal(await choices.evaluateAll(es=>es.every(e=>e.checked)),true);
+   await page.locator('[data-pay-select-all]').uncheck();assert.equal(await page.locator('[data-pay-review-selected]').isDisabled(),true);
+  }
+
+  for(const width of [1440,390]){
    await page.setViewportSize({width,height:1000});
    await page.goto(base+'/super-admin.php?page=employee-edit&id='+salaryFixture.employee+'#profile-salary');
    await check();
@@ -90,6 +104,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 
 

@@ -17,7 +17,7 @@ function pay_simple_post(PDO $db,array $actor,string $action,array $in):string {
   $run=pay_run($db,$id);$expected=(int)$run['version'];$db->beginTransaction();try{
    chr_lock($db);$locked=pay_run($db,$id,true);pay_version($locked,['version'=>$expected]);
    if($locked['status']!=='Calculated')throw new InvalidArgumentException('Payroll changed. Reload before generating.');
-   $q=$db->prepare("SELECT id,snapshot FROM hr_payroll_entries WHERE run_id=? AND exceptions='' AND status='Calculated'");$q->execute([$id]);$n=0;
+   $q=$db->prepare("SELECT id,snapshot FROM hr_payroll_entries WHERE run_id=? AND exceptions='' AND status='Calculated' AND published_at IS NULL");$q->execute([$id]);$n=0;
    foreach($q->fetchAll(PDO::FETCH_ASSOC) as $row){$s=json_decode($row['snapshot'],true);$s['draft_generated_at']=date('Y-m-d H:i:s');$db->prepare('UPDATE hr_payroll_entries SET snapshot=? WHERE id=?')->execute([pay_json($s),$row['id']]);$n++;}
    $db->prepare('UPDATE hr_payroll_runs SET version=version+1 WHERE id=?')->execute([$id]);pay_event($db,$actor,'payslips.generated',$id);$db->commit();
   }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
@@ -38,7 +38,8 @@ function pay_simple_post(PDO $db,array $actor,string $action,array $in):string {
  return 'Payslips finalized and published to employees.';
 }
 function pay_simple_stage(array $r):string {
- if($r['run_status']==='Paid')return 'Paid';
+ if(($r['status']??'')==='Paid'||$r['run_status']==='Paid')return 'Paid';
+ if(($r['status']??'')==='Finalized')return 'Finalized';
  if(in_array($r['run_status'],['Finalized','Locked'],true))return 'Finalized';
  $s=json_decode($r['snapshot'],true)?:[];
  return !empty($s['draft_generated_at'])&&$r['exceptions']===''?'Generated':'Draft';
@@ -66,4 +67,5 @@ function pay_workspace_ready(PDO $db):bool {
 function pay_config_url(string $module):string {
  return match($module){'pay_component'=>'?page=salary_components&tab=rules','pay_structure'=>'?page=salary_components&tab=rules&kind=structure','pay_statutory'=>'?page=salary_components&tab=statutory','pay_payslip'=>'?page=payslip_settings',default=>'?page=salary_components&tab=general'};
 }
+
 

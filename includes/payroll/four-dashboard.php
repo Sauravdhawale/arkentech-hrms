@@ -5,7 +5,7 @@ $sum=['gross'=>0,'deductions'=>0,'net'=>0];$generated=0;$published=0;$exceptions
 foreach($rows as $r){
  $exceptions+=(int)($r['exceptions']!=='');
  if($r['exceptions']===''){foreach($sum as $key=>$value)$sum[$key]+=(int)$r[$key];$generated+=(int)(pay_simple_stage($r)!=='Draft');}
- $published+=(int)(!empty($r['published_at'])&&in_array($r['run_status'],['Finalized','Paid'],true));
+ $published+=(int)(pay_entry_published($r));
 }
 $currency=$run?(json_decode($run['settings_snapshot'],true)['payroll']['currency']??'INR'):'INR';
 $monthName=date('F Y',strtotime($month.'-01'));
@@ -22,3 +22,4 @@ $nextStep=!$run?'Generate this month’s payslips':($exceptions?'Resolve '.$exce
 <?php if(!$missing):?><div class="pay-empty pay-empty-small"><strong>Salary setup is complete</strong><p>Review this month’s attendance, then open Payslips.</p></div><?php elseif(count($missing)>5):?><p><a href="?page=payroll_payslips&amp;month=<?=h($month)?>&amp;attention=salary">View all <?=count($missing)?> employees</a></p><?php endif;?>
 </section></div>
 <section class="card pay-understanding"><div><h3>What changes the take-home amount?</h3><p>Saved salary + applicable earnings − unpaid attendance − configured deductions = net salary.</p><p class="pay-muted">Paid attendance and paid leave do not cause an absence deduction. Unpaid leave and absence follow your saved rules. Published payslips keep their original monthly calculation.</p></div><?php if(can($pdo,$user,'payroll.settings.view')):?><a class="button" href="?page=salary_components">View payroll rules</a><?php endif;?></section>
+

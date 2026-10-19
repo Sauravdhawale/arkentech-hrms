@@ -61,9 +61,28 @@ try:
  assert 'Payroll permission required' in h
  try:post(a,'super-admin.php?page=payroll_payslips',{'csrf':'bad','action':'pay_create','month':'2025-04'});raise AssertionError('CSRF bypass')
  except urllib.error.HTTPError as e:assert e.code==403
+ # A partially published month must expose only the owner's published entry.
+ _,partial=get(owner,'payroll-slip.php?entry='+str(f['partial_entry']));assert 'Payroll Test' in partial and 'DRAFT' not in partial
+ _,own=get(owner,'employee.php?page=payroll');assert '2025-09' in own
+ try:get(viewer,'payroll-slip.php?entry='+str(f['partial_entry']));raise AssertionError('Partially published payslip IDOR')
+ except urllib.error.HTTPError as e:assert e.code==404
+ path='super-admin.php?page=payroll_payslips&month=2025-11'
+ _,h=get(a,path)
+ assert 'data-pay-select' in h and 'Review &amp; publish selected' in h
+ form=re.search(r'<form method="post" id="pay-selected-form">(.*?)</form>',h,re.S).group(1)
+ version=re.search(r'name="version" value="([^"\s]+)"',form).group(1)
+ data={'csrf':token(h),'action':'pay_publish_selected','run_id':f['selected_http_run'],'version':version,'entry_ids[]':[f['selected_http_entry']],'confirm':'1','reason':'CI reviewed salary and attendance'}
+ try:post(a,path,dict(data,csrf='bad'));raise AssertionError('Selected publication CSRF bypass')
+ except urllib.error.HTTPError as e:assert e.code==403
+ _,published=post(a,path,data);assert '1 selected payslip(s) published' in published
+ _,own=get(owner,'employee.php?page=payroll');assert '2025-11' in own
+ _,own=get(owner,'payroll-slip.php?entry='+str(f['selected_http_entry']));assert 'DRAFT' not in own and 'Payroll Test' in own
+ with owner.open(base+'payroll-slip.php?entry='+str(f['selected_http_entry'])+'&download=pdf') as r:assert r.read().startswith(b'%PDF-1.4')
+ _,replayed=post(a,path,data);assert 'Payroll changed' in replayed
  print('PASS: Payroll pages, report CSV, PDF, published snapshot, permission checks, IDOR and CSRF.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
+
 
 
 

@@ -9,12 +9,14 @@ $payPages=[
  'salary_components'=>['Configuration','payroll.settings.view']
 ];
 require_once __DIR__.'/simple-workspace.php';
+require_once __DIR__.'/publish-selected.php';
 function pay_handle_post(PDO $db,array $actor,string $action,array $in):string {
  if(in_array($action,['pay_initialize','pay_generate_simple','pay_finalize_simple'],true))return pay_simple_post($db,$actor,$action,$in);
  if($action==='pay_install'){pay_install($db,$actor);return 'Payroll tables added. Existing data preserved.';}
  if($action==='pay_workflow_install'){pay_workflow_install($db,$actor);return 'Payroll workflow, attendance snapshots and payslip template foundation enabled. Existing payroll preserved.';}
  if(!pay_ready($db))throw new InvalidArgumentException('Install the Payroll upgrade first.');
  switch($action){
+  case 'pay_publish_selected':$count=pay_publish_selected($db,$actor,$in);return $count.' selected payslip(s) published. These employees can now view and download their payslips.';
   case 'pay_setup_date_preview':
    unset($_SESSION['pay_setup_date_preview']);
    $_SESSION['pay_setup_date_preview']=['actor'=>(int)$actor['id'],'plan'=>pay_setup_date_plan($db,$actor,(int)($in['employee_id']??0),(string)($in['effective_from']??''),(string)($in['reason']??''))];return 'Review the date correction below. Nothing has changed yet.';
@@ -60,6 +62,7 @@ function pay_export(PDO $db,array $actor,array $in):void {
   fputcsv($out,array_map(fn($v)=>is_string($v)&&preg_match('/^[=+@\-\t\r]/',$v)?"'".$v:$v,$row));
  }fclose($out);exit;
 }
+
 
 
 

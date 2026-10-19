@@ -13,7 +13,7 @@ function pay_breakup_table(array $parts,bool $annual=true):void {
  echo '</tbody></table></div>';
 }
 
-echo '<link rel="stylesheet" href="assets/payroll-four.css?v=3"><div class="pay-workspace">';
+echo '<link rel="stylesheet" href="assets/payroll-four.css?v=4"><div class="pay-workspace">';
 if(!pay_workspace_ready($pdo)){
  echo '<section class="card pay-onboarding"><span class="eyebrow">PAYROLL</span><h2>A simpler start for your payroll</h2><p>Set up salary rules, assign employee salaries and generate payslips from processed attendance. No old payroll data is restored.</p>';
  if($user['role']==='super_admin'){pay_form('pay_initialize');echo '<button class="button primary">Set up Payroll</button></form>';}
@@ -26,4 +26,5 @@ $q=$pdo->prepare('SELECT * FROM hr_payroll_runs WHERE month=?');$q->execute([$mo
 $rows=pay_report_rows($pdo,['month'=>$month]);
 if($page==='payroll_dashboard')require __DIR__.'/four-dashboard.php';else require __DIR__.'/four-payslips.php';
 echo '</div>';
+
 

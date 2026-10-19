@@ -53,3 +53,17 @@
 .pay-setup-guide{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}.pay-setup-guide>div{display:flex;align-items:start;gap:12px}.pay-setup-guide p{font-size:13px;color:var(--text-secondary,#64748b);margin:5px 0 0}.pay-config-help p{margin:8px 0 0}.pay-config-help h3{margin:0}.pay-setting-section{padding:20px 0;border-top:1px solid var(--border,#e7e7e7)}.pay-setting-section h3{font-size:16px;margin:0}.pay-setting-section>p{font-size:13px;color:var(--text-secondary,#64748b);margin:8px 0}.pay-advanced-settings{padding:16px;border:1px solid var(--border,#e7e7e7);border-radius:8px;background:var(--surface,#f5f6f7);margin:14px 0}.pay-advanced-settings>summary{font-size:13px}
 @media(max-width:1200px){.pay-overview-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.pay-setup-guide{grid-template-columns:1fr}}
 @media(max-width:650px){.pay-next-step,.pay-understanding{flex-direction:column;align-items:stretch}.pay-month-summary{grid-template-columns:1fr}.pay-month-summary>div{justify-content:space-between;padding:12px 16px}.pay-month-actions{flex-direction:column;align-items:stretch}.pay-publish-confirm,.pay-publish-confirm[open]{min-width:0}.pay-overview-metrics{grid-template-columns:1fr}.pay-inline{width:100%}.pay-inline>label{flex:1}.pay-list-actions{min-width:150px}.pay-setup-guide{gap:16px}}
+
+
+/* Selected payslip publication */
+.pay-workspace .pay-selection-bar{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0 20px;flex-wrap:wrap}
+.pay-workspace .pay-selection-bar small{display:block;margin-top:4px;color:var(--text-muted,#687786)}
+.pay-workspace .pay-select-cell{width:48px;min-width:48px;text-align:center}
+.pay-workspace .pay-select-cell input[type=checkbox]{width:18px;height:18px;min-height:18px;margin:0;vertical-align:middle;cursor:pointer;accent-color:var(--primary,#b12625)}
+.pay-workspace .pay-publish-dialog{width:min(760px,calc(100vw - 32px));max-height:85vh;overflow:auto;border:1px solid var(--border,#dfe3e7);border-radius:16px;padding:24px;color:var(--text,#182228);background:var(--surface,#fff);box-shadow:0 24px 80px #0003}
+.pay-workspace .pay-publish-dialog::backdrop{background:#11182780}
+.pay-workspace .pay-publish-dialog>label{display:flex;flex-direction:column;gap:8px;margin-top:20px}
+.pay-workspace .pay-publish-dialog>label.pay-check{flex-direction:row;align-items:flex-start}
+.pay-workspace .pay-publish-dialog .pay-table{margin-top:16px;max-height:300px}
+.pay-workspace .pay-publish-dialog .pay-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}
+@media(max-width:640px){.pay-workspace .pay-publish-dialog{padding:18px}.pay-workspace .pay-selection-bar .button{width:100%}}
