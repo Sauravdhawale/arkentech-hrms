@@ -3,7 +3,7 @@ $datePreview=$_SESSION['pay_setup_date_preview']??null;
 if($datePreview&&(int)$datePreview['actor']!==(int)$user['id'])$datePreview=null;
 $dateEmployees=$pdo->query("SELECT DISTINCT u.id,u.name,e.employee_code FROM users u JOIN employees e ON e.user_id=u.id JOIN hr_salary_assignments s ON s.employee_id=u.id WHERE u.active=1 AND e.employment_status='Active' AND e.deleted_at IS NULL ORDER BY u.name")->fetchAll(PDO::FETCH_ASSOC);
 ?>
-<details class="card" id="payroll-start-date" <?= $datePreview?'open':'' ?>><summary>Correct initial payroll start date</summary>
+<details class="card" data-inline-editor id="payroll-start-date" <?= $datePreview?'open':'' ?>><summary>Correct initial payroll start date</summary>
 <p>Use this only when payroll was first set up too late. Extend the initial company rules and one employee’s initial salary to an earlier month. Amounts, later salary revisions, attendance and saved payslips stay unchanged.</p>
 <?php pay_form('pay_setup_date_preview'); ?>
 <div class="pay-grid"><label>Employee<select name="employee_id" required><option value="">Choose employee</option><?php foreach($dateEmployees as $e):?><option value="<?=(int)$e['id']?>"><?=h($e['name'].' · '.$e['employee_code'])?></option><?php endforeach;?></select></label>
