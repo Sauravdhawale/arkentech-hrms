@@ -43,7 +43,8 @@ try:
  _,exit_form=get(a,'super-admin.php?page=exit_tasks&new=1')
  assert 'suite_save' in exit_form and 'Save record' in exit_form and 'Export CSV' in exit_form
  _,shiftform=get(a,'super-admin.php?page=shifts')
- assert 'Overnight shift' in shiftform and 'Break duration' in shiftform and '06:00 PM' in shiftform
+ assert 'data-shift-editor' in shiftform and 'data-shift-preview' in shiftform and 'Break duration' in shiftform and '06:00 PM' in shiftform
+ assert 'name="overnight"' not in shiftform  # Derived from start/end times, not a conflicting manual choice.
  _,employeeform=get(a,'super-admin.php?page=employee-add')
  assert 'Default attendance shift' in employeeform and 'Ends next day' in employeeform
  fixture=json.load(open('/tmp/core-hr-fixture.json'))
@@ -96,5 +97,6 @@ try:
  print('PASS: attendance upgrade pages, manual import controls and calendar rendering.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
+
 
 
