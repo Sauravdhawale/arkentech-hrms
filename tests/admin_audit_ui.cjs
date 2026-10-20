@@ -4,7 +4,7 @@ const {spawn,execFileSync}=require('node:child_process');
 const {readFileSync,mkdirSync}=require('node:fs');
 const {chromium}=require(process.env.UI_PLAYWRIGHT_PATH||'playwright');
 assert.equal(process.env.DB_NAME,'peopleflow_ci');
-const fixture=JSON.parse(execFileSync('php',['-r',`if(getenv('DB_NAME')!=='peopleflow_ci')exit(1);require 'auth.php';$db=db();$employee=(int)$db->query("SELECT id FROM users WHERE username='ess.applicant'")->fetchColumn();if(!$employee)exit(2);$q=$db->prepare("INSERT INTO hr_requests(user_id,kind,category,subject,details,start_date,end_date,status) VALUES(?,'regularisation','Attendance',?,'Missed scan: UI audit test','2026-02-02','2026-02-02',?)");for($i=0;$i<27;$i++)$q->execute([$employee,'UI audit correction '.$i,'Pending']);$q->execute([$employee,'UI audit reviewed','Approved']);echo json_encode(['employee'=>$employee]);`],{encoding:'utf8'}));
+const fixture=JSON.parse(execFileSync('php',['-r',`if(getenv('DB_NAME')!=='peopleflow_ci')exit(1);require 'auth.php';$db=db();$employee=(int)$db->query("SELECT id FROM users WHERE username='ess.applicant'")->fetchColumn();if(!$employee)exit(2);$q=$db->prepare("INSERT INTO hr_requests(user_id,kind,category,subject,details,start_date,end_date,status) VALUES(?,'regularisation','Attendance',?,'Missed scan: UI audit test','2026-02-02','2026-02-02',?)");for($i=0;$i<27;$i++)$q->execute([$employee,'UI audit correction '.$i,'Pending']);$q->execute([$employee,'UI audit reviewed','Approved']);echo json_encode(['employee'=>$employee,'pending'=>(int)$db->query("SELECT COUNT(*) FROM hr_requests WHERE kind='regularisation' AND status='Pending' AND user_id=".$employee)->fetchColumn()]);`],{encoding:'utf8'}));
 const server=spawn('php',['-S','127.0.0.1:8101','-t','.'],{stdio:'ignore'}),base='http://127.0.0.1:8101';
 (async()=>{let browser;try{
  for(let n=0;n<50;n++){try{if((await fetch(base+'/login.php')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
@@ -23,7 +23,7 @@ const server=spawn('php',['-S','127.0.0.1:8101','-t','.'],{stdio:'ignore'}),base
   await page.screenshot({path:'/tmp/shrms-ui-screenshots/shift-preview-'+width+'.png'});await page.keyboard.press('Escape');
   await page.goto(base+'/super-admin.php?page=attendance_requests&employee_id='+fixture.employee);await healthy();
   assert.equal(await page.locator('.request-item').count(),25);assert.equal(await page.getByLabel('Request status').inputValue(),'Pending');
-  await page.getByRole('link',{name:'Next',exact:true}).click();assert.equal(await page.locator('.request-item').count(),2);
+  await page.getByRole('link',{name:'Next',exact:true}).click();assert.equal(await page.locator('.request-item').count(),fixture.pending-25);
   await page.getByLabel('Request status').selectOption('Approved');await page.getByRole('button',{name:'Apply filters',exact:true}).click();assert.ok((await page.locator('.request-list').innerText()).includes('UI audit reviewed'));
   await page.getByLabel('Request status').selectOption('Pending');await page.getByRole('button',{name:'Apply filters',exact:true}).click();await page.locator('.request-item>summary').first().click();
   assert.ok(await page.locator('.request-item[open] [name=check_in]').isVisible());await healthy();await page.screenshot({path:'/tmp/shrms-ui-screenshots/attendance-requests-'+width+'.png',fullPage:true});
