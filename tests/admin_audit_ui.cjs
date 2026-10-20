@@ -4,7 +4,7 @@ const {spawn,execFileSync}=require('node:child_process');
 const {readFileSync,mkdirSync}=require('node:fs');
 const {chromium}=require(process.env.UI_PLAYWRIGHT_PATH||'playwright');
 assert.equal(process.env.DB_NAME,'peopleflow_ci');
-const fixture=JSON.parse(execFileSync('php',['-r',`if(getenv('DB_NAME')!=='peopleflow_ci')exit(1);require 'auth.php';$db=db();$employee=(int)$db->query("SELECT id FROM users WHERE username='ess.applicant'")->fetchColumn();if(!$employee)exit(2);$q=$db->prepare("INSERT INTO hr_requests(user_id,kind,subject,details,start_date,end_date,status) VALUES(?,'regularisation',?,'Missed scan: UI audit test','2026-02-02','2026-02-02',?)");for($i=0;$i<27;$i++)$q->execute([$employee,'UI audit correction '.$i,'Pending']);$q->execute([$employee,'UI audit reviewed','Approved']);echo json_encode(['employee'=>$employee]);`],{encoding:'utf8'}));
+const fixture=JSON.parse(execFileSync('php',['-r',`if(getenv('DB_NAME')!=='peopleflow_ci')exit(1);require 'auth.php';$db=db();$employee=(int)$db->query("SELECT id FROM users WHERE username='ess.applicant'")->fetchColumn();if(!$employee)exit(2);$q=$db->prepare("INSERT INTO hr_requests(user_id,kind,category,subject,details,start_date,end_date,status) VALUES(?,'regularisation','Attendance',?,'Missed scan: UI audit test','2026-02-02','2026-02-02',?)");for($i=0;$i<27;$i++)$q->execute([$employee,'UI audit correction '.$i,'Pending']);$q->execute([$employee,'UI audit reviewed','Approved']);echo json_encode(['employee'=>$employee]);`],{encoding:'utf8'}));
 const server=spawn('php',['-S','127.0.0.1:8101','-t','.'],{stdio:'ignore'}),base='http://127.0.0.1:8101';
 (async()=>{let browser;try{
  for(let n=0;n<50;n++){try{if((await fetch(base+'/login.php')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
