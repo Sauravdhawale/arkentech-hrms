@@ -1,0 +1,12 @@
+/* Small workflow improvements, using the existing light/dark theme tokens. */
+.shift-time-preview{display:grid;gap:8px;border:1px solid var(--border,#ddd);border-radius:12px;padding:16px;background:var(--surface,#fff);font-size:14px;line-height:1.5}
+.shift-time-preview.needs-review{background:var(--warning-bg,#fff5db);color:var(--warning-text,#805400)}
+.shift-review-note{display:block;font-weight:600;color:var(--warning-text,#805400)}
+.request-filters{display:grid;grid-template-columns:minmax(180px,1fr) minmax(140px,1fr) auto;gap:16px;align-items:end}
+.request-list{display:grid;gap:16px}.request-item{border:1px solid var(--border,#ddd);border-radius:12px;padding:16px}
+.request-item>summary{display:flex;align-items:center;gap:14px;cursor:pointer;list-style:none}.request-item>summary::before{content:'›';font-size:24px}.request-item[open]>summary::before{transform:rotate(90deg)}
+.request-person{flex:1;min-width:0;display:grid;gap:5px}.request-person small{font-weight:400}.request-body{border-top:1px solid var(--border,#ddd);padding-top:16px;margin-top:16px}.request-body .form-actions{grid-column:1/-1}
+.request-pagination{display:flex;gap:14px;align-items:center;justify-content:space-between;margin-top:20px}
+.pay-issue-groups{padding-left:18px;display:grid;gap:12px;font-size:13px;white-space:normal;min-width:210px;max-width:420px}.pay-issue-groups strong,.pay-issue-groups small{display:block}.pay-issue-groups p{margin:4px 0}.pay-issue-technical{margin-top:12px;font-size:12px;max-height:220px;overflow:auto}
+.shrms-ui .sheet-status[data-status="Check-out missing"],.shrms-ui .sheet-status[data-status="Review needed"]{background:var(--warning-bg,#fff5db);color:var(--warning-text,#805400)}
+@media(max-width:650px){.request-filters{grid-template-columns:1fr}.request-item>summary{flex-wrap:wrap}.request-item{padding:12px}.request-pagination{flex-wrap:wrap}.pay-issue-groups{min-width:170px}}

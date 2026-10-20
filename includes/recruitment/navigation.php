@@ -5,5 +5,6 @@ $active=isset($items[$page]);
 ?>
 <div class="nav-module <?=$active?'open':''?>">
  <button class="nav-module-title" type="button" aria-expanded="<?=$active?'true':'false'?>"><span aria-hidden="true">⌕</span>Recruitment <span aria-hidden="true">⌄</span></button>
- <div class="nav-module-items"><?php foreach($items as $key=>$label)fnav($key,$label);?></div>
+ <div class="nav-module-items"><?php foreach($items as $key=>$label)fnav($key,$label.(in_array($key,['recruitment_candidates','recruitment_applications','recruitment_interviews','recruitment_offers'],true)?' · Planned':''));?></div>
 </div>
+

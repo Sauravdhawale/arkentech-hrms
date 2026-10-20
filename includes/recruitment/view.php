@@ -54,5 +54,6 @@ if($page==='recruitment_dashboard'):
   'recruitment_interviews'=>['Interviews','Interview scheduling and feedback will live here.'],
   'recruitment_offers'=>['Offers','Offer creation, approval and candidate-to-employee conversion will live here.']
  ][$page];?>
-<section class="card empty-state"><h2><?=h($meta[0])?></h2><p><?=h($meta[1])?></p><p class="muted">The database foundation for this section is included in Phase 4A.</p></section>
+<section class="card empty-state"><span class="badge">Planned feature</span><h2><?=h($meta[0])?> is not available yet</h2><p>This screen is a placeholder. Creating or managing <?=h(strtolower($meta[0]))?> is not implemented yet.</p><p>Your existing records are unchanged. Job openings can be managed now.</p><a class="button primary" href="?page=recruitment_jobs">Go to Job Openings</a></section>
 <?php endif;
+

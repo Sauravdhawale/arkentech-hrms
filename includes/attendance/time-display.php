@@ -14,3 +14,14 @@ function att_time_input(string $name,string $label,array $values):void {
 }
 
 function att_is_overnight(array $values):bool {try{return chr_time($values,'end')<chr_time($values,'start');}catch(InvalidArgumentException $e){return false;}}
+
+
+/** SQL event timestamps are converted to epoch by MySQL in its own session timezone. */
+function att_server_time_label($epoch):string {
+ return is_numeric($epoch)&&((int)$epoch)>0?date('d M Y · h:i:s A T',(int)$epoch):'—';
+}
+function att_shift_duration(array $values):?int {
+ try{$start=chr_time($values,'start');$end=chr_time($values,'end');}catch(InvalidArgumentException $e){return null;}
+ $minutes=fn($t)=>(int)substr($t,0,2)*60+(int)substr($t,3,2);
+ $span=$minutes($end)-$minutes($start);return $span<=0?$span+1440:$span;
+}

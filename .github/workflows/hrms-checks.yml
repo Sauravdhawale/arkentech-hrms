@@ -38,6 +38,8 @@ jobs:
           python3 tests/core_hr_http.py
           php tests/attendance_insights.php
           php tests/attendance_rules.php
+          php tests/admin_audit.php
+          python3 tests/admin_unavailable.py
           php tests/attendance_upgrade.php
           php tests/attendance_sheet_status.php
           php tests/attendance_punch_windows.php
@@ -77,6 +79,7 @@ jobs:
         run: |
           node tests/attendance_ui.cjs
           node tests/theme_ui.cjs
+          node tests/admin_audit_ui.cjs
       - name: Save UI screenshots
         if: always()
         uses: actions/upload-artifact@v4
@@ -84,6 +87,7 @@ jobs:
           name: shrms-ui-screenshots
           path: /tmp/shrms-ui-screenshots/
           if-no-files-found: ignore
+
 
 
 
