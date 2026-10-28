@@ -122,7 +122,12 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   await page.locator('[data-dialog-open="correction-dialog"]').click();assert.equal(await page.locator('#correction-dialog').evaluate(e=>e.open),true);await page.keyboard.press('Escape');
   for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/employee-attendance-'+width+'.png',fullPage:true,animations:'disabled'});}
   await page.setViewportSize({width:1440,height:1000});
-  await page.goto(base+'/employee.php?page=overview');await page.screenshot({path:'/tmp/shrms-ui-screenshots/employee.png'});
+  await page.goto(base+'/employee.php?page=overview');
+  assert.equal(await page.locator('[data-workday-value="after_end"]').count(),0,'Only one overtime total is shown');
+  assert.equal(await page.locator('[data-workday-value="overtime"]').count(),1);
+  assert.equal(await page.locator('.ess-workday-metrics small').filter({hasText:/^Overtime$/}).count(),1);
+  assert.match(await page.locator('script[src^="assets/ess.js"]').getAttribute('src'),/ess\.js\?v=[a-f0-9]{12}$/,'Attendance script uses a content version');
+  await page.screenshot({path:'/tmp/shrms-ui-screenshots/employee.png'});
   await page.locator('[data-ess-theme]').click();assert.ok(await page.locator('body').evaluate(e=>e.classList.contains('dark')));await page.locator('[data-ess-theme]').click();
   await page.locator('[data-dialog-open="correction-dialog"]').click();assert.equal(await page.locator('#correction-dialog').evaluate(e=>e.open),true);await page.keyboard.press('Escape');
   for(const width of [1024,768,390,360]){await page.setViewportSize({width,height:844});await layout();}
@@ -131,6 +136,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 
 
