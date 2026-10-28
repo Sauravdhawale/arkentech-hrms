@@ -4,7 +4,7 @@
  <div class="ess-workday-main"><div><span>Time worked</span><strong data-workday-value="worked">—</strong><small data-workday-target>Based on your assigned shift</small></div><div class="ess-workday-punches"><p>First check-in <b data-workday-in>—</b></p><p>Latest check-out <b data-workday-out>—</b></p></div></div>
  <progress data-workday-progress max="100" value="0" aria-label="Required working time completed"></progress>
  <div class="ess-workday-metrics">
- <?php foreach(['remaining'=>'Work remaining','break'=>'Break taken','allowed_break'=>'Allowed break','excess_break'=>'Excess break','after_end'=>'After shift','overtime'=>'Net overtime'] as $key=>$label):?>
+ <?php foreach(['remaining'=>'Work remaining','break'=>'Break taken','allowed_break'=>'Allowed break','excess_break'=>'Excess break','overtime'=>'Overtime'] as $key=>$label):?>
  <div><small><?=h($label)?></small><strong data-workday-value="<?=h($key)?>">—</strong></div>
  <?php endforeach;?>
  </div>
@@ -14,4 +14,5 @@
  <button type="button" data-dialog-open="correction-dialog">Request a correction</button>
  </div>
 </section>
+
 

@@ -23,7 +23,7 @@ function timerNote(t,p,reconnecting){
  if(p.expired)return `Counting window ended${t.limit_label?' at '+t.limit_label:''}. ${t.state==='in'?'Check-out is missing; ask HR to review the punches and allowed after-shift window.':'Showing the last recorded totals.'}`;
  if(p.stale)return 'Connection unavailable for 90 seconds. Totals are paused estimates until the server responds; no attendance records have been changed.';
  const source=t.inferred?'Estimated from alternating biometric punches. ':'Based on recorded punch directions. ';
- return `${reconnecting||p.delayed?'Reconnecting; temporarily estimating from the last verified status. ':''}${source}Work pauses while checked out. Net overtime is worked time after shift end minus late arrival, minimum zero. ${t.manual_baseline?'Earlier manual attendance is used as a baseline. ':''}Live estimates; payroll approval remains separate.`;
+ return `${reconnecting||p.delayed?'Reconnecting; temporarily estimating from the last verified status. ':''}${source}Work pauses while checked out. Overtime counts worked time after shift end, minus late arrival, minimum zero. Completing required hours early does not start overtime. ${t.manual_baseline?'Earlier manual attendance is used as a baseline. ':''}Live estimates; payroll approval remains separate.`;
 }
 (()=>{'use strict';const clock=document.querySelector('[data-ess-clock]');if(clock){const started=performance.now(),epoch=Number(clock.dataset.time);const tick=()=>{clock.textContent=new Intl.DateTimeFormat('en-US',{hour12:true,timeZone:clock.dataset.zone,hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date(epoch+performance.now()-started));};tick();setInterval(tick,1000);}document.querySelector('[data-ess-theme]')?.addEventListener('click',()=>document.getElementById('theme')?.click());document.addEventListener('click',event=>{document.querySelectorAll('.ess-bell[open]').forEach(el=>{if(!el.contains(event.target))el.open=false;});});document.addEventListener('keydown',event=>{if(event.key==='Escape')document.querySelectorAll('.ess-bell[open]').forEach(el=>el.open=false);});})();
 (()=>{'use strict';
@@ -68,12 +68,12 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape')document.que
   if(!snapshot)return;
   const t=snapshot,p=projectShift(t,received);
   const {worked,overtime}=p;
-  const values={worked,remaining:Math.max(0,t.target-worked),break:p.breaks,allowed_break:t.allowed_break,excess_break:Math.max(0,p.breaks-t.allowed_break),after_end:p.after,overtime};
+  const values={worked,remaining:Math.max(0,t.target-worked),break:p.breaks,allowed_break:t.allowed_break,excess_break:Math.max(0,p.breaks-t.allowed_break),overtime};
   Object.entries(values).forEach(([key,value])=>{const el=card.querySelector(`[data-workday-value="${key}"]`);if(el)el.textContent=duration(value);});
   card.querySelector('[data-workday-progress]').value=t.target?Math.min(100,worked/t.target*100):0;
   card.dataset.excess=values.excess_break>0?'true':'false';
   text('state',timerState(t,p,reconnecting));
-  text('target',`Required work: ${duration(t.target)} · Net overtime excludes late arrival`);
+  text('target',`Required work: ${duration(t.target)} · Overtime starts after ${t.shift_end_label||'shift end'}`);
   text('shift',t.shift_label);text('in',t.first_in_label);text('out',t.last_out_label);
   text('note',timerNote(t,p,reconnecting));
  }
@@ -111,3 +111,4 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape')document.que
 
 
 })();
+

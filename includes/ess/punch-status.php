@@ -91,7 +91,9 @@ function ess_shift_timer(array $events,int $start,int $end,array $shift,int $now
   'worked'=>$worked,'after_end'=>$after,'break'=>$break,'allowed_break'=>$allowed,'excess_break'=>max(0,$break-$allowed),
   'late'=>$late,'net_overtime'=>max(0,$after-$late),
   'target'=>$target,'overtime'=>$overtime,'overtime_rule'=>$rule,'first_in'=>$first,'last_out'=>$lastOut,
+  'shift_end_label'=>date('d M, h:i A',$end),
   'first_in_label'=>$first?date('d M, h:i A',$first):'—','last_out_label'=>$lastOut?date('d M, h:i A',$lastOut):'—',
   'inferred'=>$inferred,'expired'=>$now>$limit];
 }
+
 

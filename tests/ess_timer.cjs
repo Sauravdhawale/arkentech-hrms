@@ -28,3 +28,14 @@ assert.match(attendance.querySelector('[data-attendance-live-state]').textConten
 send({state:'review',label:'Punch needs review'});assert.equal(a('worked'),'—');assert.equal(w('worked'),'—');
 send({state:'none',timing:{...baseline,state:'none',worked:0,first_in:null}});tick(5);assert.equal(w('worked'),'00h 00m 00s');
 console.log('PASS: shift-end overtime, matching cards, delayed polls, outage bounds, checkout, recovery and review states.');
+
+
+// Overnight shift: completing required work before 4 AM must not start overtime.
+const night={...baseline,shift_start:68400,shift_end:100800,limit:108000,
+ as_of:100320,worked:28928,after_end:0,first_in:69549,shift_end_label:'29 Oct, 04:00 AM'};
+send({state:'in',timing:night});
+assert.equal(w('overtime'),'00h 00m 00s');
+assert.match(work.querySelector('[data-workday-target]').textContent,/29 Oct, 04:00 AM/);
+send({state:'in',timing:{...night,as_of:102600,worked:31000,after_end:1800}});
+assert.equal(w('overtime'),'00h 10m 51s','30 minutes after end minus 19m09s late arrival');
+assert.equal(a('overtime'),w('overtime'));
