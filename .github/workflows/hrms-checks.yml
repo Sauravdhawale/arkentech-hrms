@@ -59,6 +59,7 @@ jobs:
           python3 tests/organization_http.py
 
           php tests/ess.php
+          node tests/ess_timer.cjs
           php tests/ess_punch_status.php
           php tests/ess_attendance_metrics.php
           python3 tests/ess_http.py
@@ -87,6 +88,7 @@ jobs:
           name: shrms-ui-screenshots
           path: /tmp/shrms-ui-screenshots/
           if-no-files-found: ignore
+
 
 
 

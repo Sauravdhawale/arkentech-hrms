@@ -58,6 +58,7 @@ function ess_punch_status(PDO $db,int $owner):array {
  $timing=ess_shift_timer($sequence['events'],$start->getTimestamp(),$end->getTimestamp(),$resolved['shift']['values'],time(),(int)att_config($db)['punch_after_minutes']*60);
  $timing['shift_label']=($resolved['shift']['title']??'Assigned shift').' · '.date('d M, h:i A',$start->getTimestamp()).' – '.date('d M, h:i A',$end->getTimestamp());
  $timing['manual_baseline']=$attendance&&$attendance['source']!=='Biometric';
+ $timing['limit_label']=date('d M, h:i A',$timing['limit']);
  if($sequence['state']==='none')return $base+['timing'=>$timing];
  $missing=$sequence['state']==='in'&&time()>$end->getTimestamp()+(int)att_config($db)['punch_after_minutes']*60;
  return ['state'=>$missing?'review':$sequence['state'],'label'=>$missing?'Check-Out missing':($sequence['state']==='in'?'Checked In':'Checked Out'),
@@ -84,9 +85,13 @@ function ess_shift_timer(array $events,int $start,int $end,array $shift,int $now
  $allowed=max(0,(int)($shift['break_minutes']??0)*60);
  $rule=$shift['overtime_rule']??'After required hours';$extra=max(0,$worked-$target);
  $overtime=$rule==='After shift end'?$after:($rule==='After both'?min($after,$extra):$extra);
+ // Employee cards share the published net-overtime rule. Payroll policy stays separate.
+ $late=$first===null?0:max(0,$first-$start);
  return ['as_of'=>$now,'shift_start'=>$start,'shift_end'=>$end,'limit'=>$limit,'state'=>$state,
   'worked'=>$worked,'after_end'=>$after,'break'=>$break,'allowed_break'=>$allowed,'excess_break'=>max(0,$break-$allowed),
+  'late'=>$late,'net_overtime'=>max(0,$after-$late),
   'target'=>$target,'overtime'=>$overtime,'overtime_rule'=>$rule,'first_in'=>$first,'last_out'=>$lastOut,
   'first_in_label'=>$first?date('d M, h:i A',$first):'—','last_out_label'=>$lastOut?date('d M, h:i A',$lastOut):'—',
   'inferred'=>$inferred,'expired'=>$now>$limit];
 }
+

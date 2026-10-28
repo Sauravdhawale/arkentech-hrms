@@ -66,3 +66,14 @@ $types=att_punch_type_events($manual,[['id'=>35,'punched_at'=>'2026-10-01 23:00:
 check_status($types[35]['direction']==='in'&&$types[35]['inferred'],'Log uses the same manual OUT baseline as dashboard');
 $rows[2]['status']='Failed';check_status(att_punch_type_events(null,$rows)===[],'Unresolved sequence must not invent inferred directions');
 echo "Punch log display checks passed\n";
+
+
+// Late arrival is deducted from worked post-shift time, never from clock span on a break.
+$shift=['required_hours'=>8,'break_minutes'=>60,'overtime_rule'=>'After required hours'];
+$start=strtotime('2026-10-05 09:00:00');$end=strtotime('2026-10-05 18:00:00');
+$timeline=ess_punch_sequence([event_at('2026-10-05 09:30:00','in'),event_at('2026-10-05 18:15:00','out'),event_at('2026-10-05 18:45:00','in')])['events'];
+$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-05 19:30:00'),7200);
+check_status($t['after_end']===3600&&$t['late']===1800&&$t['net_overtime']===1800,'Net overtime excludes post-shift break and late arrival');
+$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-05 18:30:00'),7200);
+check_status($t['net_overtime']===0&&$t['state']==='out','Checkout pauses overtime; late deduction cannot make it negative');
+echo "Net overtime interval checks passed\n";

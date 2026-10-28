@@ -14,16 +14,26 @@ $events=[['biometric_id'=>'CI-1','event_key'=>'CI-E1','punched_at'=>'2026-02-06 
 att_bridge_batch($db,$authenticated,[['biometric_id'=>'CI-1','event_key'=>'CI-MANUAL','punched_at'=>'2026-02-02 22:01:00','direction'=>'in']]);check($db->query('SELECT source FROM hr_attendance WHERE id='.$id)->fetchColumn()==='Admin Manual','Manual attendance overwritten');
 att_save_absence($db,$admin,['employee_id'=>$employee,'attendance_date'=>'2026-02-09','notes'=>'CI absence']);$report=chr_report($db,'2026-02-09','2026-02-09',['employee_id'=>$employee]);check($report[0]['status']==='Absent'&&$report[0]['source']==='Admin Manual','Manual absence reporting');
 att_bridge_batch($db,$authenticated,[['biometric_id'=>'CI-1','event_key'=>'CI-ABSENT','punched_at'=>'2026-02-09 22:00:00','direction'=>'in']]);check((int)$db->query("SELECT COUNT(*) FROM hr_punch_processing WHERE status='Manual protected'")->fetchColumn()>=2,'Manual absence protection');
-att_bridge_batch($db,$authenticated,[['biometric_id'=>'CI-NEW','event_key'=>'CI-UNKNOWN','punched_at'=>'2026-02-10 22:00:00','direction'=>'in']]);check((int)$db->query("SELECT COUNT(*) FROM hr_punch_processing WHERE status='Needs mapping'")->fetchColumn()===1,'Unknown mapping retained');att_save_mapping($db,$admin,['title'=>'CI delayed mapping','device_id'=>$device['id'],'employee_id'=>$employee,'biometric_id'=>'CI-NEW','active'=>1]);check(att_retry_device_punches($db,$authenticated)===1,'Automatic retry count');check((int)$db->query("SELECT COUNT(*) FROM hr_punch_processing WHERE status='Needs mapping'")->fetchColumn()===0,'Retry resolved mapping');
+att_bridge_batch($db,$authenticated,[['biometric_id'=>'CI-NEW','event_key'=>'CI-UNKNOWN','punched_at'=>'2026-02-10 22:00:00','direction'=>'in']]);check((int)$db->query("SELECT COUNT(*) FROM hr_punch_processing WHERE status='Needs mapping'")->fetchColumn()===1,'Unknown mapping retained');att_save_mapping($db,$admin,['title'=>'CI delayed mapping','device_id'=>$device['id'],'employee_id'=>$employee,'biometric_id'=>'CI-NEW','active'=>1]);check(att_retry_device_punches($db,$authenticated)===0,'Mapping save already recovered its stored punch');check((int)$db->query("SELECT COUNT(*) FROM hr_punch_processing WHERE status='Needs mapping'")->fetchColumn()===0,'Retry resolved mapping');
 // A backlog larger than one cycle must not starve later mapped punches.
 $backlog=[];for($i=0;$i<101;$i++)$backlog[]=['biometric_id'=>'CI-WAIT-'.$i,'event_key'=>'CI-WAIT-'.$i,'punched_at'=>'2026-02-11 22:00:00','direction'=>'in'];
 att_bridge_batch($db,$authenticated,$backlog);
 $db->exec("UPDATE hr_punch_processing SET processed_at='2000-01-01 00:00:00' WHERE status='Needs mapping'");
 att_save_mapping($db,$admin,['title'=>'CI last queued mapping','device_id'=>$device['id'],'employee_id'=>$employee,'biometric_id'=>'CI-WAIT-100','active'=>1]);
-check(att_retry_device_punches($db,$authenticated)===100,'Automatic batch bound');
-check(att_retry_device_punches($db,$authenticated)===100,'Automatic next batch');
+check(att_retry_device_punches($db,$authenticated)===0,'Unmapped users must not consume retry slots');
+check((int)$db->query("SELECT COUNT(*) FROM hr_punch_processing WHERE status='Needs mapping'")->fetchColumn()===100,'Unmapped raw punches must remain stored');
 $q=$db->query("SELECT x.status FROM hr_punch_processing x JOIN hr_punches p ON p.id=x.punch_id WHERE p.event_key='CI-WAIT-100'");check($q->fetchColumn()==='Processed','Unmapped backlog starved later mapping');
 check($db->query('SELECT source FROM hr_attendance WHERE id='.$id)->fetchColumn()==='Admin Manual','Automatic retry changed manual attendance');
+// Mapping recovery is bounded and continues on later authenticated syncs.
+$bulk=[];for($i=0;$i<105;$i++)$bulk[]=['biometric_id'=>'CI-RECOVER','event_key'=>'CI-RECOVER-'.$i,'punched_at'=>date('Y-m-d H:i:s',strtotime('2026-02-13 22:00:00')+$i*20),'direction'=>'in'];
+att_bridge_batch($db,$authenticated,$bulk);
+att_save_mapping($db,$admin,['title'=>'CI recovery batch','device_id'=>$device['id'],'employee_id'=>$employee,'biometric_id'=>'CI-RECOVER','active'=>1]);
+$q=$db->query("SELECT COUNT(*) FROM hr_punch_processing x JOIN hr_punches p ON p.id=x.punch_id WHERE p.biometric_id='CI-RECOVER' AND x.status='Processed'");check((int)$q->fetchColumn()===100,'Mapping save must process only its bounded batch');
+check(att_retry_device_punches($db,$authenticated)===5,'Remaining eligible punches must drain on next sync');
+$db->exec("UPDATE hr_punch_processing x JOIN hr_punches p ON p.id=x.punch_id SET x.status='Unmapped',x.employee_id=NULL,x.attendance_date=NULL WHERE p.event_key='CI-RECOVER-104'");
+check(att_retry_device_punches($db,$authenticated)===1,'Legacy Unmapped status must recover after valid mapping');
+check((int)$db->query("SELECT COUNT(*) FROM hr_punch_processing WHERE status='Needs mapping'")->fetchColumn()===100,'Unknown users must not be deleted or fabricated as attendance');
+
 $_SESSION['attendance_import']=['actor'=>1,'expires'=>time()+600,'nonce'=>'ci','rows'=>[['employee_id'=>$code,'date'=>'2026-02-12','check_in'=>'22:00','check_out'=>'06:00'],['employee_id'=>$code,'date'=>'2026-02-02','check_in'=>'22:00','check_out'=>'06:00']]];blocked(fn()=>att_import_commit($db,$admin,['import_nonce'=>'ci']),'Conflicting import accepted');check((int)$db->query("SELECT COUNT(*) FROM hr_attendance WHERE attendance_date='2026-02-12'")->fetchColumn()===0,'Partial import saved');
 att_device_action($db,$admin,['device_id'=>$device['id'],'device_action'=>'revoke']);blocked(fn()=>att_bridge_auth($db,'Bearer '.$token),'Revoked token accepted');blocked(fn()=>att_retry_device_punches($db,$authenticated),'Automatic retry accepted revoked token');
 att_save_event($db,$admin,['title'=>'CI Event','type'=>'Training','start'=>'2026-02-01','end'=>'2026-02-02','all_day'=>1,'audience'=>'Everyone','active'=>1]);check(count(chr_rows($db,'company_events'))===1,'Calendar persisted');blocked(fn()=>att_save_event($db,$viewer,[]),'Calendar permission bypass');
@@ -64,3 +74,4 @@ try {
  blocked(fn()=>att_save_employee_schedule($db,$admin,$locked),'Recorded attendance schedule replaced');
 } finally {if($db->inTransaction())$db->rollBack();}
 echo "Employee default and temporary shift checks passed\n";
+
