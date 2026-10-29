@@ -23,6 +23,10 @@ function att_bridge_auth(PDO $db,string $authorization):array {
 function att_process_punch(PDO $db,array $device,int $punchId,array $event):void {
  $maps=array_values(array_filter(chr_rows($db,'mapping'),fn($r)=>$r['status']==='Active'&&($r['values']['device_code']??'')===$device['values']['device_code']&&($r['values']['biometric_id']??'')===$event['biometric_id']));
  $state='Needs mapping';$error='Biometric User ID '.$event['biometric_id'].' has no unique active employee mapping';$employee=null;$day=null;
+ // Automatic mappings do not attach a previous employee's pre-joining punches.
+ if(count($maps)===1&&!empty($maps[0]['values']['valid_from'])&&substr($event['punched_at'],0,10)<$maps[0]['values']['valid_from']){
+  $db->prepare("UPDATE hr_punch_processing SET employee_id=NULL,attendance_date=NULL,status='Before joining date',error_message='Punch predates the automatic mapping joining date; review manually',processed_at=NOW() WHERE punch_id=?")->execute([$punchId]);return;
+ }
  if(count($maps)===1){$employee=(int)$maps[0]['employee_id'];$e=foundation_employee($db,$employee);if(!$e||!in_array($e['employment_status'],['Active','Notice Period'],true)){$state='Inactive employee';$error=$e?'Employee employment status: '.$e['employment_status']:'Employee not found or archived';}else{
  $db->prepare('UPDATE hr_punch_processing SET employee_id=?,attendance_date=NULL WHERE punch_id=?')->execute([$employee,$punchId]);$resolved=att_punch_shift($db,$employee,$event['punched_at']);$day=$resolved['day'];$shift=$resolved['shift'];
  $q=$db->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND attendance_date=? FOR UPDATE');$q->execute([$employee,$day]);$existing=$q->fetch(PDO::FETCH_ASSOC);
@@ -88,4 +92,5 @@ function att_retry_punches(PDO $db,array $actor,array $in):int {
  $device=att_device($db,(int)($in['device_id']??0));$device['actor_id']=$actor['id'];
  $count=att_retry_device_punches($db,$device);faudit($db,$actor,'biometric.raw.retry',(int)$device['id']);return $count;
 }
+
 

@@ -87,3 +87,17 @@ if(notificationRoot){
  });
 })();
 
+
+
+// Derive the preview only; PHP independently validates the ID and device on save.
+(()=>{
+ const section=document.querySelector('[data-employee-biometric]');if(!section)return;
+ const code=document.querySelector('#employee-details-form [name="employee_code"]');
+ const enabled=section.querySelector('[data-auto-biometric]'),device=section.querySelector('[data-auto-biometric-device]'),preview=section.querySelector('[data-auto-biometric-preview]'),hint=section.querySelector('[data-auto-biometric-hint]');
+ const update=()=>{
+  const match=code.value.trim().match(/^AT([0-9]+)$/i),id=match?match[1].replace(/^0+/,''):'';
+  preview.value=id;device.disabled=!enabled.checked;device.required=enabled.checked;
+  hint.textContent=!enabled.checked?'Automatic mapping is off. You can map this employee later in Employee Mapping.':id?`Employee ID ${code.value.trim()} → machine user ID ${id}.`:'Enter an Employee ID such as AT00341 → machine user ID 341.';
+ };
+ code.addEventListener('input',update);enabled.addEventListener('change',update);update();
+})();

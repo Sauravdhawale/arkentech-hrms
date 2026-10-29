@@ -1,12 +1,12 @@
 // Read-only browser verification against existing disposable regression fixtures.
 const assert=require('node:assert/strict');
-const {spawn}=require('node:child_process');
+const {spawn,execFileSync}=require('node:child_process');
 const {mkdirSync}=require('node:fs');
 const {chromium}=require(process.env.UI_PLAYWRIGHT_PATH||'playwright');
 assert.equal(process.env.DB_NAME,'peopleflow_ci');
 const server=spawn('php',['-S','127.0.0.1:8100','-t','.'],{stdio:'ignore'});
 const base='http://127.0.0.1:8100';
-(async()=>{let browser;try{
+(async()=>{let browser,mappingFixture=null;try{
  for(let n=0;n<50;n++){try{if((await fetch(base+'/login.php')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  browser=await chromium.launch({headless:true});const page=await browser.newPage({viewport:{width:1440,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(base+'/login.php');await page.locator('[name=email]').fill('test.admin');await page.locator('[name=password]').fill('Admin-Changed-2026!');await Promise.all([page.waitForURL(u=>!u.pathname.endsWith('/login.php')),page.locator('.login-submit').click()]);
@@ -22,6 +22,17 @@ const base='http://127.0.0.1:8100';
  await page.locator('[data-open-dialog="attendance-import"]').click();assert.ok(await page.locator('#attendance-import').evaluate(e=>e.open));await page.keyboard.press('Escape');
  const cell=page.locator('.att-sheet-cell').first();assert.ok(await cell.count());await cell.click();assert.ok(await page.locator('#sheet-status').evaluate(e=>e.open));assert.ok((await page.locator('#sheet-status [name=attendance_date]').inputValue()).startsWith('2026-02'));assert.ok(await page.locator('#sheet-status [name=sheet_status] option[value=Absent]').count());await page.screenshot({path:'/tmp/shrms-ui-screenshots/attendance-status-popup.png',animations:'disabled'});await page.keyboard.press('Escape');
  await page.locator('#theme-toggle').click();await page.screenshot({path:'/tmp/shrms-ui-screenshots/attendance-sheet-dark.png',fullPage:true,animations:'disabled'});
+ // ESS regressions leave biometric mode off. Preserve that fixture after this UI check.
+ await page.goto(base+'/super-admin.php?page=employee-add');assert.equal(await page.locator('[data-auto-biometric]').count(),0,'Mapping hidden while biometric mode is off');
+ mappingFixture=JSON.parse(execFileSync('php',['-r',`require 'auth.php'; $db=db(); $r=$db->query("SELECT id,data FROM hr_records WHERE module='attendance_settings' ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC); if(!$r)exit(1); echo json_encode($r); $v=json_decode($r['data'],true); $v['mode']='Manual + Biometric'; $v['biometric_enabled']=true; $db->prepare('UPDATE hr_records SET data=? WHERE id=?')->execute([json_encode($v),$r['id']]);`],{encoding:'utf8'}));
+ await page.goto(base+'/super-admin.php?page=employee-add');
+ const autoMap=page.locator('[data-auto-biometric]');assert.equal(await autoMap.count(),1);assert.ok(await autoMap.isChecked());
+ await page.locator('[name=employee_code]').fill('AT00341');assert.equal(await page.locator('[data-auto-biometric-preview]').inputValue(),'341');
+ await page.locator('[name=employee_code]').fill('AT00177');assert.equal(await page.locator('[data-auto-biometric-preview]').inputValue(),'177');
+ await autoMap.uncheck();assert.ok(await page.locator('[data-auto-biometric-device]').isDisabled());
+ await autoMap.check();assert.ok(await page.locator('[data-auto-biometric-device]').isEnabled());
+ for(const width of [1440,390]){await page.setViewportSize({width,height:1000});assert.ok(await page.locator('body').evaluate(e=>e.scrollWidth<=innerWidth+1),'Employee form overflow '+width);}
  assert.deepEqual(errors,[]);console.log('PASS: attendance pages, responsive layouts, sheet dialogs, historical cell editing and dark theme.');
- }finally{if(browser)await browser.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1;});
+ }finally{if(mappingFixture)execFileSync('php',['-r',"require 'auth.php'; $r=json_decode($argv[1],true); db()->prepare('UPDATE hr_records SET data=? WHERE id=?')->execute([$r['data'],$r['id']]);",JSON.stringify(mappingFixture)]);if(browser)await browser.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1;});
+
 
