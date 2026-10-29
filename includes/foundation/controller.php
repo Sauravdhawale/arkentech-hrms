@@ -11,6 +11,13 @@ require_once dirname(__DIR__).'/payroll/profile-salary.php';
 $error='';$notice=$_SESSION['foundation_notice']??'';unset($_SESSION['foundation_notice']);
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
 if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
+if($page==='attendance'&&isset($_GET['live_status'])){
+ if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);exit;}
+ header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store, private');
+ if(!att_ready($pdo)){http_response_code(409);echo json_encode(['error'=>'Attendance setup is incomplete']);exit;}
+ try{$live=att_live_people($pdo,$_GET);$live['as_of']=date(DATE_ATOM);$live['timezone']=date_default_timezone_get();$live['can_manage']=can($pdo,$user,'attendance.manage');echo json_encode($live,JSON_THROW_ON_ERROR);}
+ catch(Throwable $e){http_response_code(503);echo json_encode(['error'=>'Live attendance is temporarily unavailable']);error_log('Live attendance read failed: '.get_class($e));}exit;
+}
 if(isset($_GET['export'])&&in_array($page,['attendance','attendance_history','monthly','daily_work_status'],true))chr_export($pdo,$user,$page);
 if(isset($_GET['export'])&&$page==='payroll_reports'){try{pay_export($pdo,$user,$_GET);}catch(InvalidArgumentException $e){http_response_code(400);exit(h($e->getMessage()));}}
 $docTypes=['Aadhaar Card','PAN Card','Resume','Offer Letter','Appointment Letter','Education Documents','Experience Letter','Relieving Letter','Passport','Other Documents'];
@@ -144,6 +151,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
 if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
 require __DIR__.'/layout.php';
+
 
 
 

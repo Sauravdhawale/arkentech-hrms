@@ -5,7 +5,7 @@ function ess_punch_sequence(array $punches,int $duplicateSeconds=10):array {
  $state='none';$last=null;$inferred=false;$count=0;$events=[];
  foreach($punches as $p){
   $at=strtotime($p['punched_at']);
-  if($last!==null&&$at-strtotime($last)<$duplicateSeconds)continue;
+  if(empty($p['manual'])&&$last!==null&&$at-strtotime($last)<$duplicateSeconds)continue;
   $direction=$p['direction']??'unknown';
   if(in_array($direction,['in','out'],true)){$state=$direction;$inferred=false;}
   else{$state=$state==='in'?'out':'in';$inferred=true;}
@@ -14,7 +14,23 @@ function ess_punch_sequence(array $punches,int $duplicateSeconds=10):array {
  return ['state'=>$state,'last'=>$last,'inferred'=>$inferred,'count'=>$count,'events'=>$events];
 }
 /** Manual attendance is a presence baseline, not a reason to ignore later device events. */
-function ess_presence_sequence(?array $attendance,array $punches):array {
+function ess_presence_sequence(?array $attendance,array $punches,array $manualEvents=[]):array {
+ // Explicit admin punches remain authoritative at their own time; subsequent device punches still apply.
+ if($manualEvents){
+  usort($manualEvents,fn($a,$b)=>strcmp($a['punched_at'],$b['punched_at']) ?: (($a['id']??0)<=>($b['id']??0)));
+  $lastManual=$manualEvents[count($manualEvents)-1]['punched_at'];
+  $baseline=$attendance?($attendance['check_out']?:$attendance['check_in']):null;
+  if(!$baseline||$lastManual>=$baseline){
+   $events=[];
+   if(!empty($attendance['check_in']))$events[]=['punched_at'=>$attendance['check_in'],'direction'=>'in'];
+   foreach($punches as $p){
+    if(!in_array($p['status'],['Processed','Manual protected'],true)){if($p['punched_at']>$lastManual)return ['state'=>'review'];continue;}
+    $events[]=$p;
+   }
+   foreach($manualEvents as $p)$events[]=['id'=>PHP_INT_MAX,'punched_at'=>$p['punched_at'],'direction'=>$p['action']==='Check In'?'in':'out','manual'=>true];
+   return ess_punch_sequence($events);
+  }
+ }
  $events=[];$anchor=null;
  if($attendance&&($attendance['source']??'')!=='Biometric'){
   $anchor=$attendance['check_out']?:$attendance['check_in'];
@@ -52,7 +68,10 @@ function ess_punch_status(PDO $db,int $owner):array {
   $q=$db->prepare('SELECT p.id,p.punched_at,p.direction,x.status FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id WHERE x.employee_id=? AND x.attendance_date=? AND p.punched_at<=? ORDER BY p.punched_at,p.id');
   $q->execute([$owner,$day,date('Y-m-d H:i:s')]);$punches=$q->fetchAll(PDO::FETCH_ASSOC);
  }
- $sequence=ess_presence_sequence($attendance?:null,$punches);
+ $base+=['attendance_date'=>$day,'attendance_id'=>(int)($attendance['id']??0),'attendance_version'=>(int)($attendance['version']??0)];
+ $mq=$db->prepare('SELECT id,action,punched_at FROM hr_manual_punch_events WHERE employee_id=? AND attendance_date=? AND punched_at<=? ORDER BY punched_at,id');$mq->execute([$owner,$day,date('Y-m-d H:i:s')]);
+ $sequence=ess_presence_sequence($attendance?:null,$punches,$mq->fetchAll(PDO::FETCH_ASSOC));
+ $base['last_punch_at']=$sequence['last']??null;
  if($sequence['state']==='review')return array_replace($base,['state'=>'review','label'=>'Punch needs review','detail'=>'Attendance processing is incomplete']);
  [$start,$end]=chr_shift_bounds($day,$resolved['shift']['values']);
  $timing=ess_shift_timer($sequence['events'],$start->getTimestamp(),$end->getTimestamp(),$resolved['shift']['values'],time(),(int)att_config($db)['punch_after_minutes']*60);
@@ -62,7 +81,7 @@ function ess_punch_status(PDO $db,int $owner):array {
  if($sequence['state']==='none')return $base+['timing'=>$timing];
  $missing=$sequence['state']==='in'&&time()>$end->getTimestamp()+(int)att_config($db)['punch_after_minutes']*60;
  return ['state'=>$missing?'review':$sequence['state'],'label'=>$missing?'Check-Out missing':($sequence['state']==='in'?'Checked In':'Checked Out'),
- 'detail'=>date('h:i A',strtotime($sequence['last'])).' · '.($sequence['inferred']?'Inferred':'Recorded'), 'inferred'=>$sequence['inferred'],'timing'=>$timing];
+ 'detail'=>date('h:i A',strtotime($sequence['last'])).' · '.($sequence['inferred']?'Inferred':'Recorded'), 'inferred'=>$sequence['inferred'],'timing'=>$timing]+$base;
 }
 
 
@@ -95,5 +114,6 @@ function ess_shift_timer(array $events,int $start,int $end,array $shift,int $now
   'first_in_label'=>$first?date('d M, h:i A',$first):'—','last_out_label'=>$lastOut?date('d M, h:i A',$lastOut):'—',
   'inferred'=>$inferred,'expired'=>$now>$limit];
 }
+
 
 

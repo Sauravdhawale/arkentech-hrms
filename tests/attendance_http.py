@@ -57,6 +57,15 @@ try:
  assert 'No device punches in this date range' in h
  _,h=get(a,'super-admin.php?page=attendance');assert 'id="manual-punch"' not in h
  assert 'attendance-tools' not in h
+ assert 'data-attendance-live' in h and 'admin-live-punch' in h
+ _,live=get(a,'super-admin.php?page=attendance&live_status=1')
+ live=json.loads(live);assert isinstance(live['people'],list) and live['can_manage'] is True and 'timezone' in live
+ _,past=get(a,'super-admin.php?page=attendance&date=2026-02-02')
+ assert 'Attendance report' in past and 'shift start date' in past
+ try:get(client(),'super-admin.php?page=attendance&live_status=1')
+ except urllib.error.HTTPError as e:assert e.code in (401,403)
+ else:
+  _,unauth=get(client(),'super-admin.php?page=attendance&live_status=1');assert 'presence_revision' not in unauth and '"people"' not in unauth
  _,sheet=get(a,'super-admin.php?page=daily_work_status&month=2026-02')
  assert 'Export sheet' in sheet and 'Download template' in sheet and 'id="sheet-entry"' in sheet and 'att_import_preview' in sheet
  _,sheet_csv=get(a,'super-admin.php?page=daily_work_status&month=2026-02&export=1')
@@ -97,6 +106,7 @@ try:
  print('PASS: attendance upgrade pages, manual import controls and calendar rendering.')
 finally:
  server.terminate();server.wait(timeout=10);log.close()
+
 
 
 
