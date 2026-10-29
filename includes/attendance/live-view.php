@@ -10,7 +10,7 @@ $live=att_live_people($pdo,$_GET);$live['as_of']=date(DATE_ATOM);$live['timezone
  <div class="att-live-counts" data-live-counts></div>
  <section class="card att-live-card"><div class="att-live-toolbar"><div><strong>Employee status</strong><p data-live-updated role="status">Loading current status…</p></div><button class="button" type="button" data-live-refresh>Refresh now</button></div>
  <p class="att-live-note">Unknown device directions are labelled <strong>Inferred</strong>. Repeated scans within 10 seconds count once for presence; raw punches stay stored. Worked and break times are live estimates, not final payroll totals.</p>
- <div class="att-live-scroll" tabindex="0" role="region" aria-label="Live employee attendance"><table><thead><tr><th>Employee</th><th>Current status</th><th>Current shift</th><th>Latest punch</th><th>Worked</th><th>Break</th><?php if($live['can_manage']):?><th>Admin action</th><?php endif;?></tr></thead><tbody data-live-rows></tbody></table></div>
+ <div class="table-scroll att-live-scroll" tabindex="0" role="region" aria-label="Live employee attendance"><table><thead><tr><th>Employee</th><th>Current status</th><th>Current shift</th><th>Latest punch</th><th>Worked</th><th>Break</th><?php if($live['can_manage']):?><th>Admin action</th><?php endif;?></tr></thead><tbody data-live-rows></tbody></table></div>
  <p data-live-limit hidden>Showing the first 200 employees. Narrow the employee, department or name filter to see others.</p>
  </section>
  <noscript><p>Enable JavaScript for live status, or use <a href="?page=attendance&amp;date=<?=date('Y-m-d')?>">Attendance by date</a>.</p></noscript>
