@@ -14,7 +14,7 @@ const base='http://127.0.0.1:8100';
  for(const route of ['attendance_dashboard&date=2026-02-02','daily_work_status&month=2026-02','monthly&month=2026-02','attendance']){
   await page.goto(base+'/super-admin.php?page='+route);assert.equal(/Fatal error|Warning:|Parse error/.test(await page.locator('body').innerText()),false,route);
   if(route.startsWith('attendance_dashboard')){assert.equal(await page.getByRole('heading',{name:'Check-ins by hour'}).count(),0);assert.equal(await page.locator('.att-kpi').count(),4);}
-  if(route==='attendance')assert.equal(await page.locator('.attendance-tools').count(),0);
+  if(route==='attendance'){assert.equal(await page.locator('.attendance-tools').count(),0);await page.locator('[data-live-rows] tr').first().waitFor();assert.equal(await page.locator('[data-live-counts] .card').count(),4);const response=page.waitForResponse(r=>r.url().includes('live_status=1')&&r.status()===200);await page.getByRole('button',{name:'Refresh now'}).click();await response;assert.match(await page.locator('[data-live-updated]').innerText(),/Updated/);}
   for(const width of [1440,390]){await page.setViewportSize({width,height:1000});assert.ok(await page.locator('body').evaluate(e=>e.scrollWidth<=innerWidth+1),'page overflow '+route+' '+width);await page.screenshot({path:'/tmp/shrms-ui-screenshots/attendance-'+route.split('&')[0]+'-'+width+'.png',fullPage:true,animations:'disabled'});}
  }
  await page.setViewportSize({width:1440,height:1000});await page.goto(base+'/super-admin.php?page=daily_work_status&month=2026-02');
@@ -24,3 +24,4 @@ const base='http://127.0.0.1:8100';
  await page.locator('#theme-toggle').click();await page.screenshot({path:'/tmp/shrms-ui-screenshots/attendance-sheet-dark.png',fullPage:true,animations:'disabled'});
  assert.deepEqual(errors,[]);console.log('PASS: attendance pages, responsive layouts, sheet dialogs, historical cell editing and dark theme.');
  }finally{if(browser)await browser.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1;});
+

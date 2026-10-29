@@ -77,3 +77,18 @@ check_status($t['after_end']===3600&&$t['late']===1800&&$t['net_overtime']===180
 $t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-05 18:30:00'),7200);
 check_status($t['net_overtime']===0&&$t['state']==='out','Checkout pauses overtime; late deduction cannot make it negative');
 echo "Net overtime interval checks passed\n";
+
+
+// Admin overrides carry explicit direction; old punches and breaks remain in the timeline.
+$manual=['source'=>'Admin Manual','check_in'=>'2026-10-01 18:00:00','check_out'=>null];
+$raw=[event_at('2026-10-01 18:00:00')+['status'=>'Processed'],event_at('2026-10-01 20:00:00')+['status'=>'Processed']];
+$adminEvents=[['id'=>1,'punched_at'=>'2026-10-01 21:00:00','action'=>'Check In']];
+$s=ess_presence_sequence($manual,$raw,$adminEvents);
+check_status($s['state']==='in'&&$s['last']==='2026-10-01 21:00:00','Admin re-entry must not be replaced by older biometric OUT');
+$t=ess_shift_timer($s['events'],strtotime('2026-10-01 18:00:00'),strtotime('2026-10-02 03:00:00'),['required_hours'=>8,'break_minutes'=>60],strtotime('2026-10-01 22:00:00'));
+check_status($t['worked']===10800&&$t['break']===3600,'Admin re-entry must preserve prior work and break intervals');
+$raw[]=event_at('2026-10-01 22:00:00')+['status'=>'Manual protected'];
+check_status(ess_presence_sequence($manual,$raw,$adminEvents)['state']==='out','Later biometric event must follow explicit admin IN');
+$adminEvents[]=['id'=>2,'punched_at'=>'2026-10-01 22:00:01','action'=>'Check In'];
+check_status(ess_presence_sequence($manual,$raw,$adminEvents)['state']==='in','Explicit admin correction is not suppressed as a duplicate scan');
+echo "Admin presence timeline checks passed\n";

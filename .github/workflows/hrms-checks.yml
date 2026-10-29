@@ -41,6 +41,7 @@ jobs:
           php tests/admin_audit.php
           python3 tests/admin_unavailable.py
           php tests/attendance_upgrade.php
+          php tests/attendance_live.php
           php tests/attendance_sheet_status.php
           php tests/attendance_punch_windows.php
           php tests/attendance_xlsx.php
@@ -88,6 +89,7 @@ jobs:
           name: shrms-ui-screenshots
           path: /tmp/shrms-ui-screenshots/
           if-no-files-found: ignore
+
 
 
 
