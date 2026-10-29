@@ -22,6 +22,14 @@ const base='http://127.0.0.1:8100';
  await page.locator('[data-open-dialog="attendance-import"]').click();assert.ok(await page.locator('#attendance-import').evaluate(e=>e.open));await page.keyboard.press('Escape');
  const cell=page.locator('.att-sheet-cell').first();assert.ok(await cell.count());await cell.click();assert.ok(await page.locator('#sheet-status').evaluate(e=>e.open));assert.ok((await page.locator('#sheet-status [name=attendance_date]').inputValue()).startsWith('2026-02'));assert.ok(await page.locator('#sheet-status [name=sheet_status] option[value=Absent]').count());await page.screenshot({path:'/tmp/shrms-ui-screenshots/attendance-status-popup.png',animations:'disabled'});await page.keyboard.press('Escape');
  await page.locator('#theme-toggle').click();await page.screenshot({path:'/tmp/shrms-ui-screenshots/attendance-sheet-dark.png',fullPage:true,animations:'disabled'});
+ await page.goto(base+'/super-admin.php?page=employee-add');
+ const autoMap=page.locator('[data-auto-biometric]');assert.equal(await autoMap.count(),1);assert.ok(await autoMap.isChecked());
+ await page.locator('[name=employee_code]').fill('AT00341');assert.equal(await page.locator('[data-auto-biometric-preview]').inputValue(),'341');
+ await page.locator('[name=employee_code]').fill('AT00177');assert.equal(await page.locator('[data-auto-biometric-preview]').inputValue(),'177');
+ await autoMap.uncheck();assert.ok(await page.locator('[data-auto-biometric-device]').isDisabled());
+ await autoMap.check();assert.ok(await page.locator('[data-auto-biometric-device]').isEnabled());
+ for(const width of [1440,390]){await page.setViewportSize({width,height:1000});assert.ok(await page.locator('body').evaluate(e=>e.scrollWidth<=innerWidth+1),'Employee form overflow '+width);}
  assert.deepEqual(errors,[]);console.log('PASS: attendance pages, responsive layouts, sheet dialogs, historical cell editing and dark theme.');
  }finally{if(browser)await browser.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1;});
+
 

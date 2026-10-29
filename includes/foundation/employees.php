@@ -5,6 +5,7 @@ require_once __DIR__.'/employee-csv.php';
 function save_employee(PDO $pdo,array $actor,array $in,array $files):int {
  $id=(int)($in['id']??0);$old=$id?foundation_employee($pdo,$id):null;if($id&&!$old)throw new InvalidArgumentException('Employee not found.');
  $q=$pdo->prepare("SELECT id FROM users WHERE id=? AND role='super_admin'");$q->execute([$id]);if($q->fetchColumn())throw new InvalidArgumentException('Super Admin accounts are protected.');
+ if(!empty($in['biometric_auto_map'])&&$old)throw new InvalidArgumentException('Use Employee Mapping to change an existing employee mapping.');
  $first=ftext($in,'first_name',80,true);$middle=ftext($in,'middle_name',100);$last=ftext($in,'last_name',80,true);$name=trim(preg_replace('/\s+/',' ',"$first $middle $last"));if(strlen($name)>150)throw new InvalidArgumentException('Full name must be at most 150 characters.');
  $email=femail($in,'email');$personal=femail($in,'personal_email');$username=strtolower(ftext($in,'username',190));if($username!==''&&!preg_match('/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/',$username))throw new InvalidArgumentException('Enter a valid username.');
  $department=(int)($in['department_id']??0);$designation=(int)($in['designation_id']??0);$role=(int)($in['role_id']??0);$manager=(int)($in['manager_id']??0)?:null;
@@ -30,6 +31,11 @@ function save_employee(PDO $pdo,array $actor,array $in,array $files):int {
   $pdo->prepare('INSERT INTO user_roles(user_id,role_id) VALUES(?,?) ON DUPLICATE KEY UPDATE role_id=VALUES(role_id)')->execute([$id,$role]);
   if(in_array($status,['Inactive','Resigned','Terminated'],true))$pdo->prepare('UPDATE users SET active=0,session_version=session_version+1 WHERE id=?')->execute([$id]);
   if(!empty($in['assigned_shift_id'])){if(!function_exists('chr_ready')||!chr_ready($pdo))throw new InvalidArgumentException('Enable Core HR before assigning a shift.');chr_save_config($pdo,$actor,'roster',['title'=>'Default employee shift','employee_id'=>$id,'shift_id'=>$in['assigned_shift_id'],'from'=>($in['shift_from']??'')?:$joining,'to'=>$in['shift_to']??'','notes'=>'Default shift assigned when saving employee','active'=>1]);}
+  if(!empty($in['biometric_auto_map'])){
+   if(!function_exists('att_ready')||!att_ready($pdo))throw new InvalidArgumentException('Enable biometric attendance before using automatic mapping.');
+   require_once dirname(__DIR__).'/attendance/employee-mapping.php';
+   att_map_new_employee($pdo,$actor,$id,(int)($in['biometric_device_id']??0));
+  }
   save_media($pdo,$actor,$id,'profile',$photo);faudit($pdo,$actor,$old?'employee.profile_updated':'employee.created',$id);if($ownsTransaction)$pdo->commit();return $id;
  }catch(Throwable $e){if($ownsTransaction&&$pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
@@ -76,5 +82,6 @@ function foundation_bulk_employees(PDO $db,array $actor,array $in):string {
   $db->commit();return count($ids).($operation==='delete'?' employees permanently deleted, including their accounts and personal attendance records.':' employee assignments updated.');
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
+
 
 

@@ -69,7 +69,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
      if(($_POST['employment_status']??'')!=='Active')throw new InvalidArgumentException('Initial salary setup requires an active employee.');
      $salaryDraft=pay_profile_input($pdo,$user,$_POST['salary']??[],(string)($_POST['joining_date']??''));
     }
-    $id=save_employee($pdo,$user,$_POST,$_FILES);$_SESSION['foundation_notice']='Employee saved.';
+    $id=save_employee($pdo,$user,$_POST,$_FILES);$_SESSION['foundation_notice']='Employee saved.';if(!empty($_POST['biometric_auto_map']))$_SESSION['foundation_notice'].=' Biometric ID '.att_employee_biometric_id((string)$_POST['employee_code']).' mapped automatically.';
     if($salaryDraft!==null){
      $_SESSION['profile_salary_draft']=['actor'=>(int)$user['id'],'employee_id'=>$id,'input'=>$salaryDraft];
      unset($_SESSION['profile_salary_preview']);
@@ -151,6 +151,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
 if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
 require __DIR__.'/layout.php';
+
 
 
 
