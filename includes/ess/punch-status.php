@@ -1,11 +1,16 @@
 <?php
 /** Read-only presence estimate. Never changes payroll, raw punches or attendance. */
-function ess_punch_sequence(array $punches,int $duplicateSeconds=10):array {
+function ess_punch_sequence(array $punches):array {
  usort($punches,fn($a,$b)=>strcmp($a['punched_at'],$b['punched_at']) ?: (($a['id']??0)<=>($b['id']??0)));
- $state='none';$last=null;$inferred=false;$count=0;$events=[];
+ $state='none';$last=null;$inferred=false;$count=0;$events=[];$seen=[];
  foreach($punches as $p){
   $at=strtotime($p['punched_at']);
-  if(empty($p['manual'])&&$last!==null&&$at-strtotime($last)<$duplicateSeconds)continue;
+  // Each distinct scan counts, even seconds apart. Only an identical event is a retry.
+  if(empty($p['manual'])){
+   $key=isset($p['id'])?'id:'.$p['id']:'event:'.json_encode([$p['device_code']??'', $p['biometric_id']??'', $p['punched_at'], $p['direction']??'unknown']);
+   if(isset($seen[$key]))continue;
+   $seen[$key]=true;
+  }
   $direction=$p['direction']??'unknown';
   if(in_array($direction,['in','out'],true)){$state=$direction;$inferred=false;}
   else{$state=$state==='in'?'out':'in';$inferred=true;}
@@ -22,7 +27,12 @@ function ess_presence_sequence(?array $attendance,array $punches,array $manualEv
   $baseline=$attendance?($attendance['check_out']?:$attendance['check_in']):null;
   if(!$baseline||$lastManual>=$baseline){
    $events=[];
-   if(!empty($attendance['check_in']))$events[]=['punched_at'=>$attendance['check_in'],'direction'=>'in'];
+   // Do not synthesize a second IN beside the actual first raw/admin event.
+   $hasFirst=false;
+   foreach(array_merge($punches,$manualEvents) as $p){
+    if($p['punched_at']===($attendance['check_in']??null)&&(!isset($p['status'])||in_array($p['status'],['Processed','Manual protected'],true)))$hasFirst=true;
+   }
+   if(!empty($attendance['check_in'])&&!$hasFirst)$events[]=['punched_at'=>$attendance['check_in'],'direction'=>'in'];
    foreach($punches as $p){
     if(!in_array($p['status'],['Processed','Manual protected'],true)){if($p['punched_at']>$lastManual)return ['state'=>'review'];continue;}
     $events[]=$p;
