@@ -22,9 +22,9 @@
   for(const person of next.people){
    const s=person.presence,t=s.timing||{},tr=node('tr');counts[s.state]=(counts[s.state]||0)+1;
    cell(tr,person.name,`${person.employee_code||'No employee ID'} · ${person.department||'No department'}`);
-   const status=cell(tr,'');status.append(node('span',s.label,`att-live-badge ${s.state}`));status.append(node('small',s.inferred?'Inferred from punch sequence':s.detail));
+   const status=cell(tr,'');status.append(node('span',s.label,`att-live-badge ${s.state}`));status.append(node('small',s.checkout_missing?s.detail:(s.inferred?'Inferred from punch sequence':s.detail)));
    const shift=cell(tr,s.attendance_date||'No current shift',t.shift_label||'Review the employee shift assignment');
-   if(s.attendance_date){const link=node('a','View daily record');link.href=`?page=attendance&date=${encodeURIComponent(s.attendance_date)}&employee_id=${Number(person.user_id)}`;shift.append(link);}
+   {const link=node('a','View monthly record');link.href=`?page=attendance&month=${encodeURIComponent((s.attendance_date||next.as_of).slice(0,7))}&employee_id=${Number(person.user_id)}`;shift.append(link);}
    cell(tr,time(s.last_punch_at));cell(tr,duration(t.worked));cell(tr,duration(t.break));
    if(next.can_manage){const action=cell(tr,'');
     if(s.attendance_date&&!t.expired&&['in','out','none'].includes(s.state)){
@@ -68,3 +68,4 @@
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});
  render(data);setInterval(load,5000);
 })();
+

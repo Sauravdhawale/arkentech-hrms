@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__).'/core-hr/service.php';
+require_once __DIR__.'/punch-bounds.php';
 function att_device(PDO $db,int $id):array{$r=chr_record($db,'devices',$id);if(!$r)throw new InvalidArgumentException('Device not found.');return $r;}
 function att_save_device(PDO $db,array $actor,array $in):void {
  att_require_biometric($db);if(!can($db,$actor,'biometric.manage'))throw new InvalidArgumentException('Device management is not permitted.');$code=ftext($in,'device_code',80,true);if(!preg_match('/^[A-Za-z0-9._-]+$/D',$code))throw new InvalidArgumentException('Use letters, numbers, dots, underscores or hyphens for the serial.');
@@ -32,7 +33,7 @@ function att_process_punch(PDO $db,array $device,int $punchId,array $event):void
  $q=$db->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND attendance_date=? FOR UPDATE');$q->execute([$employee,$day]);$existing=$q->fetch(PDO::FETCH_ASSOC);
  $manualAbsence=false;foreach(chr_rows($db,'attendance_status') as $mark)if($mark['status']==='Active'&&(int)$mark['employee_id']===$employee&&($mark['values']['date']??'')===$day)$manualAbsence=true;
  if($manualAbsence||($existing&&$existing['source']!=='Biometric')){$state='Manual protected';$error='Raw punch retained; manual attendance was not overwritten';}else{
- $db->prepare('UPDATE hr_punch_processing SET employee_id=?,attendance_date=?,status="Pending",error_message="" WHERE punch_id=?')->execute([$employee,$day,$punchId]);$q=$db->prepare('SELECT p.punched_at,p.direction FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id WHERE x.employee_id=? AND x.attendance_date=? AND x.status IN ("Processed","Pending","Review needed") ORDER BY p.punched_at,p.id');$q->execute([$employee,$day]);$all=$q->fetchAll(PDO::FETCH_ASSOC);$in=null;$out=null;foreach($all as $p){if($in===null&&$p['direction']!=='out')$in=$p['punched_at'];if($in!==null&&$p['punched_at']>$in&&$p['direction']!=='in')$out=$p['punched_at'];}
+ $db->prepare('UPDATE hr_punch_processing SET employee_id=?,attendance_date=?,status="Pending",error_message="" WHERE punch_id=?')->execute([$employee,$day,$punchId]);$q=$db->prepare('SELECT p.id,p.punched_at,p.direction FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id WHERE x.employee_id=? AND x.attendance_date=? AND x.status IN ("Processed","Pending","Review needed") ORDER BY p.punched_at,p.id');$q->execute([$employee,$day]);$all=$q->fetchAll(PDO::FETCH_ASSOC);[$in,$out]=att_biometric_bounds($all);
  if(!$in){$state='Pending';$error='Waiting for a check-in within the effective shift window';}else{$snapshot=$existing?json_decode($existing['shift_snapshot'],true):($shift['values']??null);$metrics=chr_calculate($day,$in,$out,$snapshot,true);$v=[$in,$out,$existing?$existing['shift_id']:($shift['id']??null),json_encode($snapshot),$metrics['working_minutes'],$metrics['late_minutes'],$metrics['early_minutes'],$metrics['overtime_minutes'],$metrics['status']];
  if($existing&&($existing['check_in']!==$in||$existing['check_out']!==$out))$db->prepare('UPDATE hr_attendance SET check_in=?,check_out=?,shift_id=?,shift_snapshot=?,working_minutes=?,late_minutes=?,early_minutes=?,overtime_minutes=?,status=?,version=version+1 WHERE id=?')->execute([...$v,$existing['id']]);elseif(!$existing) $db->prepare("INSERT INTO hr_attendance(check_in,check_out,shift_id,shift_snapshot,working_minutes,late_minutes,early_minutes,overtime_minutes,status,source,notes,updated_by,employee_id,attendance_date) VALUES(?,?,?,?,?,?,?,?,?,'Biometric','Bridge calculation',?,?,?)")->execute([...$v,$device['actor_id'],$employee,$day]);$state='Processed';$error='';$db->prepare("UPDATE hr_punch_processing SET status='Processed',error_message='',processed_at=NOW() WHERE employee_id=? AND attendance_date=? AND status IN ('Processed','Pending','Review needed')")->execute([$employee,$day]);if(!$existing||$existing['check_in']!==$in||$existing['check_out']!==$out)faudit($db,['id'=>$device['actor_id']],'biometric.attendance.recalculated',$punchId);}
  }}}
@@ -92,5 +93,6 @@ function att_retry_punches(PDO $db,array $actor,array $in):int {
  $device=att_device($db,(int)($in['device_id']??0));$device['actor_id']=$actor['id'];
  $count=att_retry_device_punches($db,$device);faudit($db,$actor,'biometric.raw.retry',(int)$device['id']);return $count;
 }
+
 
 

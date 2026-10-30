@@ -24,7 +24,7 @@ assert.equal(w('overtime'),'00h 30m 00s');assert.equal(a('overtime'),w('overtime
 tick(5);assert.equal(w('worked'),'09h 00m 00s');assert.equal(w('overtime'),'00h 30m 00s','No overtime while checked out');
 send({state:'review',label:'Check-Out missing',timing:{...baseline,as_of:72001,expired:true,worked:36000,after_end:7200}});
 assert.equal(a('worked'),'10h 00m 00s','Expired totals remain visible for review');
-assert.match(attendance.querySelector('[data-attendance-live-state]').textContent,/Check-Out missing/);
+assert.match(attendance.querySelector('[data-attendance-live-state]').textContent,/Last punch: Check In/);
 send({state:'review',label:'Punch needs review'});assert.equal(a('worked'),'—');assert.equal(w('worked'),'—');
 send({state:'none',timing:{...baseline,state:'none',worked:0,first_in:null}});tick(5);assert.equal(w('worked'),'00h 00m 00s');
 console.log('PASS: shift-end overtime, matching cards, delayed polls, outage bounds, checkout, recovery and review states.');
@@ -39,3 +39,4 @@ assert.match(work.querySelector('[data-workday-target]').textContent,/29 Oct, 04
 send({state:'in',timing:{...night,as_of:102600,worked:31000,after_end:1800}});
 assert.equal(w('overtime'),'00h 10m 51s','30 minutes after end minus 19m09s late arrival');
 assert.equal(a('overtime'),w('overtime'));
+

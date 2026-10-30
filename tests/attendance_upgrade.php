@@ -35,6 +35,19 @@ check(att_retry_device_punches($db,$authenticated)===1,'Legacy Unmapped status m
 check((int)$db->query("SELECT COUNT(*) FROM hr_punch_processing WHERE status='Needs mapping'")->fetchColumn()===100,'Unknown users must not be deleted or fabricated as attendance');
 
 $_SESSION['attendance_import']=['actor'=>1,'expires'=>time()+600,'nonce'=>'ci','rows'=>[['employee_id'=>$code,'date'=>'2026-02-12','check_in'=>'22:00','check_out'=>'06:00'],['employee_id'=>$code,'date'=>'2026-02-02','check_in'=>'22:00','check_out'=>'06:00']]];blocked(fn()=>att_import_commit($db,$admin,['import_nonce'=>'ci']),'Conflicting import accepted');check((int)$db->query("SELECT COUNT(*) FROM hr_attendance WHERE attendance_date='2026-02-12'")->fetchColumn()===0,'Partial import saved');
+// Unknown-direction scans use the exact same alternation for storage and reports.
+$makePunch=fn($key,$at)=>['biometric_id'=>'CI-1','event_key'=>$key,'punched_at'=>$at,'direction'=>'unknown'];
+att_bridge_batch($db,$authenticated,[$makePunch('CI-TOGGLE-IN','2026-02-16 22:00:00'),$makePunch('CI-TOGGLE-OUT','2026-02-17 00:00:00')]);
+$q=$db->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND attendance_date=?');$q->execute([$employee,'2026-02-16']);$two=$q->fetch(PDO::FETCH_ASSOC);check($two['check_out']==='2026-02-17 00:00:00','Second punch closes attendance');
+att_bridge_batch($db,$authenticated,[$makePunch('CI-TOGGLE-REENTRY','2026-02-17 00:00:09')]);
+$q->execute([$employee,'2026-02-16']);$three=$q->fetch(PDO::FETCH_ASSOC);check($three['check_out']===null&&$three['status']==='Open'&&(int)$three['early_minutes']===0,'Re-entry must not become a false checkout or early departure');
+// Simulate a previously saved first/last record: report repair is read-only.
+$db->prepare('UPDATE hr_attendance SET check_out=?,status="Present" WHERE id=?')->execute(['2026-02-17 00:00:09',$three['id']]);
+$beforeLegacy=$db->query('SELECT * FROM hr_attendance WHERE id='.(int)$three['id'])->fetch(PDO::FETCH_ASSOC);
+$daily=chr_report($db,'2026-02-16','2026-02-16',['employee_id'=>$employee]);check(!$daily[0]['check_out']&&(int)$daily[0]['early_minutes']===0,'Legacy report must not label last IN as OUT');
+check($beforeLegacy===$db->query('SELECT * FROM hr_attendance WHERE id='.(int)$three['id'])->fetch(PDO::FETCH_ASSOC),'Reading a report modified stored attendance');
+att_bridge_batch($db,$authenticated,[$makePunch('CI-TOGGLE-FINAL','2026-02-17 06:00:00')]);
+$q->execute([$employee,'2026-02-16']);check($q->fetch(PDO::FETCH_ASSOC)['check_out']==='2026-02-17 06:00:00','Next actual OUT closes attendance');
 att_device_action($db,$admin,['device_id'=>$device['id'],'device_action'=>'revoke']);blocked(fn()=>att_bridge_auth($db,'Bearer '.$token),'Revoked token accepted');blocked(fn()=>att_retry_device_punches($db,$authenticated),'Automatic retry accepted revoked token');
 att_save_event($db,$admin,['title'=>'CI Event','type'=>'Training','start'=>'2026-02-01','end'=>'2026-02-02','all_day'=>1,'audience'=>'Everyone','active'=>1]);check(count(chr_rows($db,'company_events'))===1,'Calendar persisted');blocked(fn()=>att_save_event($db,$viewer,[]),'Calendar permission bypass');
 echo "PASS: additive migration, default-OFF, shifts, manual punches, import normalization, bridge dedupe, overnight processing, manual protection, token revocation, calendar and permission guards.\n";
@@ -74,4 +87,5 @@ try {
  blocked(fn()=>att_save_employee_schedule($db,$admin,$locked),'Recorded attendance schedule replaced');
 } finally {if($db->inTransaction())$db->rollBack();}
 echo "Employee default and temporary shift checks passed\n";
+
 

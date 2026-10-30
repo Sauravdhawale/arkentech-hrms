@@ -14,13 +14,13 @@ function projectShift(t,received){
  return {age,now,worked,after,late,early,breaks,overtime:Math.max(0,after-late),stale:age>=liveGraceSeconds,delayed:age>15,expired:t.expired||now>=t.limit};
 }
 function timerState(t,p,reconnecting){
- if(p.expired)return t.state==='in'?'Check-Out missing · review required':'Shift complete';
+ if(p.expired)return t.state==='in'?'Last punch: Check In · review required':'Shift complete';
  if(p.stale)return 'Timer paused · reconnecting';
  if(reconnecting||p.delayed)return 'Reconnecting · estimated time';
  return t.state==='in'?(p.now>=t.shift_end?'Checked In · After-shift time':'Checked In · Working'):t.state==='out'?(p.now<t.shift_end?'Checked Out · Break running':'Checked Out'):'Not checked in';
 }
 function timerNote(t,p,reconnecting){
- if(p.expired)return `Counting window ended${t.limit_label?' at '+t.limit_label:''}. ${t.state==='in'?'Check-out is missing; ask HR to review the punches and allowed after-shift window.':'Showing the last recorded totals.'}`;
+ if(p.expired)return `Counting window ended${t.limit_label?' at '+t.limit_label:''}. ${t.state==='in'?'No checkout was recorded. Timer paused; ask HR to review the punches and allowed after-shift window.':'Showing the last recorded totals.'}`;
  if(p.stale)return 'Connection unavailable for 90 seconds. Totals are paused estimates until the server responds; no attendance records have been changed.';
  const source=t.inferred?'Estimated from alternating biometric punches. ':'Based on recorded punch directions. ';
  return `${reconnecting||p.delayed?'Reconnecting; temporarily estimating from the last verified status. ':''}${source}Work pauses while checked out. Overtime counts worked time after shift end, minus late arrival, minimum zero. Completing required hours early does not start overtime. ${t.manual_baseline?'Earlier manual attendance is used as a baseline. ':''}Live estimates; payroll approval remains separate.`;
@@ -111,4 +111,5 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape')document.que
 
 
 })();
+
 
