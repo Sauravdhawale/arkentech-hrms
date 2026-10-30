@@ -21,6 +21,13 @@ function chr_report_context(PDO $db,string $from,string $to):array {
  $ctx['punch_after_minutes']=att_ready($db)?(int)att_config($db)['punch_after_minutes']:120;
  $q=$db->prepare('SELECT * FROM hr_attendance WHERE attendance_date BETWEEN ? AND ?');$q->execute([$from,$to]);foreach($q as $r)$ctx['attendance'][(int)$r['employee_id']][$r['attendance_date']]=$r;
  if(att_ready($db)){$q=$db->prepare('SELECT DISTINCT x.employee_id,x.attendance_date,p.device_code FROM hr_punch_processing x JOIN hr_punches p ON p.id=x.punch_id WHERE x.attendance_date BETWEEN ? AND ?');$q->execute([$from,$to]);foreach($q as $row)$ctx['devices'][(int)$row['employee_id']][$row['attendance_date']][]=$row['device_code'];}
+ // Reconcile legacy first/last calculations for reports without rewriting stored rows or payslips.
+ if(att_ready($db)){
+  require_once dirname(__DIR__).'/attendance/punch-bounds.php';
+  $q=$db->prepare("SELECT p.id,p.punched_at,p.direction,x.employee_id,x.attendance_date FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id JOIN hr_attendance a ON a.employee_id=x.employee_id AND a.attendance_date=x.attendance_date WHERE x.attendance_date BETWEEN ? AND ? AND x.status='Processed' AND a.source='Biometric' ORDER BY p.punched_at,p.id");
+  $q->execute([$from,$to]);$sequences=[];foreach($q as $raw)$sequences[(int)$raw['employee_id']][$raw['attendance_date']][]=$raw;
+  foreach($sequences as $employee=>$days)foreach($days as $day=>$raw)$ctx['attendance'][$employee][$day]=att_biometric_record($ctx['attendance'][$employee][$day],$raw);
+ }
  $q=$db->prepare("SELECT r.* FROM hr_requests r WHERE r.kind='leave' AND r.status='Pending' AND r.start_date<=? AND r.end_date>=?");$q->execute([$to,$from]);foreach($q->fetchAll(PDO::FETCH_ASSOC) as $r)foreach(chr_request_days($db,$r) as $d)if($d['leave_date']>=$from&&$d['leave_date']<=$to&&(float)$d['units']>0){$ctx['pending_leave'][(int)$r['user_id']][$d['leave_date']]=min(1,($ctx['pending_leave'][(int)$r['user_id']][$d['leave_date']]??0)+(float)$d['units']);$ctx['pending_leave_parts'][(int)$r['user_id']][$d['leave_date']]=$d['day_part'];$ctx['pending_leave_codes'][(int)$r['user_id']][$d['leave_date']][]=$r['category'];}
  $q=$db->prepare("SELECT r.*,d.policy_snapshot FROM hr_requests r LEFT JOIN hr_leave_details d ON d.request_id=r.id WHERE r.kind='leave' AND r.status='Approved' AND r.start_date<=? AND r.end_date>=?");$q->execute([$to,$from]);foreach($q->fetchAll(PDO::FETCH_ASSOC) as $r)foreach(chr_request_days($db,$r) as $d)if($d['leave_date']>=$from&&$d['leave_date']<=$to){$policy=json_decode($r['policy_snapshot']??'null',true);$bucket=($policy?(!empty($policy['paid'])):($r['category']!=='LWP'))?'paid_leave':'unpaid_leave';$ctx[$bucket][(int)$r['user_id']][$d['leave_date']]=($ctx[$bucket][(int)$r['user_id']][$d['leave_date']]??0)+(float)$d['units'];$ctx['leave'][(int)$r['user_id']][$d['leave_date']]=min(1,($ctx['leave'][(int)$r['user_id']][$d['leave_date']]??0)+(float)$d['units']);if((float)$d['units']>0)$ctx['leave_parts'][(int)$r['user_id']][$d['leave_date']]=$d['day_part'];if((float)$d['units']>0)$ctx['leave_codes'][(int)$r['user_id']][$d['leave_date']][]=$r['category'];}return $ctx;
 }
@@ -71,5 +78,6 @@ function chr_report(PDO $db,string $from,string $to,array $filters=[]):array {
 function chr_monthly(array $rows):array {
  $summary=[];$keys=['working_days','present','absent','leave','paid_leave','unpaid_leave','holidays','week_offs','late_count','half_days','working_minutes','overtime_minutes'];foreach($rows as $r){$id=$r['employee_id'];if(!isset($summary[$id])){$summary[$id]=array_intersect_key($r,array_flip(['employee_id','name','employee_code','department']));foreach($keys as $k)$summary[$id][$k]=0;}foreach($keys as $k)$summary[$id][$k]+=$r[$k];}return array_values($summary);
 }
+
 
 

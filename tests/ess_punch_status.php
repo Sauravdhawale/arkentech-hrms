@@ -111,3 +111,13 @@ $s=ess_presence_sequence($manual,$raw,$adminEvents);
 check_status($types[603]['direction']==='out'&&$types[603]['direction']===$s['state'],'Log and live status share admin overrides and later quick device events');
 check_status($s['count']===4,'Synthetic attendance baseline must not double-count the first raw punch');
 echo "Every distinct punch and manual/log consistency checks passed\n";
+
+
+require_once __DIR__.'/../includes/attendance/punch-bounds.php';
+$raw=[event_at('2026-10-29 19:00:00'),event_at('2026-10-30 01:55:06'),event_at('2026-10-30 01:55:14')];
+check_status(att_biometric_bounds($raw)===['2026-10-29 19:00:00',null],'Last IN must leave checkout open');
+$raw[]=event_at('2026-10-30 02:50:00');
+check_status(att_biometric_bounds($raw)===['2026-10-29 19:00:00','2026-10-30 02:50:00'],'Only OUT closes attendance');
+check_status(att_biometric_bounds([event_at('2026-10-29 19:00:00','out')])===[null,null],'Orphan OUT cannot create check-in');
+check_status(att_biometric_bounds([event_at('2026-10-29 19:00:00','in'),event_at('2026-10-29 20:00:00','in')])===['2026-10-29 19:00:00',null],'Explicit repeated IN is not OUT');
+echo "Biometric checkout bounds passed\n";

@@ -21,10 +21,13 @@ function chr_export(PDO $db,array $user,string $page):void {
  catch(InvalidArgumentException $e){http_response_code(422);exit(h($e->getMessage()));}
  header('Content-Type: text/csv; charset=utf-8');header('Content-Disposition: attachment; filename="attendance-'.$from.'.csv"');header('Cache-Control: no-store');$out=fopen('php://output','w');if($rows){$keys=array_keys($rows[0]);fputcsv($out,$keys,',','"','');foreach($rows as $row){$safe=[];foreach($keys as $key){$v=(string)($row[$key]??'');$safe[]=preg_match('/^[\s]*[=+@-]/u',$v)?"'".$v:$v;}fputcsv($out,$safe,',','"','');}}else fputcsv($out,['No matching attendance'],',','"','');fclose($out);exit;
 }
+function chr_employee_month(array $in):bool {return (int)($in['employee_id']??0)>0&&!isset($in['edit'])&&(isset($in['month'])||isset($in['date']));}
 function chr_report_range(string $page,array $in):array {
+ if($page==='attendance'&&chr_employee_month($in)){if(!isset($in['month']))$in['month']=substr(chr_date((string)$in['date']),0,7);$page='monthly';}
  if(in_array($page,['monthly','daily_work_status'],true)){$month=$in['month']??date('Y-m');if(!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/',$month))throw new InvalidArgumentException('Choose a valid month.');$from=chr_date($month.'-01');return [$from,date('Y-m-t',strtotime($from))];}
  if($page==='attendance_history')return [chr_date($in['from']??date('Y-m-01')),chr_date($in['to']??date('Y-m-d'))];$day=chr_date($in['date']??date('Y-m-d'));return [$day,$day];
 }
 
 require_once dirname(__DIR__).'/attendance/controller.php';
+
 

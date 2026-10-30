@@ -90,8 +90,8 @@ function ess_punch_status(PDO $db,int $owner):array {
  $timing['limit_label']=date('d M, h:i A',$timing['limit']);
  if($sequence['state']==='none')return $base+['timing'=>$timing];
  $missing=$sequence['state']==='in'&&time()>$end->getTimestamp()+(int)att_config($db)['punch_after_minutes']*60;
- return ['state'=>$missing?'review':$sequence['state'],'label'=>$missing?'Check-Out missing':($sequence['state']==='in'?'Checked In':'Checked Out'),
- 'detail'=>date('h:i A',strtotime($sequence['last'])).' · '.($sequence['inferred']?'Inferred':'Recorded'), 'inferred'=>$sequence['inferred'],'timing'=>$timing]+$base;
+ return ['state'=>$missing?'review':$sequence['state'],'checkout_missing'=>$missing,'label'=>$missing?'Last punch: Check In':($sequence['state']==='in'?'Checked In':'Checked Out'),
+ 'detail'=>$missing?'No checkout recorded. Shift window ended; review required.':date('h:i A',strtotime($sequence['last'])).' · '.($sequence['inferred']?'Inferred':'Recorded'), 'inferred'=>$sequence['inferred'],'timing'=>$timing]+$base;
 }
 
 
@@ -124,6 +124,7 @@ function ess_shift_timer(array $events,int $start,int $end,array $shift,int $now
   'first_in_label'=>$first?date('d M, h:i A',$first):'—','last_out_label'=>$lastOut?date('d M, h:i A',$lastOut):'—',
   'inferred'=>$inferred,'expired'=>$now>$limit];
 }
+
 
 
 
