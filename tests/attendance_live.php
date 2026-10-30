@@ -34,8 +34,8 @@ $db->beginTransaction();try{
  $start=$now->modify('-10 hours');$end=$now->modify('-4 hours');$overtimeDay=$start->format('Y-m-d');
  $values['shift_snapshot']['start']=$start->format('H:i');$values['shift_snapshot']['end']=$end->format('H:i');
  $db->prepare('UPDATE hr_records SET data=? WHERE id=?')->execute([json_encode($values),$fixture['roster']]);
- $db->prepare('DELETE FROM hr_manual_punch_events WHERE employee_id=? AND attendance_date=?')->execute([$employee,$overtimeDay]);
- $db->prepare('DELETE FROM hr_attendance WHERE employee_id=? AND attendance_date=?')->execute([$employee,$overtimeDay]);
+ $db->prepare('DELETE FROM hr_manual_punch_events WHERE employee_id=? AND attendance_date IN (?,?)')->execute([$employee,$overtimeDay,$day]);
+ $db->prepare('DELETE FROM hr_attendance WHERE employee_id=? AND attendance_date IN (?,?)')->execute([$employee,$overtimeDay,$day]);
  $overtimeId=chr_save_attendance($db,$admin,['employee_id'=>$employee,'attendance_date'=>$overtimeDay,'check_in'=>$start->format('Y-m-d H:i:s'),'source'=>'Admin Manual','notes'=>'CI open overtime shift']);
  $status=ess_punch_status($db,$employee);
  live_check($status['state']==='in'&&!$status['timing']['expired'],'Elapsed buffer cannot replace actual IN with review/OUT');
