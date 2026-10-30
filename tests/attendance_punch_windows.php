@@ -36,6 +36,7 @@ sendPunch('Night','2026-03-10 18:00:00');
 ensure(att_punch_shift($db,$employees['Night'],'2026-03-11 10:30:00')['day']==='2026-03-10','Overtime stays on the night shift start date');
 sendPunch('Night','2026-03-11 10:30:00');$r=rowFor('Night','2026-03-10');
 ensure($r['check_out']==='2026-03-11 10:30:00','Real late OUT cannot be lost after buffer expires');
+ensure(att_punch_shift($db,$employees['Night'],'2026-03-11 17:30:00')['day']==='2026-03-11','Completed previous shift cannot steal the next early check-in');
 sendPunch('Night','2026-03-11 10:45:00');ensure(rowFor('Night','2026-03-10')['check_out']===null,'Late re-entry reopens overtime');
 ensure(att_punch_shift($db,$employees['Night'],'2026-03-11 17:59:00')['day']==='2026-03-10','Upcoming early buffer cannot steal an ongoing overtime shift');
 ensure(att_punch_shift($db,$employees['Night'],'2026-03-11 18:00:00')['day']==='2026-03-11','Next actual scheduled shift remains a separate workday');

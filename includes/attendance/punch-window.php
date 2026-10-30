@@ -7,7 +7,7 @@ function att_punch_shift(PDO $db,int $employee,string $timestamp):array {
   $day=$at->modify(sprintf('%+d days',$offset))->format('Y-m-d');
   $shift=att_resolve($context,$person,$day);
   // Calculated attendance keeps its original effective policy, even after settings change.
-  $q=$db->prepare('SELECT check_in,shift_id,shift_snapshot FROM hr_attendance WHERE employee_id=? AND attendance_date=?');$q->execute([$employee,$day]);$saved=$q->fetch(PDO::FETCH_ASSOC);
+  $q=$db->prepare('SELECT check_in,check_out,shift_id,shift_snapshot FROM hr_attendance WHERE employee_id=? AND attendance_date=?');$q->execute([$employee,$day]);$saved=$q->fetch(PDO::FETCH_ASSOC);
   $snapshot=$saved?json_decode($saved['shift_snapshot'],true):null;
   if(is_array($snapshot)&&isset($snapshot['start'],$snapshot['end']))$shift=['id'=>$saved['shift_id'],'values'=>$snapshot];
   if(!$shift||!isset($shift['values']['start'],$shift['values']['end']))continue;
@@ -30,7 +30,9 @@ function att_punch_shift(PDO $db,int $employee,string $timestamp):array {
   }
   if(!$continuation&&($at<$start->modify('-'.$before.' minutes')||$at>$end->modify('+'.$after.' minutes')))continue;
   $distance=$at<$start?$start->getTimestamp()-$at->getTimestamp():($at>$end?$at->getTimestamp()-$end->getTimestamp():0);
-  $candidates[]=['day'=>$day,'shift'=>$shift,'distance'=>$distance,'priority'=>$distance===0?0:($continuation?1:2)];
+  // Prefer an ongoing workday over the next early-entry buffer, but a closed
+  // workday must not steal a new day's early check-in.
+  $candidates[]=['day'=>$day,'shift'=>$shift,'distance'=>$distance,'priority'=>$distance===0?0:($continuation&&empty($saved['check_out'])?1:2)];
  }
  if(!$candidates)throw new InvalidArgumentException('No valid shift window for this punch. Check effective shift assignment and before/after buffers.');
  usort($candidates,fn($a,$b)=>($a['priority']<=>$b['priority'])?:($a['distance']<=>$b['distance']));
