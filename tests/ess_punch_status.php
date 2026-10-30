@@ -42,7 +42,7 @@ $timeline=ess_punch_sequence([event_at('2026-10-01 18:00:00','out'),event_at('20
 $t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-01 20:00:00'),7200);
 check_status($t['worked']===3600&&$t['break']===0,'Initial OUT is not a break before first IN');
 $t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-02 12:00:00'),7200);
-check_status($t['expired']&&$t['worked']===36000,'Missing checkout must not run forever after shift window');
+check_status(!$t['expired']&&$t['state']==='in'&&$t['worked']===61200&&$t['after_end']===32400,'Shift buffer must not stop an open IN or post-shift work');
 $manual=['source'=>'AdminManual','check_in'=>'2026-10-01 18:00:00','check_out'=>'2026-10-01 22:00:00'];
 $timeline=ess_presence_sequence($manual,[event_at('2026-10-01 23:00:00')+['status'=>'Manual protected']])['events'];
 $t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-02 00:00:00'),7200);
@@ -139,3 +139,19 @@ $timeline=ess_punch_sequence([event_at('2026-10-31 17:30:00','in')])['events'];
 $t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-11-01 03:30:00'),7200);
 check_status($t['before_start']===1800&&$t['shift_worked']===32400&&$t['net_overtime']===3600,'Overnight shift separates early work, scheduled work and after-shift work');
 echo "Early overtime and regular shift interval checks passed\n";
+
+// Regression: 3 AM end + 10 minute intake buffer cannot stop an open night shift.
+$start=strtotime('2026-10-30 18:00:00');$end=strtotime('2026-10-31 03:00:00');
+$events=[event_at('2026-10-30 18:00:00','in'),event_at('2026-10-31 02:00:00','out'),event_at('2026-10-31 02:25:00','in')];
+foreach(['02:59:59','03:00:00','03:09:59','03:10:00','03:10:01','03:44:00','04:44:00'] as $clock){
+ $now=strtotime('2026-10-31 '.$clock);$t=ess_shift_timer(ess_punch_sequence($events)['events'],$start,$end,$shift,$now,600);
+ check_status($t['state']==='in'&&!$t['expired'],'Time alone cannot change presence or expire the night shift');
+ check_status($t['after_end']===max(0,$now-$end),'Every checked-in second after scheduled end is accumulated');
+}
+$events[]=event_at('2026-10-31 04:45:00','out');
+$t=ess_shift_timer(ess_punch_sequence($events)['events'],$start,$end,$shift,strtotime('2026-10-31 05:00:00'),600);
+check_status($t['state']==='out'&&$t['after_end']===6300,'Actual OUT beyond the intake buffer stops overtime');
+$events[]=event_at('2026-10-31 05:15:00','in');
+$t=ess_shift_timer(ess_punch_sequence($events)['events'],$start,$end,$shift,strtotime('2026-10-31 05:30:00'),600);
+check_status($t['state']==='in'&&$t['after_end']===7200&&$t['break']===1500,'Overtime re-entry resumes work without counting the post-shift OUT gap');
+echo "Post-shift open interval regression checks passed\n";

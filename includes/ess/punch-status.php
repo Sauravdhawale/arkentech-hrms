@@ -61,7 +61,7 @@ function ess_punch_status(PDO $db,int $owner):array {
  if(!att_ready($db))return array_replace($base,['label'=>'Status unavailable','detail'=>'Attendance setup is incomplete']);
  try{$resolved=att_punch_shift($db,$owner,date('Y-m-d H:i:s'));}
  catch(InvalidArgumentException $e){
-  // Inspect a recently ended shift only to flag a missing OUT, never carry IN into a new shift.
+  // Keep the last recorded state visible between assignments; clock time is not an OUT.
   $q=$db->prepare('SELECT attendance_date,shift_snapshot FROM hr_attendance WHERE employee_id=? AND check_in>=? ORDER BY attendance_date DESC LIMIT 1');
   $q->execute([$owner,date('Y-m-d H:i:s',time()-36*3600)]);$recent=$q->fetch(PDO::FETCH_ASSOC);
   $snapshot=$recent?json_decode($recent['shift_snapshot'],true):null;
@@ -87,17 +87,17 @@ function ess_punch_status(PDO $db,int $owner):array {
  $timing=ess_shift_timer($sequence['events'],$start->getTimestamp(),$end->getTimestamp(),$resolved['shift']['values'],time(),(int)att_config($db)['punch_after_minutes']*60);
  $timing['shift_label']=($resolved['shift']['title']??'Assigned shift').' · '.date('d M, h:i A',$start->getTimestamp()).' – '.date('d M, h:i A',$end->getTimestamp());
  $timing['manual_baseline']=$attendance&&$attendance['source']!=='Biometric';
- $timing['limit_label']=date('d M, h:i A',$timing['limit']);
  if($sequence['state']==='none')return $base+['timing'=>$timing];
- $missing=$sequence['state']==='in'&&time()>$end->getTimestamp()+(int)att_config($db)['punch_after_minutes']*60;
- return ['state'=>$missing?'review':$sequence['state'],'checkout_missing'=>$missing,'label'=>$missing?'Last punch: Check In':($sequence['state']==='in'?'Checked In':'Checked Out'),
- 'detail'=>$missing?'No checkout recorded. Shift window ended; review required.':date('h:i A',strtotime($sequence['last'])).' · '.($sequence['inferred']?'Inferred':'Recorded'), 'inferred'=>$sequence['inferred'],'timing'=>$timing]+$base;
+ return ['state'=>$sequence['state'],'checkout_missing'=>false,'label'=>$sequence['state']==='in'?'Checked In':'Checked Out',
+ 'detail'=>date('h:i A',strtotime($sequence['last'])).' · '.($sequence['inferred']?'Inferred':'Recorded').($sequence['state']==='in'&&time()>$end->getTimestamp()?' · After-shift overtime':''), 'inferred'=>$sequence['inferred'],'timing'=>$timing]+$base;
 }
 
 
 /** Read-only timer based on accepted IN/OUT intervals; no fixed break is deducted twice. */
 function ess_shift_timer(array $events,int $start,int $end,array $shift,int $now,int $afterBuffer=0):array {
- $limit=$end+max(0,$afterBuffer);$until=min($now,$limit);
+ // Buffer controls new-shift intake only. Count an accepted IN until a real OUT
+ // or the current server time, including every post-shift overtime interval.
+ $until=$now;
  $worked=0;$before=0;$regular=0;$after=0;$break=0;$first=null;$lastOut=null;$inferred=false;$state='none';
  foreach($events as $i=>$event){
   $at=(int)$event['at'];if($at>$until)break;
@@ -119,13 +119,13 @@ function ess_shift_timer(array $events,int $start,int $end,array $shift,int $now
  $overtime=$rule==='After shift end'?$after:($rule==='After both'?min($after,$extra):$extra);
  // Employee cards share the published net-overtime rule. Payroll policy stays separate.
  $late=$first===null?0:max(0,$first-$start);
- return ['as_of'=>$now,'shift_start'=>$start,'shift_end'=>$end,'limit'=>$limit,'state'=>$state,
+ return ['as_of'=>$now,'shift_start'=>$start,'shift_end'=>$end,'limit'=>null,'state'=>$state,
   'worked'=>$worked,'shift_worked'=>$regular,'before_start'=>$before,'after_end'=>$after,'break'=>$break,'allowed_break'=>$allowed,'excess_break'=>max(0,$break-$allowed),
   'late'=>$late,'net_overtime'=>$before+max(0,$after-$late),
   'target'=>$target,'overtime'=>$overtime,'overtime_rule'=>$rule,'first_in'=>$first,'last_out'=>$lastOut,
   'shift_end_label'=>date('d M, h:i A',$end),
   'first_in_label'=>$first?date('d M, h:i A',$first):'—','last_out_label'=>$lastOut?date('d M, h:i A',$lastOut):'—',
-  'inferred'=>$inferred,'expired'=>$now>$limit];
+  'inferred'=>$inferred,'expired'=>false];
 }
 
 

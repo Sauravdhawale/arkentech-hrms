@@ -22,9 +22,9 @@ assert.match(work.querySelector('[data-workday-state]').textContent,/paused/);
 send({state:'out',timing:{...baseline,as_of:68400,state:'out',worked:32400,after_end:3600,first_in:34200}});
 assert.equal(w('overtime'),'00h 30m 00s');assert.equal(a('overtime'),w('overtime'),'Both cards deduct late arrival once');
 tick(5);assert.equal(w('worked'),'08h 00m 00s');assert.equal(w('overtime'),'00h 30m 00s','No overtime while checked out');
-send({state:'review',label:'Check-Out missing',timing:{...baseline,as_of:72001,expired:true,worked:36000,after_end:7200}});
-assert.equal(a('worked'),'08h 00m 00s','Expired shift totals remain visible for review');
-assert.match(attendance.querySelector('[data-attendance-live-state]').textContent,/Last punch: Check In/);
+send({state:'in',label:'Checked In',timing:{...baseline,as_of:72001,limit:null,worked:36001,after_end:7201}});
+assert.equal(a('worked'),'08h 00m 00s','Scheduled work remains fixed during overtime');
+assert.match(attendance.querySelector('[data-attendance-live-state]').textContent,/Checked In · After-shift overtime/);
 send({state:'review',label:'Punch needs review'});assert.equal(a('worked'),'—');assert.equal(w('worked'),'—');
 send({state:'none',timing:{...baseline,state:'none',worked:0,first_in:null}});tick(5);assert.equal(w('worked'),'00h 00m 00s');
 console.log('PASS: shift-end overtime, matching cards, delayed polls, outage bounds, checkout, recovery and review states.');
@@ -57,3 +57,16 @@ tick(20);assert.equal(w('worked'),'00h 00m 00s');assert.equal(w('overtime'),'00h
 send({state:'in',timing:{...earlySnapshot,as_of:86390,shift_start:86400,shift_end:118800,limit:126000,first_in:84600}});
 tick(20);assert.equal(w('worked'),'00h 00m 10s');assert.equal(w('overtime'),'00h 30m 00s');
 console.log('PASS: before-shift overtime, regular shift boundaries, pre-shift breaks, midnight and matching live cards.');
+
+// Cross the old cutoff without a new punch; only OT grows, in both employee cards.
+send({state:'in',timing:{...baseline,as_of:65399,limit:null,shift_worked:28800,worked:29399,after_end:599}});
+tick(10);
+assert.equal(w('worked'),'08h 00m 00s');assert.equal(w('overtime'),'00h 10m 09s');
+assert.match(work.querySelector('[data-workday-state]').textContent,/Checked In · After-shift overtime/);
+assert.equal(a('overtime'),w('overtime'));assert.doesNotMatch(work.querySelector('[data-workday-note]').textContent,/Counting window ended/);
+send({state:'in',timing:{...baseline,as_of:67440,limit:null,shift_worked:28800,worked:31440,after_end:2640}});
+assert.equal(w('overtime'),'00h 44m 00s');tick(10);assert.equal(w('overtime'),'00h 44m 10s');
+send({state:'out',timing:{...baseline,as_of:67500,limit:null,state:'out',shift_worked:28800,worked:31500,after_end:2700}});
+tick(10);assert.equal(w('overtime'),'00h 45m 00s');
+assert.match(work.querySelector('[data-workday-state]').textContent,/^Checked Out$/);
+console.log('PASS: old 10-minute cutoff no longer expires IN; post-shift OUT still stops both counters.');
