@@ -113,7 +113,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   await page.evaluate(()=>document.dispatchEvent(new CustomEvent('ess:punch-status',{detail:{state:'out',timing:{as_of:108000,limit:110000,worked:32400,after_end:7200,state:'out',first_in:72000,shift_start:68400,shift_end:100800,shift_label:'Test night shift',expired:false,inferred:false}}})));
   assert.equal(await page.locator('[data-attendance-live="late"]').innerText(),'01h 00m 00s');
   assert.equal(await page.locator('[data-attendance-live="overtime"]').innerText(),'01h 00m 00s');
-  assert.equal(await page.locator('[data-attendance-live="worked"]').innerText(),'09h 00m 00s');
+  assert.equal(await page.locator('[data-attendance-live="worked"]').innerText(),'07h 00m 00s');
   await page.evaluate(()=>document.dispatchEvent(new CustomEvent('ess:punch-status',{detail:{state:'review',label:'Unavailable'}})));
   assert.equal(await page.locator('[data-attendance-live="worked"]').innerText(),'—');
   await page.reload();
@@ -136,6 +136,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 
 

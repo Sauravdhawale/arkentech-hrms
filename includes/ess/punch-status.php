@@ -98,13 +98,16 @@ function ess_punch_status(PDO $db,int $owner):array {
 /** Read-only timer based on accepted IN/OUT intervals; no fixed break is deducted twice. */
 function ess_shift_timer(array $events,int $start,int $end,array $shift,int $now,int $afterBuffer=0):array {
  $limit=$end+max(0,$afterBuffer);$until=min($now,$limit);
- $worked=0;$after=0;$break=0;$first=null;$lastOut=null;$inferred=false;$state='none';
+ $worked=0;$before=0;$regular=0;$after=0;$break=0;$first=null;$lastOut=null;$inferred=false;$state='none';
  foreach($events as $i=>$event){
   $at=(int)$event['at'];if($at>$until)break;
   $state=$event['state'];$inferred=$inferred||$event['inferred'];
   $next=min($until,(int)($events[$i+1]['at']??$until));
   if($state==='in'){
-   $first=$first??$at;$worked+=max(0,$next-$at);$after+=max(0,$next-max($at,$end));
+   $first=$first??$at;$worked+=max(0,$next-$at);
+   $before+=max(0,min($next,$start)-$at);
+   $regular+=max(0,min($next,$end)-max($at,$start));
+   $after+=max(0,$next-max($at,$end));
   }elseif($first!==null){
    $lastOut=$at;$break+=max(0,min($next,$end)-max($at,$start));
   }
@@ -117,13 +120,14 @@ function ess_shift_timer(array $events,int $start,int $end,array $shift,int $now
  // Employee cards share the published net-overtime rule. Payroll policy stays separate.
  $late=$first===null?0:max(0,$first-$start);
  return ['as_of'=>$now,'shift_start'=>$start,'shift_end'=>$end,'limit'=>$limit,'state'=>$state,
-  'worked'=>$worked,'after_end'=>$after,'break'=>$break,'allowed_break'=>$allowed,'excess_break'=>max(0,$break-$allowed),
-  'late'=>$late,'net_overtime'=>max(0,$after-$late),
+  'worked'=>$worked,'shift_worked'=>$regular,'before_start'=>$before,'after_end'=>$after,'break'=>$break,'allowed_break'=>$allowed,'excess_break'=>max(0,$break-$allowed),
+  'late'=>$late,'net_overtime'=>$before+max(0,$after-$late),
   'target'=>$target,'overtime'=>$overtime,'overtime_rule'=>$rule,'first_in'=>$first,'last_out'=>$lastOut,
   'shift_end_label'=>date('d M, h:i A',$end),
   'first_in_label'=>$first?date('d M, h:i A',$first):'—','last_out_label'=>$lastOut?date('d M, h:i A',$lastOut):'—',
   'inferred'=>$inferred,'expired'=>$now>$limit];
 }
+
 
 
 

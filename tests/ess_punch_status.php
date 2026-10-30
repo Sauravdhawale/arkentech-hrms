@@ -121,3 +121,21 @@ check_status(att_biometric_bounds($raw)===['2026-10-29 19:00:00','2026-10-30 02:
 check_status(att_biometric_bounds([event_at('2026-10-29 19:00:00','out')])===[null,null],'Orphan OUT cannot create check-in');
 check_status(att_biometric_bounds([event_at('2026-10-29 19:00:00','in'),event_at('2026-10-29 20:00:00','in')])===['2026-10-29 19:00:00',null],'Explicit repeated IN is not OUT');
 echo "Biometric checkout bounds passed\n";
+
+
+// Split actual checked-in intervals, never assume an early arrival was all work.
+$start=strtotime('2026-10-31 09:00:00');$end=strtotime('2026-10-31 18:00:00');
+$shift=['required_hours'=>8,'break_minutes'=>60,'overtime_rule'=>'After shift end'];
+$timeline=ess_punch_sequence([event_at('2026-10-31 08:30:00','in'),event_at('2026-10-31 08:40:00','out'),event_at('2026-10-31 08:50:00','in'),event_at('2026-10-31 12:00:00','out'),event_at('2026-10-31 13:00:00','in')])['events'];
+$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-31 08:55:00'),7200);
+check_status($t['before_start']===900&&$t['shift_worked']===0&&$t['net_overtime']===900&&$t['break']===0,'Before shift counts only IN intervals as overtime, without regular time or pre-shift break');
+$t=ess_shift_timer($timeline,$start,$end,$shift,$start,7200);
+check_status($t['before_start']===1200&&$t['shift_worked']===0,'At exact start regular clock is zero');
+$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-10-31 19:00:00'),7200);
+check_status($t['before_start']===1200&&$t['shift_worked']===28800&&$t['after_end']===3600&&$t['net_overtime']===4800,'Before and after work combine; lunch is excluded');
+check_status($t['worked']===$t['before_start']+$t['shift_worked']+$t['after_end'],'No time is lost or counted twice');
+$start=strtotime('2026-10-31 18:00:00');$end=strtotime('2026-11-01 03:00:00');
+$timeline=ess_punch_sequence([event_at('2026-10-31 17:30:00','in')])['events'];
+$t=ess_shift_timer($timeline,$start,$end,$shift,strtotime('2026-11-01 03:30:00'),7200);
+check_status($t['before_start']===1800&&$t['shift_worked']===32400&&$t['net_overtime']===3600,'Overnight shift separates early work, scheduled work and after-shift work');
+echo "Early overtime and regular shift interval checks passed\n";

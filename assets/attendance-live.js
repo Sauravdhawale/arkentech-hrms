@@ -25,7 +25,7 @@
    const status=cell(tr,'');status.append(node('span',s.label,`att-live-badge ${s.state}`));status.append(node('small',s.checkout_missing?s.detail:(s.inferred?'Inferred from punch sequence':s.detail)));
    const shift=cell(tr,s.attendance_date||'No current shift',t.shift_label||'Review the employee shift assignment');
    {const link=node('a','View monthly record');link.href=`?page=attendance&month=${encodeURIComponent((s.attendance_date||next.as_of).slice(0,7))}&employee_id=${Number(person.user_id)}`;shift.append(link);}
-   cell(tr,time(s.last_punch_at));cell(tr,duration(t.worked));cell(tr,duration(t.break));
+   cell(tr,time(s.last_punch_at));cell(tr,t.shift_worked==null?'—':duration(t.shift_worked));cell(tr,t.net_overtime==null?'—':duration(t.net_overtime));cell(tr,duration(t.break));
    if(next.can_manage){const action=cell(tr,'');
     if(s.attendance_date&&!t.expired&&['in','out','none'].includes(s.state)){
      const label=s.state==='in'?'Check Out':'Check In';const b=node('button',label,'button '+(s.state==='in'?'':'primary'));b.type='button';b.dataset.liveEmployee=person.user_id;b.dataset.liveAction=label;b.setAttribute('aria-label',`${label} ${person.name}`);action.append(b);
@@ -33,7 +33,7 @@
    }
    rows.append(tr);
   }
-  if(!next.people.length){const tr=node('tr'),td=node('td','No active employees match these filters.');td.colSpan=next.can_manage?7:6;tr.append(td);rows.append(tr);}
+  if(!next.people.length){const tr=node('tr'),td=node('td','No active employees match these filters.');td.colSpan=next.can_manage?8:7;tr.append(td);rows.append(tr);}
   body.replaceChildren(rows);scroll.scrollLeft=x;scroll.scrollTop=y;
   const cards=document.createDocumentFragment();for(const [key,label] of Object.entries({in:'Checked in',out:'Checked out',none:'Not checked in',review:'Needs review'})){const card=node('div',undefined,'card att-live-count');card.append(node('span',label),node('strong',counts[key]));cards.append(card);}root.querySelector('[data-live-counts]').replaceChildren(cards);
   root.querySelector('[data-live-limit]').hidden=!next.limited;
@@ -68,4 +68,5 @@
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});
  render(data);setInterval(load,5000);
 })();
+
 

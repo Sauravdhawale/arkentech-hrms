@@ -2,7 +2,7 @@
 <form method="get" class="panel work-form ess-filter"><input type="hidden" name="page" value="attendance"><label>Overview month<input type="month" name="month" value="<?=h($month)?>" required></label><button class="primary">Apply</button><button type="button" class="wide-button" data-dialog-open="correction-dialog">Request a correction</button></form>
 <section class="panel ess-today-summary" data-attendance-today>
  <div class="ess-section-heading"><div><span class="eyebrow">CURRENT SHIFT</span><h2>Today’s time</h2><p data-attendance-live-shift>Loading your shift…</p></div><span class="ess-attendance-badge" data-attendance-live-state>Updating</span></div>
- <div class="ess-time-grid"><?php foreach(['worked'=>['Worked','Time worked, excluding recorded breaks'],'late'=>['Late arrival','Time after the shift started'],'early'=>['Early arrival','Time before the shift started'],'overtime'=>['Net overtime','After-shift time minus late arrival']] as $key=>$item):?><div><span><?=h($item[0])?></span><strong data-attendance-live="<?=h($key)?>">—</strong><small><?=h($item[1])?></small></div><?php endforeach;?></div>
+ <div class="ess-time-grid"><?php foreach(['worked'=>['Shift worked','Work during scheduled shift, excluding breaks'],'late'=>['Late arrival','Time after the shift started'],'early'=>['Early arrival','Time before the shift started'],'overtime'=>['Overtime','Before-shift work + after-shift work − late arrival']] as $key=>$item):?><div><span><?=h($item[0])?></span><strong data-attendance-live="<?=h($key)?>">—</strong><small><?=h($item[1])?></small></div><?php endforeach;?></div>
  <p class="ess-hint" data-attendance-live-note>Waiting for the latest punch data.</p>
 </section>
 <p class="ess-month-caption">Selected month · <?=h(date('F Y',strtotime($from)))?></p>
@@ -10,7 +10,7 @@
 <section class="panel ess-attendance-sheet">
  <div class="ess-section-heading"><div><h2>Attendance sheet · <?=h(date('F Y',strtotime($from)))?></h2><p>Dates follow the shift start, including overnight shifts. Worked uses saved attendance hours after break deductions.</p></div><span class="ess-attendance-count"><?=count($rows)?> days</span></div>
  <?php $reviewCount=count(array_filter($rows,fn($r)=>in_array($r['status'],['Review needed','Check-out missing'],true)));if($reviewCount):?><p class="ess-attendance-notice" role="status"><?= $reviewCount ?> <?= $reviewCount===1?'day needs':'days need' ?> attention. Invalid punch durations are excluded from totals; missing check-outs are not estimated. Use Request a correction.</p><?php endif;?>
- <p class="ess-time-rule"><strong>Net overtime</strong> = time after shift end − late arrival, minimum zero. Early arrival does not add overtime. Payroll approval remains separate.</p>
+ <p class="ess-time-rule"><strong>Saved monthly totals</strong> use the existing attendance calculation: after-shift time minus late arrival, minimum zero. The live counters above separately include before-shift overtime. Payroll approval remains separate.</p>
  <div class="table-scroll ess-attendance-scroll" tabindex="0" role="region" aria-label="Monthly employee attendance"><table data-freeze-first="true"><thead><tr><th scope="col">Shift date</th><th scope="col">Shift / schedule</th><th scope="col">Status</th><th scope="col">Check in</th><th scope="col">Check out</th><th scope="col">Worked</th><th scope="col">Late arrival</th><th scope="col">Early arrival</th><th scope="col">Net overtime</th><th scope="col">Details</th></tr></thead><tbody>
  <?php foreach($rows as $r):$needsReview=$r['status']==='Review needed';$missing=$r['status']==='Check-out missing';$pending=in_array($r['status'],['Open','Check-out missing'],true);?>
  <tr><th scope="row"><?=h(date('d M Y',strtotime($r['date'])))?><small><?=h(date('l',strtotime($r['date'])))?></small></th>
@@ -22,3 +22,4 @@
  <?php endforeach;if(!$rows):?><tr><td colspan="10">No attendance records for this month.</td></tr><?php endif;?></tbody></table></div>
 </section>
 <?php $requestKind='regularisation';$requestFrom=$from;$requestTo=$to;require __DIR__.'/requests-list.php';$dialogKind='correction';require __DIR__.'/request-dialog.php';?>
+
