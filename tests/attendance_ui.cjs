@@ -40,6 +40,7 @@ const base='http://127.0.0.1:8100';
  await page.goto(base+`/super-admin.php?page=attendance&employee_id=${employee}&month=2026-13`);assert.match(await page.locator('body').innerText(),/Choose a valid month/);
  await page.goto(base+`/super-admin.php?page=attendance&employee_id=${employee}&month=2026-02`);
  await Promise.all([page.waitForURL(u=>u.searchParams.has('edit'),{waitUntil:'domcontentloaded'}),page.getByRole('link',{name:'Correct record',exact:true}).first().click()]);assert.ok(await page.locator('[name=action][value=core_attendance]').count());
+ await page.locator('dialog[open]').waitFor();await page.keyboard.press('Escape');
  await Promise.all([page.waitForURL(u=>u.searchParams.get('month')==='2026-02'&&!u.searchParams.has('edit'),{waitUntil:'domcontentloaded'}),page.getByRole('link',{name:'Back to monthly record',exact:true}).click()]);assert.equal(await page.locator('[data-attendance-date]').count(),28);
  await page.goto(base+`/super-admin.php?page=attendance&employee_id=${employee}`);assert.ok(await page.locator('[data-attendance-live]').count(),'Employee filter alone stays live');
  const recordLink=page.getByRole('link',{name:'View monthly record',exact:true}).first();await Promise.all([page.waitForURL(u=>u.searchParams.has('month'),{waitUntil:'domcontentloaded'}),recordLink.click()]);assert.ok(await page.locator('[data-attendance-date]').count()>=28);
