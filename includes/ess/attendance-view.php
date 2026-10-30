@@ -2,7 +2,7 @@
 <form method="get" class="panel work-form ess-filter"><input type="hidden" name="page" value="attendance"><label>Overview month<input type="month" name="month" value="<?=h($month)?>" required></label><button class="primary">Apply</button><button type="button" class="wide-button" data-dialog-open="correction-dialog">Request a correction</button></form>
 <section class="panel ess-today-summary" data-attendance-today>
  <div class="ess-section-heading"><div><span class="eyebrow">CURRENT SHIFT</span><h2>Today’s time</h2><p data-attendance-live-shift>Loading your shift…</p></div><span class="ess-attendance-badge" data-attendance-live-state>Updating</span></div>
- <div class="ess-time-grid"><?php foreach(['worked'=>['Shift worked','Work during scheduled shift, excluding breaks'],'late'=>['Late arrival','Time after the shift started'],'early'=>['Early arrival','Time before the shift started'],'overtime'=>['Overtime','Before-shift work + after-shift work − late arrival']] as $key=>$item):?><div><span><?=h($item[0])?></span><strong data-attendance-live="<?=h($key)?>">—</strong><small><?=h($item[1])?></small></div><?php endforeach;?></div>
+ <div class="ess-time-grid"><?php foreach(['worked'=>['Total worked','All checked-in time, excluding breaks'],'shift_worked'=>['Within shift','Work between scheduled start and end'],'before_start'=>['Before shift','Worked time before scheduled start'],'after_end'=>['After shift','Worked time after scheduled end'],'late'=>['Late arrival','Time after the shift started'],'early'=>['Early arrival','Time before the shift started'],'late_remaining'=>['Late time to cover','Late arrival not yet covered by after-shift work'],'overtime'=>['Net overtime','Before-shift work + max(0, after-shift work − late arrival)']] as $key=>$item):?><div><span><?=h($item[0])?></span><strong data-attendance-live="<?=h($key)?>">—</strong><small><?=h($item[1])?></small></div><?php endforeach;?></div>
  <p class="ess-hint" data-attendance-live-note>Waiting for the latest punch data.</p>
 </section>
 <p class="ess-month-caption">Selected month · <?=h(date('F Y',strtotime($from)))?></p>
@@ -22,4 +22,5 @@
  <?php endforeach;if(!$rows):?><tr><td colspan="10">No attendance records for this month.</td></tr><?php endif;?></tbody></table></div>
 </section>
 <?php $requestKind='regularisation';$requestFrom=$from;$requestTo=$to;require __DIR__.'/requests-list.php';$dialogKind='correction';require __DIR__.'/request-dialog.php';?>
+
 

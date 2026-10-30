@@ -109,11 +109,11 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.equal(await page.locator('.ess-attendance-scroll tbody tr').count(),31);
   assert.equal(await page.locator('.ess-attendance-scroll th').filter({hasText:'Early arrival'}).count(),1);
   assert.equal(await page.locator('.ess-attendance-scroll th').filter({hasText:'Net overtime'}).count(),1);
-  assert.equal(await page.locator('[data-attendance-live]').count(),4);
+  assert.equal(await page.locator('[data-attendance-live]').count(),8);
   await page.evaluate(()=>document.dispatchEvent(new CustomEvent('ess:punch-status',{detail:{state:'out',timing:{as_of:108000,limit:110000,worked:32400,after_end:7200,state:'out',first_in:72000,shift_start:68400,shift_end:100800,shift_label:'Test night shift',expired:false,inferred:false}}})));
   assert.equal(await page.locator('[data-attendance-live="late"]').innerText(),'01h 00m 00s');
   assert.equal(await page.locator('[data-attendance-live="overtime"]').innerText(),'01h 00m 00s');
-  assert.equal(await page.locator('[data-attendance-live="worked"]').innerText(),'07h 00m 00s');
+  assert.equal(await page.locator('[data-attendance-live="worked"]').innerText(),'09h 00m 00s');
   await page.evaluate(()=>document.dispatchEvent(new CustomEvent('ess:punch-status',{detail:{state:'review',label:'Unavailable'}})));
   assert.equal(await page.locator('[data-attendance-live="worked"]').innerText(),'—');
   await page.reload();
@@ -122,10 +122,18 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   await page.locator('[data-dialog-open="correction-dialog"]').click();assert.equal(await page.locator('#correction-dialog').evaluate(e=>e.open),true);await page.keyboard.press('Escape');
   for(const width of [1440,390]){await page.setViewportSize({width,height:1000});await layout();await page.screenshot({path:'/tmp/shrms-ui-screenshots/employee-attendance-'+width+'.png',fullPage:true,animations:'disabled'});}
   await page.setViewportSize({width:1440,height:1000});
+  const overtimeExample={state:'in',label:'Checked In',detail:'After-shift overtime',timing:{as_of:101520,shift_start:68400,shift_end:100800,limit:null,state:'in',worked:25394,shift_worked:24674,before_start:0,after_end:720,first_in:70739,first_in_label:'30 Oct, 07:38 PM',last_out_label:'31 Oct, 02:00 AM',shift_end_label:'31 Oct, 04:00 AM',shift_label:'Night shift · 30 Oct, 07:00 PM – 31 Oct, 04:00 AM',break:5387,allowed_break:5400,target:28800,inferred:true,expired:false}};
+  await page.route('**/employee.php?punch_status=1',route=>route.fulfill({json:overtimeExample}));
   await page.goto(base+'/employee.php?page=overview');
-  assert.equal(await page.locator('[data-workday-value="after_end"]').count(),0,'Only one overtime total is shown');
+  await page.waitForFunction(()=>document.querySelector('[data-workday-value="worked"]').textContent==='07h 03m 14s');
+  await page.waitForFunction(()=>document.querySelector('[data-workday-value="worked"]').textContent!=='07h 03m 14s');
+  assert.equal(await page.locator('[data-workday-value="shift_worked"]').innerText(),'06h 51m 14s');
+  assert.equal(await page.locator('[data-workday-value="overtime"]').innerText(),'00h 00m 00s');
+  assert.match(await page.locator('[data-workday-state]').innerText(),/Checked In/);
+  assert.match(await page.locator('.ess-workday-punches').innerText(),/Last OUT punch/);
+  assert.equal(await page.locator('[data-workday-value="after_end"]').count(),1,'After-shift time is visible even when net overtime is zero');
   assert.equal(await page.locator('[data-workday-value="overtime"]').count(),1);
-  assert.equal(await page.locator('.ess-workday-metrics small').filter({hasText:/^Overtime$/}).count(),1);
+  assert.equal(await page.locator('.ess-workday-metrics small').filter({hasText:/^Net overtime$/}).count(),1);
   assert.match(await page.locator('script[src^="assets/ess.js"]').getAttribute('src'),/ess\.js\?v=[a-f0-9]{12}$/,'Attendance script uses a content version');
   await page.screenshot({path:'/tmp/shrms-ui-screenshots/employee.png'});
   await page.locator('[data-ess-theme]').click();assert.ok(await page.locator('body').evaluate(e=>e.classList.contains('dark')));await page.locator('[data-ess-theme]').click();
@@ -136,6 +144,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert.deepEqual(errors,[]);console.log('PASS: shared theme, both authenticated shells, navigation search/collapse, themes, modal and desktop/tablet/mobile layouts.');
  }finally{if(browser)await browser.close();server.kill();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 
 
