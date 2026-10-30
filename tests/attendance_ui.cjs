@@ -30,7 +30,7 @@ const base='http://127.0.0.1:8100';
  assert.ok(await page.locator('[data-attendance-date="2026-02-01"]').count());
  assert.ok(await page.locator('[data-attendance-date="2026-02-28"]').count());
  const csvLink=page.getByRole('link',{name:'Download CSV'});
- const csv=await page.request.get(await csvLink.getAttribute('href'));
+ const csv=await page.request.get(new URL(await csvLink.getAttribute('href'),page.url()).href);
  assert.ok(csv.ok());assert.match(csv.headers()['content-type'],/text\/csv/);
  const csvBody=await csv.text();assert.match(csvBody,/2026-02-01/);assert.match(csvBody,/2026-02-28/);
  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});assert.ok(await page.locator('body').evaluate(e=>e.scrollWidth<=innerWidth+1),'Monthly record overflow '+width);await page.screenshot({path:`/tmp/shrms-ui-screenshots/employee-month-${width}.png`,fullPage:true});}
