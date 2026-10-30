@@ -41,7 +41,7 @@ $db->beginTransaction();try{
  live_check($status['state']==='in'&&!$status['timing']['expired'],'Elapsed buffer cannot replace actual IN with review/OUT');
  live_check($status['attendance_date']===$overtimeDay&&$status['timing']['after_end']>=4*3600,'Open overtime retains shift date and counts beyond intake buffer');
  $live=att_live_people($db,['employee_id'=>$employee]);live_check($live['people'][0]['presence']['state']==='in','Admin list and employee status agree after shift end');
- $out=array_replace($input,['punch_action'=>'Check Out','request_key'=>str_repeat('a',64),'presence_revision'=>att_live_revision($status)]);
+ $out=array_replace($input,['punch_action'=>'Check Out','request_key'=>hash('sha256','live-overtime-checkout-regression'),'presence_revision'=>att_live_revision($status)]);
  att_live_punch($db,$admin,$out);$status=ess_punch_status($db,$employee);
  live_check($status['state']==='out','Admin live checkout works after the old buffer expires');
  live_check((bool)$db->query('SELECT check_out FROM hr_attendance WHERE id='.$overtimeId)->fetchColumn(),'Checkout only persisted following explicit admin action');
@@ -53,4 +53,3 @@ $db->beginTransaction();try{
  live_blocked(fn()=>chr_save_attendance($db,$admin,['employee_id'=>$employee,'attendance_date'=>'2026-02-18','check_in'=>'2026-02-21 00:30:00','source'=>'Admin Manual','notes'=>'Invalid date']),'Unrelated dates must still be rejected');
 }finally{if($db->inTransaction())$db->rollBack();}
 echo "PASS: live admin permission, reason, duplicate/concurrent guards, IN/OUT/re-entry, audit preservation and overnight assignment.\n";
-
