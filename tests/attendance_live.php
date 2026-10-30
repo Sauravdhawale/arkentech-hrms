@@ -30,6 +30,21 @@ $db->beginTransaction();try{
  live_check($db->query('SELECT check_in FROM hr_attendance WHERE id='.$id)->fetchColumn()===$earlier,'Re-entry must preserve first check-in');
  live_check((int)$db->query('SELECT COUNT(*) FROM hr_punches')->fetchColumn()===$rawCount,'Admin action must not delete or invent device punches');
  $q=$db->prepare('SELECT COUNT(*) FROM hr_manual_punch_events WHERE employee_id=? AND attendance_date=?');$q->execute([$employee,$day]);live_check((int)$q->fetchColumn()===3,'All manual punches must have audit events');
+ // Move a disposable shift into overtime, beyond the configured intake buffer.
+ $start=$now->modify('-10 hours');$end=$now->modify('-4 hours');$overtimeDay=$start->format('Y-m-d');
+ $values['shift_snapshot']['start']=$start->format('H:i');$values['shift_snapshot']['end']=$end->format('H:i');
+ $db->prepare('UPDATE hr_records SET data=? WHERE id=?')->execute([json_encode($values),$fixture['roster']]);
+ $db->prepare('DELETE FROM hr_manual_punch_events WHERE employee_id=? AND attendance_date=?')->execute([$employee,$overtimeDay]);
+ $db->prepare('DELETE FROM hr_attendance WHERE employee_id=? AND attendance_date=?')->execute([$employee,$overtimeDay]);
+ $overtimeId=chr_save_attendance($db,$admin,['employee_id'=>$employee,'attendance_date'=>$overtimeDay,'check_in'=>$start->format('Y-m-d H:i:s'),'source'=>'Admin Manual','notes'=>'CI open overtime shift']);
+ $status=ess_punch_status($db,$employee);
+ live_check($status['state']==='in'&&!$status['timing']['expired'],'Elapsed buffer cannot replace actual IN with review/OUT');
+ live_check($status['attendance_date']===$overtimeDay&&$status['timing']['after_end']>=4*3600,'Open overtime retains shift date and counts beyond intake buffer');
+ $live=att_live_people($db,['employee_id'=>$employee]);live_check($live['people'][0]['presence']['state']==='in','Admin list and employee status agree after shift end');
+ $out=array_replace($input,['punch_action'=>'Check Out','request_key'=>str_repeat('a',64),'presence_revision'=>att_live_revision($status)]);
+ att_live_punch($db,$admin,$out);$status=ess_punch_status($db,$employee);
+ live_check($status['state']==='out','Admin live checkout works after the old buffer expires');
+ live_check((bool)$db->query('SELECT check_out FROM hr_attendance WHERE id='.$overtimeId)->fetchColumn(),'Checkout only persisted following explicit admin action');
  // A fixed historical night shift: first punch after midnight still belongs to the prior day.
  $values['shift_snapshot']['start']='22:00';$values['shift_snapshot']['end']='06:00';$db->prepare('UPDATE hr_records SET data=? WHERE id=?')->execute([json_encode($values),$fixture['roster']]);
  $nightDay='2026-02-20';$db->prepare('DELETE FROM hr_attendance WHERE employee_id=? AND attendance_date=?')->execute([$employee,$nightDay]);
@@ -38,3 +53,4 @@ $db->beginTransaction();try{
  live_blocked(fn()=>chr_save_attendance($db,$admin,['employee_id'=>$employee,'attendance_date'=>'2026-02-18','check_in'=>'2026-02-21 00:30:00','source'=>'Admin Manual','notes'=>'Invalid date']),'Unrelated dates must still be rejected');
 }finally{if($db->inTransaction())$db->rollBack();}
 echo "PASS: live admin permission, reason, duplicate/concurrent guards, IN/OUT/re-entry, audit preservation and overnight assignment.\n";
+

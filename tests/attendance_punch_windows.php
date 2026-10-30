@@ -28,9 +28,22 @@ $q=$db->prepare("SELECT COUNT(*) FROM hr_punch_processing WHERE employee_id=? AN
 sendPunch('Night','2026-03-06 00:15:00');sendPunch('Night','2026-03-06 08:30:00');$r=rowFor('Night','2026-03-05');ensure($r['check_in']==='2026-03-06 00:15:00'&&(int)$r['early_minutes']===30,'After-midnight entry rejected');
 sendPunch('Day','2026-03-04 09:15:00');sendPunch('Day','2026-03-04 17:30:00');$r=rowFor('Day','2026-03-04');ensure((int)$r['late_minutes']===15&&(int)$r['early_minutes']===30,'Day late/early rules');
 $db->exec("UPDATE employees SET employment_status='Inactive' WHERE user_id=".$employees['Day']);sendPunch('Day','2026-03-05 09:00:00');ensure(!rowFor('Day','2026-03-05'),'Inactive employee processed');$db->exec("UPDATE employees SET employment_status='Active' WHERE user_id=".$employees['Day']);att_retry_punches($db,$admin,['device_id'=>$device['id']]);ensure((bool)rowFor('Day','2026-03-05'),'Eligible failed punch did not recover');
-sendPunch('Day','2026-03-06 03:00:00');$q=$db->query("SELECT error_message FROM hr_punch_processing WHERE device_id=".$device['id']." ORDER BY punch_id DESC LIMIT 1");ensure(str_contains($q->fetchColumn(),'No valid shift window'),'No valid shift not explained');
+sendPunch('Day','2026-03-08 03:00:00');$q=$db->query("SELECT error_message FROM hr_punch_processing WHERE device_id=".$device['id']." ORDER BY punch_id DESC LIMIT 1");ensure(str_contains($q->fetchColumn(),'No valid shift window'),'No valid shift not explained');
 $settings=chr_rows($db,'attendance_settings')[0];att_save_settings($db,$admin,['version'=>$settings['version'],'mode'=>'Manual + Biometric','biometric_enabled'=>1,'punch_before_minutes'=>180,'punch_after_minutes'=>30]);sendPunch('Day','2026-03-09 06:15:00');ensure((bool)rowFor('Day','2026-03-09'),'Configured pre-shift buffer ignored');
 ensure(att_time_label('2026-03-03 20:06:07',true)==='08:06:07 PM','Punch AM/PM');ensure(chr_time(['start'=>'06:00 PM'],'start')==='18:00','AM/PM input canonicalization');ensure(chr_weekoff($shifts['Day Shift'],'2026-03-07')&&chr_weekoff($shifts['Night Shift'],'2026-03-08'),'Weekend setup');
+// Once a shift has started, its real OUT beyond the short intake buffer is accepted.
+sendPunch('Night','2026-03-10 18:00:00');
+ensure(att_punch_shift($db,$employees['Night'],'2026-03-11 10:30:00')['day']==='2026-03-10','Overtime stays on the night shift start date');
+sendPunch('Night','2026-03-11 10:30:00');$r=rowFor('Night','2026-03-10');
+ensure($r['check_out']==='2026-03-11 10:30:00','Real late OUT cannot be lost after buffer expires');
+sendPunch('Night','2026-03-11 10:45:00');ensure(rowFor('Night','2026-03-10')['check_out']===null,'Late re-entry reopens overtime');
+ensure(att_punch_shift($db,$employees['Night'],'2026-03-11 17:59:00')['day']==='2026-03-10','Upcoming early buffer cannot steal an ongoing overtime shift');
+ensure(att_punch_shift($db,$employees['Night'],'2026-03-11 18:00:00')['day']==='2026-03-11','Next actual scheduled shift remains a separate workday');
+// Out-of-order late OUT is retained and recovers once the earlier IN arrives.
+sendPunch('Night','2026-03-13 10:30:00','out');
+sendPunch('Night','2026-03-12 18:00:00','in');att_retry_punches($db,$admin,['device_id'=>$device['id']]);
+ensure(rowFor('Night','2026-03-12')['check_out']==='2026-03-13 10:30:00','Retry recovers late OUT without inventing or deleting a punch');
 // Restore config for downstream fixtures, without deleting test records.
 $settings=chr_rows($db,'attendance_settings')[0];att_save_settings($db,$admin,['version'=>$settings['version'],'mode'=>'Manual + Biometric','biometric_enabled'=>1,'punch_before_minutes'=>120,'punch_after_minutes'=>120]);
 echo "PASS: day/night windows, create assignment, setup idempotency, login separation, middle punches, late/out-of-order updates, midnight check-in, retry, deduplication, buffers and AM/PM.\n";
+
