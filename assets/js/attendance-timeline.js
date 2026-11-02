@@ -48,7 +48,7 @@
    let best=null;events.forEach((e,i)=>{const end=events[i+1]?.at??Math.min(cfg.end,cfg.cutoff);if(end-e.at>=120&&(!best||end-e.at>best.length))best={i,length:end-e.at,at:Math.floor((e.at+end)/2),state:e.state==='in'?'out':'in'};});
    if(best){events.splice(best.i+1,0,{at:best.at,state:best.state});changed();}else{message.textContent='There is no gap for another marker. Adjust an existing time first.';message.dataset.error='true';}
   });
-  form.querySelector('[data-tl-reset]')?.addEventListener('click',()=>{events=clone(original);dirty=false;render();poll();});
+  form.querySelector('[data-tl-reset]')?.addEventListener('click',()=>{events=clone(original);dirty=false;render();if(cfg.live||stale)poll();});
   form.addEventListener('submit',ev=>{const err=invalid();if(err||!cfg.editable){ev.preventDefault();message.textContent=err;message.dataset.error='true';return;}dirty=false;});
   window.addEventListener('beforeunload',ev=>{if(dirty){ev.preventDefault();ev.returnValue='';}});
   // Editing must never be replaced by a background refresh, including partially typed inputs.
