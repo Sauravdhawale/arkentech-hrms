@@ -25,7 +25,8 @@ $db->beginTransaction();try{
  $db->prepare("INSERT INTO hr_requests(user_id,kind,category,subject,details,start_date,end_date,status) VALUES(?,'regularisation','Correction','CI office duty','Client visit counted as break',?,?,'Pending')")->execute([$employee,$day,$day]);$request=(int)$db->lastInsertId();
  if($ui){$db->commit();file_put_contents('/tmp/timeline-fixture.json',json_encode(compact('employee','day','attendance','request','last_record')));echo "Timeline UI fixture ready.\n";exit;}
  $rawBefore=$db->query('SELECT * FROM hr_punches ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
- $c=att_timeline_context($db,$employee,$day);tl_check(count($c['sequence']['events'])===4,'Four original punches');$changed=$events;$changed[2]['at']-=1800;
+ $c=att_timeline_context($db,$employee,$day);tl_check(count($c['sequence']['events'])===4,'Four original punches');$payload=att_timeline_payload($c,'2026-11-02');tl_check(!$payload['live']&&$payload['day']===$day,'Historical date remains explicit');tl_check($payload['revision']===$c['revision']&&$payload['events']===$events,'Polling snapshot retains events and concurrency revision');
+ $changed=$events;$changed[2]['at']-=1800;
  $input=['employee_id'=>$employee,'attendance_date'=>$day,'timeline_events'=>json_encode($changed),'timeline_cutoff'=>time(),'timeline_revision'=>$c['revision'],'notes'=>'Approved client visit, shorten break by 30 minutes','request_id'=>$request];
  tl_blocked(fn()=>att_save_timeline($db,$viewer,$input),'Viewer must not save');
  tl_blocked(fn()=>att_save_timeline($db,$admin,array_replace($input,['notes'=>''])),'Reason required');
@@ -62,3 +63,4 @@ $db->beginTransaction();try{
  tl_check(att_timeline_saved($db,$employee,$day)===null,'Full-record edits supersede timeline override');
 }finally{if($db->inTransaction())$db->rollBack();}
 echo "PASS: timeline permissions, validation, stale guards, overnight intervals, office-duty credit, audit preservation, reports, request approval and later punches.\n";
+

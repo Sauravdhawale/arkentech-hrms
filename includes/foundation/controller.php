@@ -11,6 +11,14 @@ require_once dirname(__DIR__).'/payroll/profile-salary.php';
 $error='';$notice=$_SESSION['foundation_notice']??'';unset($_SESSION['foundation_notice']);
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
 if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
+if($page==='attendance_requests'&&isset($_GET['timeline_live'])){
+ if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);exit;}
+ header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store, private');
+ if(!att_ready($pdo)){http_response_code(409);echo json_encode(['error'=>'Attendance setup is incomplete']);exit;}
+ try{$employee=(int)($_GET['timeline_employee']??0);$context=att_timeline_context($pdo,$employee,(string)($_GET['timeline_date']??''));echo json_encode(att_timeline_payload($context,att_timeline_current_day($pdo,$employee)),JSON_THROW_ON_ERROR);}
+ catch(InvalidArgumentException $e){http_response_code(409);echo json_encode(['error'=>$e->getMessage()]);}
+ catch(Throwable $e){http_response_code(503);echo json_encode(['error'=>'Live timeline is temporarily unavailable']);error_log('Live timeline read failed: '.get_class($e));}exit;
+}
 if($page==='attendance'&&isset($_GET['live_status'])){
  if($_SERVER['REQUEST_METHOD']!=='GET'){http_response_code(405);exit;}
  header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store, private');
@@ -151,3 +159,4 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
 if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
 require __DIR__.'/layout.php';
+

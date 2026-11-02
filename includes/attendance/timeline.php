@@ -11,6 +11,18 @@ function att_timeline_sequence(array $saved,array $punches,array $manual):array 
  foreach($manual as $p)if(strtotime($p['punched_at'])<=time()&&(strtotime($p['punched_at'])>$v['cutoff']||(strtotime($p['punched_at'])===$v['cutoff']&&(int)($p['id']??0)>(int)($v['last_manual_id']??PHP_INT_MAX))))$events[]=['id'=>PHP_INT_MAX,'punched_at'=>$p['punched_at'],'direction'=>$p['action']==='Check In'?'in':'out','manual'=>true];
  return ess_punch_sequence($events);
 }
+/** Reuse the same overnight shift selection as the employee's live header. */
+function att_timeline_current_day(PDO $db,int $employee):string {
+ $status=ess_punch_status($db,$employee);
+ return $status['attendance_date']??date('Y-m-d');
+}
+function att_timeline_payload(array $context,string $currentDay):array {
+ $events=array_map(fn($e)=>['at'=>(int)$e['at'],'state'=>$e['state']],$context['sequence']['events']);
+ $now=$context['as_of'];
+ return ['events'=>$events,'original'=>$events,'start'=>$context['start'],'end'=>$context['end'],
+  'cutoff'=>$now,'offset'=>(int)date('Z'),'revision'=>$context['revision'],'day'=>$context['day'],
+  'live'=>$currentDay===$context['day']&&$context['start']<=$now&&(!$events||$now-$events[0]['at']<=36*3600)];
+}
 function att_timeline_context(PDO $db,int $employee,string $day):array {
  $person=chr_employee($db,$employee);$day=chr_date($day);
  $q=$db->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND attendance_date=?');$q->execute([$employee,$day]);$attendance=$q->fetch(PDO::FETCH_ASSOC)?:null;
@@ -84,3 +96,4 @@ function att_timeline_reports(PDO $db,array &$ctx,string $from,string $to):void 
  $q=$db->prepare('SELECT * FROM hr_manual_punch_events WHERE attendance_date BETWEEN ? AND ? ORDER BY punched_at,id');$q->execute([$from,$to]);$manual=[];foreach($q as $r)if(isset($saved[(int)$r['employee_id']][$r['attendance_date']]))$manual[(int)$r['employee_id']][$r['attendance_date']][]=$r;
  foreach($saved as $employee=>$days)foreach($days as $day=>$r)if(isset($ctx['attendance'][$employee][$day]))$ctx['attendance'][$employee][$day]=att_timeline_record($ctx['attendance'][$employee][$day],att_timeline_sequence($r,$raw[$employee][$day]??[],$manual[$employee][$day]??[]),time());
 }
+
