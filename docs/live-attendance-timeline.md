@@ -16,3 +16,14 @@ The patch changes:
 - includes/attendance/timeline.php
 - includes/attendance/timeline-view.php
 - includes/foundation/controller.php
+
+## Visible times and period actions
+
+The timeline shows clock times on wider segments, a current-time marker, and a complete list of work/break periods with exact start/end dates, times and durations. Short periods remain readable in the list. All times use the shift timezone.
+
+- **Remove break** changes that interval to work (for example, approved office duty).
+- **Remove work** excludes that interval from worked time. An interior interval becomes break time; removing the first work period moves the first check-in to the next working period.
+- Removing an ongoing period also changes the corrected current activity until the next recorded punch. Review the new status before saving.
+- At least one working period must remain. To remove all work for a day, use the attendance sheet's absence correction instead.
+
+These actions affect a draft only. Reset changes restores the previous timeline; saving requires a reason and retains the original punches and audit trail. The break summary counts only time within the shift, while individual period durations show the entire displayed interval.
