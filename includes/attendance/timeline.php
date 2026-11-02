@@ -7,8 +7,8 @@ function att_timeline_saved(PDO $db,int $employee,string $day):?array {
 function att_timeline_sequence(array $saved,array $punches,array $manual):array {
  $events=[];$v=$saved['values'];
  foreach($v['events'] as $e)$events[]=['punched_at'=>date('Y-m-d H:i:s',$e['at']),'direction'=>$e['state'],'manual'=>true];
- foreach($punches as $p){if(strtotime($p['punched_at'])<=$v['cutoff']||strtotime($p['punched_at'])>time())continue;if(!in_array($p['status'],['Processed','Manual protected'],true))return ['state'=>'review'];$events[]=$p;}
- foreach($manual as $p)if(strtotime($p['punched_at'])>$v['cutoff']&&strtotime($p['punched_at'])<=time())$events[]=['id'=>PHP_INT_MAX,'punched_at'=>$p['punched_at'],'direction'=>$p['action']==='Check In'?'in':'out','manual'=>true];
+ foreach($punches as $p){if(strtotime($p['punched_at'])<$v['cutoff']||strtotime($p['punched_at'])>time()||(strtotime($p['punched_at'])===$v['cutoff']&&(int)($p['id']??0)<=(int)($v['last_raw_id']??PHP_INT_MAX)))continue;if(!in_array($p['status'],['Processed','Manual protected'],true))return ['state'=>'review'];$events[]=$p;}
+ foreach($manual as $p)if(strtotime($p['punched_at'])<=time()&&(strtotime($p['punched_at'])>$v['cutoff']||(strtotime($p['punched_at'])===$v['cutoff']&&(int)($p['id']??0)>(int)($v['last_manual_id']??PHP_INT_MAX))))$events[]=['id'=>PHP_INT_MAX,'punched_at'=>$p['punched_at'],'direction'=>$p['action']==='Check In'?'in':'out','manual'=>true];
  return ess_punch_sequence($events);
 }
 function att_timeline_context(PDO $db,int $employee,string $day):array {
@@ -25,7 +25,7 @@ function att_timeline_context(PDO $db,int $employee,string $day):array {
  return compact('person','attendance','shift','raw','manual','saved','sequence','revision')+['day'=>$day,'start'=>$start->getTimestamp(),'end'=>$end->getTimestamp(),'as_of'=>time()];
 }
 function att_timeline_validate(array $input,int $cutoff,int $now):array {
- if(!$input||count($input)>200)throw new InvalidArgumentException('Add between 1 and 200 timeline boundaries.');
+ if(!$input||!array_is_list($input)||count($input)>200)throw new InvalidArgumentException('Add between 1 and 200 timeline boundaries.');
  if($cutoff>$now||$cutoff<$now-86400)throw new InvalidArgumentException('This timeline has expired. Reload before saving.');
  $events=[];$previous=null;
  foreach($input as $e){
@@ -72,7 +72,7 @@ function att_save_timeline(PDO $db,array $actor,array $in):int {
   if($record['status']==='Review needed')throw new InvalidArgumentException('The corrected times must overlap the assigned shift.');
   $db->prepare('UPDATE hr_attendance SET working_minutes=?,late_minutes=?,early_minutes=?,overtime_minutes=?,status=? WHERE id=?')->execute([$record['working_minutes'],$record['late_minutes'],$record['early_minutes'],$record['overtime_minutes'],$record['status'],$id]);
   $db->prepare("UPDATE hr_records SET status='Superseded',version=version+1 WHERE module='attendance_timeline' AND employee_id=? AND status='Active' AND JSON_UNQUOTE(JSON_EXTRACT(data,'$.date'))=?")->execute([$employee,$day]);
-  att_record_write($db,$actor,'attendance_timeline',['title'=>'Timeline correction '.$day],['date'=>$day,'attendance_id'=>$id,'events'=>$events,'cutoff'=>(int)$in['timeline_cutoff'],'reason'=>$reason,'before_events'=>$context['sequence']['events'],'before_attendance'=>$old,'request_id'=>$requestId,'corrected_at'=>date(DATE_ATOM)],$employee,'Active');
+  att_record_write($db,$actor,'attendance_timeline',['title'=>'Timeline correction '.$day],['date'=>$day,'attendance_id'=>$id,'events'=>$events,'cutoff'=>(int)$in['timeline_cutoff'],'last_raw_id'=>max(array_merge([0],array_column($context['raw'],'id'))),'last_manual_id'=>max(array_merge([0],array_column($context['manual'],'id'))),'reason'=>$reason,'before_events'=>$context['sequence']['events'],'before_attendance'=>$old,'request_id'=>$requestId,'corrected_at'=>date(DATE_ATOM)],$employee,'Active');
   if($requestId){$db->prepare("UPDATE hr_requests SET status='Approved',reviewer_id=? WHERE id=?")->execute([$actor['id'],$requestId]);att_record_write($db,$actor,'attendance_decisions',['title'=>'Request #'.$requestId],['request_id'=>$requestId,'decision'=>'Validated','reason'=>$reason],$employee);}
   faudit($db,$actor,'attendance.timeline.corrected',$id);if($owns)$db->commit();return $id;
  }catch(Throwable $e){if($owns&&$db->inTransaction())$db->rollBack();throw $e;}

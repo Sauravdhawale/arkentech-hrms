@@ -52,6 +52,10 @@ $db->beginTransaction();try{
  $seq=att_timeline_sequence($after,[['id'=>1,'punched_at'=>date('Y-m-d H:i:s',time()-500),'direction'=>'unknown','status'=>'Processed'],['id'=>2,'punched_at'=>date('Y-m-d H:i:s',time()-100),'direction'=>'unknown','status'=>'Manual protected']],[]);
  tl_check($seq['state']==='out'&&count($seq['events'])===2,'Later unknown punch toggles once; old retransmission ignored');
  $seq=att_timeline_sequence($after,[],[['action'=>'Check Out','punched_at'=>date('Y-m-d H:i:s',time()-100)]]);tl_check($seq['state']==='out','Later admin checkout respected');
+ // A fresh event in the same second as the editor snapshot must not disappear.
+ $same=['values'=>['events'=>[['at'=>time()-600,'state'=>'in']],'cutoff'=>time(),'last_raw_id'=>5,'last_manual_id'=>10]];
+ $seq=att_timeline_sequence($same,[['id'=>6,'punched_at'=>date('Y-m-d H:i:s'),'direction'=>'unknown','status'=>'Manual protected']],[]);tl_check($seq['state']==='out','Same-second new raw punch must count');
+ $seq=att_timeline_sequence($same,[],[['id'=>11,'action'=>'Check Out','punched_at'=>date('Y-m-d H:i:s')]]);tl_check($seq['state']==='out','Same-second new administrator punch must count');
  // Existing attendance editor is an intentional replacement of the interval correction.
  $fresh=$db->query('SELECT * FROM hr_attendance WHERE id='.$attendance)->fetch(PDO::FETCH_ASSOC);
  chr_save_attendance($db,$admin,['id'=>$attendance,'version'=>$fresh['version'],'employee_id'=>$employee,'attendance_date'=>$day,'check_in'=>$day.' 18:00:00','check_out'=>'2026-03-05 03:00:00','source'=>'Admin Manual','notes'=>'Full record correction']);
