@@ -1,24 +1,29 @@
 <?php
-$tlEmployee=(int)($_GET['timeline_employee']??0);$tlDate=(string)($_GET['timeline_date']??date('Y-m-d'));$tlRequest=(int)($_GET['request_id']??0);$tlContext=null;$tlError='';
+$tlEmployee=(int)($_GET['timeline_employee']??0);$tlDate=(string)($_GET['timeline_date']??'');$tlRequest=(int)($_GET['request_id']??0);$tlContext=null;$tlError='';$tlCurrentDay='';
 $tlCanEdit=can($pdo,$user,'attendance.manage');
-if($tlEmployee){try{$tlContext=att_timeline_context($pdo,$tlEmployee,$tlDate);}catch(InvalidArgumentException $e){$tlError=$e->getMessage();}}
+if($tlEmployee){try{$tlCurrentDay=att_timeline_current_day($pdo,$tlEmployee);if($tlDate===''||($_GET['timeline_mode']??'')==='live'){$tlDate=$tlCurrentDay;$tlRequest=0;}$tlContext=att_timeline_context($pdo,$tlEmployee,$tlDate);}catch(InvalidArgumentException $e){$tlError=$e->getMessage();}}
 ?>
 <link rel="stylesheet" href="assets/css/attendance-timeline.css?v=<?=filemtime(__DIR__.'/../../assets/css/attendance-timeline.css')?>">
 <section class="card atl" id="correction-timeline">
  <header class="atl-heading"><div><span class="atl-eyebrow">Attendance corrections</span><h2>Make the day accurate</h2><p>Choose an employee and shift date to adjust working time or breaks.</p></div><a class="button" href="#employee-requests">View employee requests</a></header>
- <form method="get" class="atl-filter"><?php chr_hidden('page','attendance_requests');chr_select('timeline_employee','Employee',$tlEmployee,[''=>'Choose employee']+$historyEmployeeOptions);field('timeline_date','Shift start date',['timeline_date'=>$tlDate],'date',true);?><button class="button primary">Open timeline</button></form>
+ <form method="get" class="atl-filter"><?php chr_hidden('page','attendance_requests');chr_select('timeline_employee','Employee',$tlEmployee,[''=>'Choose employee']+$historyEmployeeOptions);field('timeline_date','Shift start date',['timeline_date'=>$tlDate],'date');?><button class="button primary">Open timeline</button><button class="button" name="timeline_mode" value="live">Current shift · Live</button></form>
+ <p class="atl-help">Night shifts belong to the date they started. Use Current shift · Live to see work and breaks so far, including after midnight.</p>
  <?php if($tlError):?><p class="alert" role="alert"><?=h($tlError)?></p><?php elseif(!$tlContext):?><div class="atl-empty"><strong>Working hours and breaks, in one view</strong><p>Yellow shows work. Red shows breaks. Select an employee above to begin.</p></div><?php else:
  $tlEvents=$tlContext['sequence']['events'];$tlInitial=array_map(fn($e)=>['at'=>(int)$e['at'],'state'=>$e['state']],$tlEvents);
  $tlRetry=($_POST['action']??'')==='att_timeline'&&!empty($error);
  if($tlRetry){$retry=json_decode((string)($_POST['timeline_events']??''),true);if(is_array($retry)&&count($retry)<=200)$tlInitial=$retry;}
- $tlConfig=['events'=>$tlInitial,'original'=>array_map(fn($e)=>['at'=>(int)$e['at'],'state'=>$e['state']],$tlEvents),'start'=>$tlContext['start'],'end'=>$tlContext['end'],'cutoff'=>$tlRetry?(int)($_POST['timeline_cutoff']??$tlContext['as_of']):$tlContext['as_of'],'offset'=>(int)date('Z'),'editable'=>$tlCanEdit];
+ $tlConfig=att_timeline_payload($tlContext,$tlCurrentDay)+['editable'=>$tlCanEdit,'retry'=>$tlRetry,'endpoint'=>'?'.http_build_query(['page'=>'attendance_requests','timeline_live'=>1,'timeline_employee'=>$tlEmployee,'timeline_date'=>$tlDate])];
+ $tlConfig['events']=$tlInitial;
+ if($tlRetry){$tlConfig['cutoff']=(int)($_POST['timeline_cutoff']??$tlContext['as_of']);$tlConfig['revision']=(string)($_POST['timeline_revision']??'');}
  ?>
  <div class="atl-person"><div><h3><?=h($tlContext['person']['name'])?></h3><p><?=h(date('d M Y, h:i A',$tlContext['start']).' → '.date('d M Y, h:i A',$tlContext['end']))?> · <?=h(date_default_timezone_get())?></p></div><span class="badge">Review before saving</span></div>
  <?php if($tlRequest):?><p class="atl-request">Reviewing employee request #<?=$tlRequest?>. Saving this correction also approves the matching pending request.</p><?php endif;?>
  <form method="post" data-attendance-timeline>
  <?php ftoken();chr_hidden('action','att_timeline');chr_hidden('employee_id',$tlEmployee);chr_hidden('attendance_date',$tlDate);chr_hidden('request_id',$tlRequest);chr_hidden('timeline_revision',$tlRetry?($_POST['timeline_revision']??''):$tlContext['revision']);chr_hidden('timeline_cutoff',$tlConfig['cutoff']);chr_hidden('timeline_events',''); ?>
  <script type="application/json" data-timeline-config><?=json_encode($tlConfig,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT)?></script>
- <div class="atl-totals" aria-live="polite"><div><span>Working time</span><strong data-tl-work>—</strong></div><div><span>Breaks between punches</span><strong data-tl-break>—</strong></div><div><span>Change in working time</span><strong data-tl-difference>—</strong></div></div>
+ <div class="atl-live-bar"><span data-tl-live-status role="status" aria-atomic="true"></span><button type="button" class="button" data-tl-refresh>Refresh live data</button></div>
+ <?php if($tlContext['start']>$tlContext['as_of']):?><p class="atl-request">This shift has not started yet. Select Current shift · Live to open the employee’s ongoing shift.</p><?php endif;?>
+ <div class="atl-totals"><div><span>Working time so far</span><strong data-tl-work>—</strong></div><div><span>Break time within shift</span><strong data-tl-break>—</strong></div><div><span>Change in working time</span><strong data-tl-difference>—</strong></div></div>
  <div class="atl-legend"><span><i class="atl-work-dot"></i> Working</span><span><i class="atl-break-dot"></i> Break</span><span><i class="atl-idle-dot"></i> Outside recorded time</span></div>
  <p class="atl-help">Drag a time marker to adjust it, or use the exact time fields below. Change a break to Working to credit approved office duty.</p>
  <div class="atl-track" data-tl-track aria-label="Working and break timeline"></div><div class="atl-scale"><span data-tl-start></span><span data-tl-end></span></div>
@@ -36,3 +41,4 @@ if($tlEmployee){try{$tlContext=att_timeline_context($pdo,$tlEmployee,$tlDate);}c
  <?php endif;?>
 </section>
 <script src="assets/js/attendance-timeline.js?v=<?=filemtime(__DIR__.'/../../assets/js/attendance-timeline.js')?>" defer></script>
+

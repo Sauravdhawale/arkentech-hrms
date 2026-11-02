@@ -13,6 +13,7 @@ const server=spawn('php',['-S','127.0.0.1:8107','-t','.'],{stdio:'ignore'}),base
  await page.locator('[name=timeline_employee]').selectOption(String(f.employee));await page.locator('[name=timeline_date]').fill(f.day);await Promise.all([page.waitForURL(u=>u.searchParams.has('timeline_employee')),page.getByRole('button',{name:'Open timeline',exact:true}).click()]);
  assert.equal(/Fatal error|Warning:|Parse error/.test(await page.locator('body').innerText()),false,await page.locator('body').innerText());
  assert.equal(await page.locator('.atl-boundary').count(),4);assert.equal(await page.locator('[data-tl-work]').innerText(),'8h 00m');assert.equal(await page.locator('[data-tl-break]').innerText(),'1h 00m');
+ const liveResponse=await page.request.get(base+`/super-admin.php?page=attendance_requests&timeline_live=1&timeline_employee=${f.employee}&timeline_date=${f.day}`);assert.equal(liveResponse.status(),200);assert.match(liveResponse.headers()['cache-control'],/no-store/);const snapshot=await liveResponse.json();assert.equal(snapshot.events.length,4);assert.equal(snapshot.day,f.day);assert.equal(snapshot.live,false);
  // Keyboard and non-drag controls adjust the same underlying timeline.
  await page.getByRole('slider',{name:'Time marker 3',exact:true}).focus();await page.keyboard.press('ArrowLeft');assert.equal(await page.locator('[data-tl-difference]').innerText(),'+0h 01m');
  await page.getByRole('button',{name:'Move marker 3 earlier by one minute',exact:true}).click();assert.equal(await page.locator('[data-tl-difference]').innerText(),'+0h 02m');
@@ -33,3 +34,4 @@ const server=spawn('php',['-S','127.0.0.1:8107','-t','.'],{stdio:'ignore'}),base
  await page.locator('.atl-audit summary').click();assert.match(await page.locator('.atl-audit').innerText(),/UI test: approved office duty/);assert.equal(await page.locator('.atl-audit-grid ul').first().locator('li').count(),4,'Original scans preserved');
  assert.equal(errors.length,0,errors.join('\n'));console.log('PASS: timeline navigation, drag, keyboard, exact editing, validation, responsive UI, audited save and request approval.');
 }finally{if(browser)await browser.close();server.kill();if(fixture)execFileSync('php',['tests/attendance_timeline.php','--cleanup']);}})().catch(e=>{console.error(e);process.exitCode=1;});
+

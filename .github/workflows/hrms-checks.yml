@@ -83,6 +83,7 @@ jobs:
         run: |
           node tests/attendance_ui.cjs
           node tests/attendance_timeline_ui.cjs
+          node tests/attendance_timeline_live_ui.cjs
           node tests/theme_ui.cjs
           node tests/admin_audit_ui.cjs
           node tests/employee_dashboard_ui.cjs
@@ -93,6 +94,7 @@ jobs:
           name: shrms-ui-screenshots
           path: /tmp/shrms-ui-screenshots/
           if-no-files-found: ignore
+
 
 
 

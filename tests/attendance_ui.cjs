@@ -49,12 +49,12 @@ const base='http://127.0.0.1:8100';
  await page.goto(base+'/super-admin.php?page=employee-add');assert.equal(await page.locator('[data-auto-biometric]').count(),0,'Mapping hidden while biometric mode is off');
  mappingFixture=JSON.parse(execFileSync('php',['-r',`require 'auth.php'; $db=db(); $r=$db->query("SELECT id,data FROM hr_records WHERE module='attendance_settings' ORDER BY id DESC LIMIT 1")->fetch(PDO::FETCH_ASSOC); if(!$r)exit(1); echo json_encode($r); $v=json_decode($r['data'],true); $v['mode']='Manual + Biometric'; $v['biometric_enabled']=true; $db->prepare('UPDATE hr_records SET data=? WHERE id=?')->execute([json_encode($v),$r['id']]);`],{encoding:'utf8'}));
  await page.goto(base+'/super-admin.php?page=devices');
- await page.getByRole('navigation',{name:'Biometric devices sections'}).getByRole('link',{name:'Cloud Biometric',exact:true}).click();
+ await Promise.all([page.waitForURL(u=>u.searchParams.get('page')==='cloud_biometric',{waitUntil:'domcontentloaded'}),page.getByRole('navigation',{name:'Biometric devices sections'}).getByRole('link',{name:'Cloud Biometric',exact:true}).click()]);
  assert.equal(/Fatal error|Warning:|Parse error/.test(await page.locator('body').innerText()),false,'Cloud page renders');
  assert.ok(await page.getByRole('heading',{name:'Cloud delivery · ADMS'}).count());
  assert.match(await page.locator('body').innerText(),/Not reported to HRMS/);
  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});assert.ok(await page.locator('body').evaluate(e=>e.scrollWidth<=innerWidth+1),'Cloud page overflow '+width);await page.screenshot({path:`/tmp/shrms-ui-screenshots/cloud-biometric-${width}.png`,fullPage:true});}
- await page.getByRole('link',{name:'Refresh cloud status'}).click();assert.ok(await page.getByRole('heading',{name:'Cloud delivery · ADMS'}).count());
+ await Promise.all([page.waitForNavigation({waitUntil:'domcontentloaded'}),page.getByRole('link',{name:'Refresh cloud status'}).click()]);assert.ok(await page.getByRole('heading',{name:'Cloud delivery · ADMS'}).count());
  await page.goto(base+'/super-admin.php?page=employee-add');
  const autoMap=page.locator('[data-auto-biometric]');assert.equal(await autoMap.count(),1);assert.ok(await autoMap.isChecked());
  await page.locator('[name=employee_code]').fill('AT00341');assert.equal(await page.locator('[data-auto-biometric-preview]').inputValue(),'341');
@@ -64,6 +64,7 @@ const base='http://127.0.0.1:8100';
  for(const width of [1440,390]){await page.setViewportSize({width,height:1000});assert.ok(await page.locator('body').evaluate(e=>e.scrollWidth<=innerWidth+1),'Employee form overflow '+width);}
  assert.deepEqual(errors,[]);console.log('PASS: attendance pages, responsive layouts, sheet dialogs, historical cell editing and dark theme.');
  }finally{if(mappingFixture)execFileSync('php',['-r',"require 'auth.php'; $r=json_decode($argv[1],true); db()->prepare('UPDATE hr_records SET data=? WHERE id=?')->execute([$r['data'],$r['id']]);",JSON.stringify(mappingFixture)]);if(browser)await browser.close();server.kill();}})().catch(e=>{console.error(e);process.exitCode=1;});
+
 
 
 
