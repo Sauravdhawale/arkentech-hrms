@@ -78,7 +78,11 @@ function att_retry_device_punches(PDO $db,array $device,?string $biometricId=nul
   $rows=[];
   if($eligible){
    $slots=implode(',',array_fill(0,count($eligible),'?'));
-   $q=$db->prepare("SELECT p.* FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id WHERE x.device_id=? AND p.device_code=? AND BINARY p.biometric_id IN ($slots) AND x.status IN ('Needs mapping','Unmapped','Review needed','Inactive employee','Pending') ORDER BY x.processed_at,p.punched_at,p.id LIMIT 100 FOR UPDATE");
+   // Saving a mapping should recover this person's latest punches immediately.
+   // Routine device retries retain their fair oldest-attempt-first ordering so
+   // historical backlogs continue draining after this targeted recovery.
+   $retryOrder=$biometricId!==null?'p.punched_at DESC,p.id DESC':'x.processed_at,p.punched_at,p.id';
+   $q=$db->prepare("SELECT p.* FROM hr_punches p JOIN hr_punch_processing x ON x.punch_id=p.id WHERE x.device_id=? AND p.device_code=? AND BINARY p.biometric_id IN ($slots) AND x.status IN ('Needs mapping','Unmapped','Review needed','Inactive employee','Pending') ORDER BY $retryOrder LIMIT 100 FOR UPDATE");
    $q->execute([$device['id'],$current['values']['device_code'],...$eligible]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);
   }
   foreach($rows as $r){
@@ -93,6 +97,3 @@ function att_retry_punches(PDO $db,array $actor,array $in):int {
  $device=att_device($db,(int)($in['device_id']??0));$device['actor_id']=$actor['id'];
  $count=att_retry_device_punches($db,$device);faudit($db,$actor,'biometric.raw.retry',(int)$device['id']);return $count;
 }
-
-
-
