@@ -1,4 +1,5 @@
 <?php
+require __DIR__.'/timeline-view.php';
 $requestStatus=(string)($_GET['status']??'Pending');
 $statuses=[''=>'All requests','Pending'=>'Pending review','Approved'=>'Validated','Rejected'=>'Rejected','Cancelled'=>'Cancelled'];
 if(!array_key_exists($requestStatus,$statuses))$requestStatus='Pending';
@@ -13,12 +14,12 @@ $q=$pdo->prepare('SELECT r.*,u.name'.$base.' ORDER BY r.id DESC LIMIT 25 OFFSET 
 <form method="get" class="card request-filters" aria-label="Filter attendance requests">
 <?php chr_hidden('page','attendance_requests');chr_select('status','Request status',$requestStatus,$statuses);chr_select('employee_id','Employee',$requestEmployee,[''=>'All employees']+$historyEmployeeOptions);?>
 <button class="button primary">Apply filters</button></form>
-<section class="card"><div class="card-heading"><div><h2>Attendance corrections <span class="badge"><?=$requestTotal?></span></h2><p>Review one request, check the times, then validate or reject it. Validation saves the corrected attendance; rejection leaves attendance unchanged.</p></div></div>
+<section class="card" id="employee-requests"><div class="card-heading"><div><h2>Employee requests <span class="badge"><?=$requestTotal?></span></h2><p>Review one request, check the times, then validate or reject it. Validation saves the corrected attendance; rejection leaves attendance unchanged.</p></div></div>
 <?php if(!$requests):?><div class="empty-state"><h3><?=$requestStatus==='Pending'?'No requests waiting for review':'No matching requests'?></h3><p>Employee correction requests appear here after submission. Choose All requests to see past decisions.</p></div><?php endif;?>
 <div class="request-list">
 <?php foreach($requests as $request):$requestLabel=$request['status']==='Approved'?'Validated':$request['status'];$singleDay=$request['start_date']===$request['end_date'];$requestError=$error&&($_POST['action']??'')==='att_review_request'&&(int)($_POST['request_id']??0)===(int)$request['id'];?>
 <details class="request-item" <?=$requestError?'open':''?>><summary><span class="request-person"><strong><?=h($request['name'])?></strong><small><?=h($request['start_date'].($singleDay?'':' → '.$request['end_date']))?> · <?=h($request['subject'])?></small></span><?php fbadge($requestLabel,$request['status']==='Approved');?></summary>
-<div class="request-body"><p><strong>Employee’s reason</strong><br><?=nl2br(h($request['details']))?></p>
+<div class="request-body"><?php if($singleDay&&$request['status']==='Pending'&&can($pdo,$user,'attendance.manage')&&can($pdo,$user,'attendance.approve')):?><p><a class="button primary" href="?page=attendance_requests&amp;timeline_employee=<?=(int)$request['user_id']?>&amp;timeline_date=<?=h($request['start_date'])?>&amp;request_id=<?=(int)$request['id']?>#correction-timeline">Open timeline &amp; review</a></p><?php endif;?><p><strong>Employee’s reason</strong><br><?=nl2br(h($request['details']))?></p>
 <?php if(!$singleDay):?><p class="alert">This covers more than one day. Each correction must be reviewed separately; ask the employee to submit one request per day.</p><?php endif;?>
 <?php if($request['status']==='Pending'&&can($pdo,$user,'attendance.approve')):
 $q=$pdo->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND attendance_date=?');$q->execute([$request['user_id'],$request['start_date']]);$current=$q->fetch(PDO::FETCH_ASSOC)?:[];$v=$requestError?$_POST:($current+['attendance_date'=>$request['start_date']]);?>

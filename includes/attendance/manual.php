@@ -11,7 +11,7 @@ function att_manual_punch(PDO $db,array $actor,array $in):int {
  $q=$db->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND attendance_date=? FOR UPDATE');$q->execute([$employee,$day]);$old=$q->fetch(PDO::FETCH_ASSOC);
  if($action==='Check In'&&$old)throw new InvalidArgumentException('A check-in already exists. Use the audited correction form.');
  if($action==='Check Out'&&(!$old||$old['check_out']))throw new InvalidArgumentException('Check-out requires an existing open check-in.');
- $id=chr_save_attendance($db,$actor,['id'=>$old['id']??0,'version'=>$old['version']??0,'employee_id'=>$employee,'attendance_date'=>$day,'check_in'=>$old['check_in']??$at,'check_out'=>$action==='Check Out'?$at:null,'source'=>'Admin Manual','notes'=>$reason]);
+ $id=chr_save_attendance($db,$actor,['id'=>$old['id']??0,'version'=>$old['version']??0,'employee_id'=>$employee,'attendance_date'=>$day,'check_in'=>$old['check_in']??$at,'check_out'=>$action==='Check Out'?$at:null,'source'=>'Admin Manual','notes'=>$reason],false,true);
  $db->prepare('INSERT INTO hr_manual_punch_events(employee_id,attendance_date,action,punched_at,source,actor_id,notes,request_key) VALUES(?,?,?,?,?,?,?,?)')->execute([$employee,$day,$action,$at,'Admin Manual',$actor['id'],$reason,$key]);$db->commit();return $id;
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
