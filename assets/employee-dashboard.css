@@ -1,0 +1,218 @@
+/* Employee overview only. Presentation never changes punch or payroll calculations. */
+.employee-ui.ess-page-overview {
+  --dash-accent: #b12625;
+  --dash-soft: #fbefed;
+  --dash-text: #242832;
+  --dash-muted: #626a78;
+  --dash-line: #e3e6eb;
+  --dash-surface: #fff;
+  --dash-tint: #f6f7f9;
+}
+.employee-ui.ess-page-overview.dark {
+  --dash-accent: #ffaba3;
+  --dash-soft: #382626;
+  --dash-text: #f1f3f7;
+  --dash-muted: #b6bfcc;
+  --dash-line: #39414c;
+  --dash-surface: #20252e;
+  --dash-tint: #282e38;
+}
+.employee-ui.ess-page-overview #content {
+  max-width: 1440px;
+  padding: 28px 32px 40px;
+  gap: 20px;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  align-items: stretch;
+}
+.employee-ui.ess-page-overview #content > .page-title { margin: 0 0 4px; }
+.employee-ui.ess-page-overview .page-title h1 { font-size: 28px; }
+.employee-ui.ess-page-overview #content p { line-height: 1.6; }
+.employee-ui.ess-page-overview #content > .panel,
+.employee-ui.ess-page-overview .ess-dashboard-tasks > .panel {
+  background: var(--dash-surface);
+  border: 1px solid var(--dash-line);
+  border-radius: 16px;
+  box-shadow: 0 3px 12px #10182804;
+  padding: 24px;
+  color: var(--dash-text);
+}
+.employee-ui.ess-page-overview #content > .ess-workday {
+  grid-column: 1/-1;
+  border-top: 3px solid #b12625;
+  padding: 26px;
+}
+.employee-ui.ess-page-overview .ess-workday .ess-section-heading { align-items: center; flex-direction: row; flex-wrap: wrap; }
+.employee-ui.ess-page-overview .ess-workday h2 { font-size: 23px; margin: 5px 0 0; }
+.employee-ui.ess-page-overview :is(.eyebrow,.ess-kicker) { color: var(--dash-muted); font-size: 11px; letter-spacing: .1em; }
+.employee-ui.ess-page-overview .ess-workday > p[data-workday-shift] { font-size: 13px; color: var(--dash-muted); margin: 8px 0 0; }
+.employee-ui.ess-page-overview [data-workday-state] {
+  max-width: 100%;
+  white-space: normal;
+  background: var(--dash-tint);
+  color: var(--dash-text);
+  border: 1px solid var(--dash-line);
+  border-radius: 24px;
+  font-size: 12px;
+  padding: 7px 12px;
+}
+.employee-ui.ess-page-overview .ess-workday-main {
+  display: grid;
+  grid-template-columns: minmax(0,1.35fr) minmax(0,1fr);
+  align-items: center;
+  gap: 24px;
+  background: var(--dash-tint);
+  border: 0;
+  border-radius: 12px;
+  margin: 22px 0 18px;
+  padding: 24px;
+}
+.employee-ui.ess-page-overview :is([data-workday-value],[data-workday-in],[data-workday-out]) {
+  font-family: var(--font-body,Arial,sans-serif)!important;
+  font-weight: 650!important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.03em;
+}
+.employee-ui.ess-page-overview .ess-workday-main [data-workday-value] {
+  color: var(--dash-text);
+  font-size: clamp(28px,3.1vw,44px);
+  line-height: 1.25;
+  margin: 8px 0;
+  white-space: nowrap;
+}
+.employee-ui.ess-page-overview .ess-workday-main span { font-size: 13px; color: var(--dash-muted); }
+.employee-ui.ess-page-overview .ess-workday-main small { font-size: 12px; color: var(--dash-muted); line-height: 1.6; }
+.employee-ui.ess-page-overview .ess-workday-punches {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  min-width: 0;
+  border-left: 1px solid var(--dash-line);
+  padding-left: 24px;
+}
+.employee-ui.ess-page-overview .ess-workday-punches p { margin: 0; font-size: 12px; color: var(--dash-muted); }
+.employee-ui.ess-page-overview .ess-workday-punches b { font-size: 15px; margin-top: 4px; color: var(--dash-text); }
+.employee-ui.ess-page-overview .ess-workday-progress-label { font-size: 12px; margin: 0 0 8px; color: var(--dash-muted); }
+.employee-ui.ess-page-overview .ess-workday progress { height: 7px; }
+.employee-ui.ess-page-overview .ess-workday-metrics {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.employee-ui.ess-page-overview .ess-workday-metrics > div {
+  padding: 15px 14px;
+  border: 1px solid var(--dash-line);
+  background: var(--dash-surface);
+  border-radius: 10px;
+  min-width: 0;
+}
+.employee-ui.ess-page-overview .ess-workday-metrics small { font-size: 12px; color: var(--dash-muted); }
+.employee-ui.ess-page-overview .ess-workday-metrics strong {
+  font-size: clamp(15px,1.45vw,21px);
+  margin-top: 8px;
+  color: var(--dash-text);
+  white-space: nowrap;
+}
+.employee-ui.ess-page-overview .ess-workday[data-excess=true] .ess-workday-metrics > div:has([data-workday-value=excess_break]) {
+  border-color: var(--dash-accent);
+  background: var(--dash-soft);
+}
+.employee-ui.ess-page-overview .ess-workday[data-excess=true] [data-workday-value=excess_break] { color: var(--dash-accent); }
+.employee-ui.ess-page-overview .ess-time-details { margin-top: 16px; }
+.employee-ui.ess-page-overview .ess-time-details > summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 11px 0;
+  color: var(--dash-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.employee-ui.ess-page-overview .ess-time-details > summary span { font-weight: 400; color: var(--dash-muted); margin-left: 8px; font-size: 12px; }
+.employee-ui.ess-page-overview .ess-workday-secondary { margin-top: 8px; }
+.employee-ui.ess-page-overview .ess-workday .ess-hint { font-size: 12px; color: var(--dash-muted); margin: 16px 0 0; }
+.employee-ui.ess-page-overview .ess-workday .ess-actions { margin-top: 8px; padding-top: 16px; border-color: var(--dash-line); }
+.employee-ui.ess-page-overview #content :is(button,.quick-links a,.ess-text-link) { min-height: 44px; }
+.employee-ui.ess-page-overview #content :is(a,button,summary,input):focus-visible {
+  outline: 3px solid var(--dash-accent);
+  outline-offset: 3px;
+}
+.employee-ui.ess-page-overview #content > .ess-dashboard-tasks { gap: 20px; }
+.employee-ui.ess-page-overview .ess-dashboard-tasks > .ess-task-summary {
+  padding: 20px 24px;
+  border-left: 1px solid var(--dash-line);
+  transition: border-color .18s ease,background-color .18s ease;
+}
+.employee-ui.ess-page-overview .ess-task-summary:hover { border-color: var(--dash-accent); background: var(--dash-tint); }
+.employee-ui.ess-page-overview .ess-task-summary span { font-size: 15px; }
+.employee-ui.ess-page-overview .ess-task-summary small { font-size: 12px; color: var(--dash-muted); margin-top: 4px; }
+.employee-ui.ess-page-overview .ess-task-summary strong { font-size: 30px; color: var(--dash-text); }
+.employee-ui.ess-page-overview #content > form.ess-overview-filter {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 8px 0 0;
+  align-items: center;
+}
+.employee-ui.ess-page-overview .ess-overview-filter h2 { font-size: 21px; margin: 0 0 4px; }
+.employee-ui.ess-page-overview .ess-overview-filter p { font-size: 13px; color: var(--dash-muted); }
+.employee-ui.ess-page-overview .ess-overview-filter label { font-size: 12px; color: var(--dash-muted); }
+.employee-ui.ess-page-overview .ess-overview-filter input { margin-top: 4px; }
+.employee-ui.ess-page-overview .ess-overview-filter button { align-self: end; margin-bottom: 0; }
+.employee-ui.ess-page-overview .ess-panel-heading { margin-bottom: 18px; gap: 12px; }
+.employee-ui.ess-page-overview .ess-panel-heading h2 { font-size: 19px; margin: 5px 0 4px; color: var(--dash-text); }
+.employee-ui.ess-page-overview .ess-panel-heading p { font-size: 12px; color: var(--dash-muted); }
+.employee-ui.ess-page-overview .ess-text-link { display: inline-flex; align-items: center; color: var(--dash-accent); font-size: 13px; margin-top: 0; }
+.employee-ui.ess-page-overview .ess-balance-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; max-height: none; overflow: visible; }
+.employee-ui.ess-page-overview .ess-balance-grid > div { border: 0; padding: 14px; background: var(--dash-tint); gap: 12px; }
+.employee-ui.ess-page-overview .ess-balance-grid span { font-size: 13px; color: var(--dash-text); overflow-wrap: anywhere; }
+.employee-ui.ess-page-overview .ess-balance-grid strong { font-size: 23px; color: var(--dash-text); }
+.employee-ui.ess-page-overview .ess-balance-grid small { font-size: 11px; color: var(--dash-muted); }
+.employee-ui.ess-page-overview .ess-attendance-summary { max-height: none; overflow: visible; }
+.employee-ui.ess-page-overview .ess-attendance-summary > div { padding: 12px 0; font-size: 14px; border-color: var(--dash-line); }
+.employee-ui.ess-page-overview .ess-attendance-summary small { color: var(--dash-muted); }
+.employee-ui.ess-page-overview .ess-attendance-flags > div { background: var(--dash-tint); border: 0; }
+.employee-ui.ess-page-overview .ess-attendance-flags span { color: var(--dash-muted); font-size: 12px; }
+.employee-ui.ess-page-overview .ess-attendance-flags strong { color: var(--dash-text); }
+.employee-ui.ess-page-overview .ess-panel-empty {
+  display: grid; align-content: center; min-height: 124px;
+  padding: 22px 16px; border: 1px dashed var(--dash-line); background: var(--dash-tint);
+  color: var(--dash-muted); font-size: 13px;
+}
+.employee-ui.ess-page-overview .ess-panel-empty strong { font-size: 15px; color: var(--dash-text); }
+.employee-ui.ess-page-overview .ess-panel-empty p { font-size: 13px; color: var(--dash-muted); }
+.employee-ui.ess-page-overview .ess-event-list,
+.employee-ui.ess-page-overview .ess-birthday-list { max-height: none; overflow: visible; }
+.employee-ui.ess-page-overview .ess-event-list h3 { font-size: 15px; }
+.employee-ui.ess-page-overview .ess-dashboard-links { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.employee-ui.ess-page-overview .ess-dashboard-links a { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border: 1px solid var(--dash-line); color: var(--dash-text); background: var(--dash-tint); font-size: 14px; text-decoration: none; }
+.employee-ui.ess-page-overview .ess-dashboard-links a:hover { border-color: var(--dash-accent); color: var(--dash-accent); }
+.employee-ui.ess-page-overview .ess-documents-panel > p { color: var(--dash-muted); font-size: 14px; }
+.employee-ui.ess-page-overview .ess-document-list a { display: inline-flex; min-height: 44px; align-items: center; color: var(--dash-text); font-size: 14px; }
+@media (max-width:1100px) {
+  .employee-ui.ess-page-overview #content { padding: 24px; }
+  .employee-ui.ess-page-overview .ess-workday-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .employee-ui.ess-page-overview .ess-workday-metrics strong { font-size: 19px; }
+  .employee-ui.ess-page-overview .ess-balance-grid { grid-template-columns: 1fr; }
+}
+@media (max-width:760px) {
+  .employee-ui.ess-page-overview #content { padding: 20px 16px 32px; gap: 16px; grid-template-columns: 1fr; }
+  .employee-ui.ess-page-overview #content > .panel,
+  .employee-ui.ess-page-overview #content > .ess-workday { padding: 20px; }
+  .employee-ui.ess-page-overview .ess-workday-main { padding: 18px; grid-template-columns: 1fr; gap: 18px; }
+  .employee-ui.ess-page-overview .ess-workday-main [data-workday-value] { font-size: 34px; }
+  .employee-ui.ess-page-overview .ess-workday-punches { border-left: 0; border-top: 1px solid var(--dash-line); padding: 16px 0 0; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .employee-ui.ess-page-overview .ess-workday-punches b { font-size: 13px; }
+  .employee-ui.ess-page-overview .ess-workday-metrics { gap: 10px; }
+  .employee-ui.ess-page-overview .ess-workday-metrics > div { padding: 12px 10px; }
+  .employee-ui.ess-page-overview .ess-workday-metrics strong { font-size: 16px; }
+  .employee-ui.ess-page-overview .ess-time-details > summary span { display: block; margin: 4px 0 0; }
+  .employee-ui.ess-page-overview #content > .ess-dashboard-tasks { gap: 12px; }
+  .employee-ui.ess-page-overview .ess-dashboard-tasks > .ess-task-summary { padding: 16px; }
+  .employee-ui.ess-page-overview .ess-task-summary span { font-size: 13px; }
+  .employee-ui.ess-page-overview .ess-task-summary strong { font-size: 26px; }
+  .employee-ui.ess-page-overview .ess-overview-filter label { width: auto!important; flex: 1; min-width: 0!important; }
+  .employee-ui.ess-page-overview .ess-overview-filter > div { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .employee-ui.ess-page-overview .ess-task-summary { transition: none; }
+}
