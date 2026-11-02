@@ -27,6 +27,27 @@ const {chromium}=require(process.env.UI_PLAYWRIGHT_PATH||'playwright');
  failed=true;await page.getByRole('button',{name:'Refresh live data',exact:true}).click();await page.waitForFunction(()=>document.querySelector('[data-tl-live-status]').textContent.includes('Connection interrupted'));
  failed=false;await page.getByRole('button',{name:'Refresh live data',exact:true}).click();await page.waitForFunction(()=>document.querySelector('[data-tl-live-status]').textContent.startsWith('Live'));
  mkdirSync('/tmp/shrms-ui-screenshots',{recursive:true});for(const width of [1280,390]){await page.setViewportSize({width,height:1000});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:`/tmp/shrms-ui-screenshots/timeline-live-${width}.png`,fullPage:true});}
- assert.deepEqual(errors,[]);console.log('PASS: live work/break totals, new punches, preserved drafts, stale saves, overnight overtime, connection recovery and responsive timeline.');
+ // Exact date/time labels are visible, including the overnight day change.
+ assert.match(await page.locator('.atl-period-time').first().innerText(),/02 Nov.*06:00:00 pm/);
+ assert.match(await page.locator('.atl-period-time').last().innerText(),/03 Nov.*05:00:00 am/);
+ assert.match(await page.locator('.atl-now').innerText(),/Now 05:00 am/);
+ // Removing a closed break credits that interval, without changing the source payload.
+ await page.getByRole('button',{name:'Remove break period 2',exact:true}).click();
+ assert.equal(await page.locator('[data-tl-work]').innerText(),'10h 58m');assert.equal(await page.locator('[data-tl-break]').innerText(),'0h 02m');
+ assert.equal(data.events[1].state,'out');assert.equal(await page.locator('.atl-boundary').count(),3);
+ assert.match(await page.locator('[data-tl-live-status]').innerText(),/Editing snapshot/);
+ await page.getByRole('button',{name:'Discard edits & reload live data',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.atl-boundary').length===5);
+ // Removing interior work turns precisely that period into excluded/break time.
+ await page.getByRole('button',{name:'Remove work period 3',exact:true}).click();
+ assert.equal(await page.locator('[data-tl-work]').innerText(),'9h 56m');assert.equal(await page.locator('[data-tl-break]').innerText(),'1h 03m');
+ const corrected=JSON.parse(await page.locator('[name=timeline_events]').inputValue());assert.deepEqual(corrected,[data.events[0],data.events[1],data.events[4]]);
+ await page.getByRole('button',{name:'Discard edits & reload live data',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.atl-boundary').length===5);
+ // Removing first work excludes the leading interval without an invalid leading OUT.
+ await page.getByRole('button',{name:'Remove work period 1',exact:true}).click();
+ assert.equal(JSON.parse(await page.locator('[name=timeline_events]').inputValue())[0].at,data.events[2].at);
+ // A sole work period cannot silently erase an entire day's attendance.
+ data.events=[{at:start,state:'in'}];data.revision='sole';await page.getByRole('button',{name:'Discard edits & reload live data',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.atl-boundary').length===1);
+ await page.getByRole('button',{name:'Remove work period 1',exact:true}).click();assert.match(await page.locator('[data-tl-message]').innerText(),/Keep at least one working period/);assert.equal(await page.locator('.atl-boundary').count(),1);
+ assert.deepEqual(errors,[]);console.log('PASS: live totals, punches, preserved drafts, stale saves, overnight overtime, recovery, responsive timeline, visible period times and work/break removal.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
