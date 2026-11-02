@@ -5,7 +5,7 @@ $pages=['leave_routes'=>['Leave Approval Routes','settings.edit'],'overview'=>['
 require_once dirname(__DIR__).'/core-hr/controller.php';$pages=array_merge($pages,$corePages);require_once dirname(__DIR__).'/payroll/controller.php';$pages=array_merge($pages,$payPages);require_once dirname(__DIR__).'/recruitment/service.php';$recruitmentPages=['recruitment_dashboard'=>['Recruitment Dashboard','recruitment.view'],'recruitment_jobs'=>['Job Openings','recruitment.view'],'recruitment_candidates'=>['Candidates','recruitment.candidates.view'],'recruitment_applications'=>['Applications','recruitment.applications.view'],'recruitment_interviews'=>['Interviews','recruitment.interviews.view'],'recruitment_offers'=>['Offers','recruitment.offers.view']];$pages=array_merge($pages,$recruitmentPages);
 if(!isset($pages[$page])){http_response_code(404);exit('Page not found.');}
 if($pages[$page][1])need($pdo,$user,$pages[$page][1]);
-if(in_array($page,['devices','mapping','punch_log','sync','raw_logs'],true)&&!att_biometric_enabled($pdo)){http_response_code(403);exit('Biometric attendance is disabled. Manual attendance remains available.');}
+if(in_array($page,['devices','cloud_biometric','mapping','punch_log','sync','raw_logs'],true)&&!att_biometric_enabled($pdo)){http_response_code(403);exit('Biometric attendance is disabled. Manual attendance remains available.');}
 if($page==='employee-view'&&($_GET['tab']??'')==='documents')need($pdo,$user,'documents.view');
 require_once dirname(__DIR__).'/payroll/profile-salary.php';
 $error='';$notice=$_SESSION['foundation_notice']??'';unset($_SESSION['foundation_notice']);
@@ -151,6 +151,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 $company=$installed?$pdo->query('SELECT * FROM company_settings WHERE id=1')->fetch(PDO::FETCH_ASSOC):['name'=>'Arkentech Solutions'];
 if($installed&&!empty($company['timezone']))date_default_timezone_set($company['timezone']);
 require __DIR__.'/layout.php';
+
 
 
 
