@@ -9,4 +9,5 @@ elseif($page==='company_calendar'):require __DIR__.'/calendar-view.php';
 elseif($page==='shift_defaults'):require __DIR__.'/defaults-view.php';
 elseif($page==='time_policies'):require __DIR__.'/policies-view.php';
 elseif(in_array($page,['attendance_dashboard','daily_work_status','attendance_exceptions'],true)):require __DIR__.'/reports-view.php';
-elseif(in_array($page,['devices','mapping','punch_log','sync','raw_logs'],true)):require __DIR__.'/devices-view.php';endif;
+elseif(in_array($page,['devices','cloud_biometric','mapping','punch_log','sync','raw_logs'],true)):require __DIR__.'/devices-view.php';endif;
+

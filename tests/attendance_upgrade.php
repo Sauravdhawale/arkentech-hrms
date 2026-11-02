@@ -10,6 +10,21 @@ $defaults=['title'=>'CI company default','scope'=>'Company','shift_id'=>$fixture
 $punch=['employee_id'=>$employee,'attendance_date'=>'2026-02-02','punched_at'=>'2026-02-02 22:00:00','punch_action'=>'Check In','notes'=>'CI manual in','request_key'=>str_repeat('a',64)];$id=att_manual_punch($db,$admin,$punch);blocked(fn()=>att_manual_punch($db,$admin,$punch),'Repeated manual punch');att_manual_punch($db,$admin,array_merge($punch,['punched_at'=>'2026-02-03 06:00:00','punch_action'=>'Check Out','request_key'=>str_repeat('b',64)]));check($db->query('SELECT source FROM hr_attendance WHERE id='.$id)->fetchColumn()==='Admin Manual','Manual source');
 $code=$db->query('SELECT employee_code FROM employees WHERE user_id='.$employee)->fetchColumn();$rows=att_import_rows($db,[['employee_id'=>$code,'date'=>'2026-02-04','check_in'=>'22:00','check_out'=>'06:00']]);check($rows[0]['error']===''&&$rows[0]['data']['check_out']==='2026-02-05 06:00:00','Overnight import normalization');blocked(fn()=>att_manual_punch($db,$viewer,$punch),'Manual permission bypass');
 att_save_settings($db,$admin,['mode'=>'Manual + Biometric','biometric_enabled'=>1]);att_save_device($db,$admin,['title'=>'CI Bridge','device_code'=>'CI-SERIAL','active'=>1]);$device=chr_rows($db,'devices')[0];att_save_mapping($db,$admin,['title'=>'CI Mapping','device_id'=>$device['id'],'employee_id'=>$employee,'biometric_id'=>'CI-1','active'=>1]);att_device_action($db,$admin,['device_id'=>$device['id'],'device_action'=>'rotate']);$token=$_SESSION['bridge_token_once']['token'];$authenticated=att_bridge_auth($db,'Bearer '.$token);
+// Cloud reporting reads only its own device/source and preserves the punch store.
+require_once dirname(__DIR__).'/includes/attendance/cloud.php';
+$db->beginTransaction();try{
+ $insert=$db->prepare('INSERT INTO hr_punches(device_code,biometric_id,event_key,punched_at) VALUES(?,?,?,?)');
+ foreach([['CI-SERIAL','cloud-1','adms:ci-today','2026-02-06 22:00:00'],['CI-SERIAL','cloud-2','adms:ci-next','2026-02-07 01:00:00'],['CI-SERIAL','local-1','laptop:ci','2026-02-06 22:30:00'],['CI-OTHER','cloud-3','adms:ci-other','2026-02-06 22:00:00']] as $row)$insert->execute($row);
+ $beforeCloud=$db->query('SELECT * FROM hr_punches ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+ $cloud=att_cloud_report($db,'CI-SERIAL','2026-02-06');
+ check((int)$cloud['summary']['total']===2,'Cloud source/device scoping');
+ check((int)$cloud['summary']['day_punches']===1,'Cloud calendar date boundary');
+ check(count($cloud['rows'])===2&&$cloud['summary']['last_received_epoch']!==null,'Cloud received time and rows');
+ check($cloud['rows'][0]['processing_status']==='Legacy raw','Unprocessed cloud record must remain visible');
+ check((int)att_cloud_report($db,'CI-EMPTY','2026-02-06')['summary']['total']===0,'Empty cloud device');
+ blocked(fn()=>att_cloud_report($db,'CI-SERIAL','2026-13-01'),'Invalid cloud date');
+ check($beforeCloud===$db->query('SELECT * FROM hr_punches ORDER BY id')->fetchAll(PDO::FETCH_ASSOC),'Cloud view mutated punches');
+}finally{$db->rollBack();}
 $events=[['biometric_id'=>'CI-1','event_key'=>'CI-E1','punched_at'=>'2026-02-06 22:00:00','direction'=>'in'],['biometric_id'=>'CI-1','event_key'=>'CI-E2','punched_at'=>'2026-02-07 06:00:00','direction'=>'out']];$result=att_bridge_batch($db,$authenticated,$events);check(count($result['accepted'])===2,'Bridge save');$result=att_bridge_batch($db,$authenticated,$events);check(count($result['duplicates'])===2,'Bridge retry idempotency');$q=$db->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND attendance_date=?');$q->execute([$employee,'2026-02-06']);$r=$q->fetch(PDO::FETCH_ASSOC);check($r&&$r['source']==='Biometric'&&$r['check_out']==='2026-02-07 06:00:00','Overnight bridge calculation');
 att_bridge_batch($db,$authenticated,[['biometric_id'=>'CI-1','event_key'=>'CI-MANUAL','punched_at'=>'2026-02-02 22:01:00','direction'=>'in']]);check($db->query('SELECT source FROM hr_attendance WHERE id='.$id)->fetchColumn()==='Admin Manual','Manual attendance overwritten');
 att_save_absence($db,$admin,['employee_id'=>$employee,'attendance_date'=>'2026-02-09','notes'=>'CI absence']);$report=chr_report($db,'2026-02-09','2026-02-09',['employee_id'=>$employee]);check($report[0]['status']==='Absent'&&$report[0]['source']==='Admin Manual','Manual absence reporting');
@@ -87,5 +102,6 @@ try {
  blocked(fn()=>att_save_employee_schedule($db,$admin,$locked),'Recorded attendance schedule replaced');
 } finally {if($db->inTransaction())$db->rollBack();}
 echo "Employee default and temporary shift checks passed\n";
+
 
 
