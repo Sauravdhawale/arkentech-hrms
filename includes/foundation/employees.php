@@ -2,6 +2,7 @@
 require_once __DIR__.'/organization.php';
 require_once __DIR__.'/employee-delete.php';
 require_once __DIR__.'/employee-csv.php';
+require_once dirname(__DIR__).'/attendance/employee-mapping.php';
 function save_employee(PDO $pdo,array $actor,array $in,array $files):int {
  $id=(int)($in['id']??0);$old=$id?foundation_employee($pdo,$id):null;if($id&&!$old)throw new InvalidArgumentException('Employee not found.');
  $q=$pdo->prepare("SELECT id FROM users WHERE id=? AND role='super_admin'");$q->execute([$id]);if($q->fetchColumn())throw new InvalidArgumentException('Super Admin accounts are protected.');
@@ -22,6 +23,7 @@ function save_employee(PDO $pdo,array $actor,array $in,array $files):int {
  foreach(['mobile'=>40,'alternate_phone'=>40,'blood_group'=>10,'current_address'=>2000,'permanent_address'=>2000,'city'=>100,'state'=>100,'country'=>100,'pin_code'=>20,'emergency_name'=>150,'emergency_phone'=>40,'emergency_relationship'=>80] as $k=>$max)$values[$k]=ftext($in,$k,$max);
  $ownsTransaction=!$pdo->inTransaction();if($ownsTransaction)$pdo->beginTransaction();try{
   $pdo->query("SELECT id FROM users WHERE role='super_admin' ORDER BY id LIMIT 1 FOR UPDATE")->fetchColumn();
+  $in=att_employee_mapping_defaults($pdo,$actor,$in);
   if($id){$q=$pdo->prepare('SELECT version FROM employees WHERE user_id=? FOR UPDATE');$q->execute([$id]);if((int)$q->fetchColumn()!==(int)($in['version']??0))throw new InvalidArgumentException('This profile changed. Reload it before saving.');}
   $q=$pdo->prepare('SELECT id,department_id,active FROM designations WHERE id=?');$q->execute([$designation]);$currentDesignation=$q->fetch(PDO::FETCH_ASSOC);if(!$currentDesignation||!org_designation_allowed($currentDesignation,$department,$old))throw new InvalidArgumentException('Designation changed. Select a designation for this department again.');
   if($old&&(int)$old['department_id']!==$department&&function_exists('att_ready')&&att_ready($pdo))att_record_write($pdo,$actor,'department_history',['title'=>'Department change'],['date'=>date('Y-m-d'),'before'=>(int)$old['department_id'],'after'=>$department],$id);
@@ -82,6 +84,3 @@ function foundation_bulk_employees(PDO $db,array $actor,array $in):string {
   $db->commit();return count($ids).($operation==='delete'?' employees permanently deleted, including their accounts and personal attendance records.':' employee assignments updated.');
  }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
 }
-
-
-
