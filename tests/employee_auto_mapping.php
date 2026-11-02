@@ -47,5 +47,39 @@ $db->beginTransaction();try{
  $q=$db->query('SELECT status,employee_id FROM hr_punch_processing WHERE punch_id='.$punch);$old=$q->fetch(PDO::FETCH_ASSOC);
  map_check($old['status']==='Before joining date'&&$old['employee_id']===null,'Pre-joining punches must remain unassigned');
  foreach($beforeMappings as $old)map_check(chr_record($db,'mapping',(int)$old['id'])===$old,'Existing mappings must remain unchanged');
+ // Older forms and CSV rows omit biometric_auto_map entirely. The save service
+ // must apply the same default as the Add Employee form, never guess a device.
+ $db->exec('SAVEPOINT creation_defaults');
+ $db->prepare("UPDATE hr_records SET status='Disabled' WHERE module='devices' AND id<>?")->execute([$deviceId]);
+ $implicit=array_replace($base,['username'=>'ci.auto.implicit','employee_code'=>'AT00990346']);
+ unset($implicit['biometric_auto_map'],$implicit['biometric_device_id']);
+ // More than one retry batch of historical punches must not delay the latest
+ // punch when a new mapping is saved. Keep all raw records, including pre-join.
+ $queued=[];
+ for($i=0;$i<102;$i++){
+  $event=['biometric_id'=>'990346','event_key'=>'CI-AUTO-BACKLOG-'.$i,'punched_at'=>$i===101?'2026-02-02 18:00:00':'2026-01-01 18:'.sprintf('%02d',intdiv($i,60)).':'.sprintf('%02d',$i%60),'direction'=>'unknown'];
+  $db->prepare('INSERT INTO hr_punches(device_code,biometric_id,event_key,punched_at,direction) VALUES(?,?,?,?,?)')->execute(['CI-AUTO-MAP',...array_values($event)]);
+  $queued[]=(int)$db->lastInsertId();
+  $db->prepare("INSERT INTO hr_punch_processing(punch_id,device_id,raw_payload,fingerprint,status) VALUES(?,?,?,?,'Needs mapping')")->execute([end($queued),$deviceId,json_encode($event),hash('sha256',$event['event_key'])]);
+ }
+ $implicitId=save_employee($db,$admin,$implicit,[]);
+ $implicitMaps=array_values(array_filter(chr_rows($db,'mapping'),fn($m)=>(int)$m['employee_id']===$implicitId));
+ map_check(count($implicitMaps)===1&&$implicitMaps[0]['values']['biometric_id']==='990346','Omitted form fields must auto-map to the only enabled device');
+ map_check((int)$db->query('SELECT employee_id FROM hr_punch_processing WHERE punch_id='.end($queued))->fetchColumn()===$implicitId,'New mapping must recover the latest punch despite a historical backlog');
+ map_check((int)$db->query("SELECT COUNT(*) FROM hr_punches WHERE device_code='CI-AUTO-MAP' AND biometric_id='990346'")->fetchColumn()===102,'Recovery must retain every raw punch');
+ $edit=$implicit;unset($edit['biometric_auto_map'],$edit['biometric_device_id']);
+ $edit['id']=$implicitId;$edit['version']=foundation_employee($db,$implicitId)['version'];$edit['employee_code']='AT00990347';
+ save_employee($db,$admin,$edit,[]);
+ map_check(chr_record($db,'mapping',(int)$implicitMaps[0]['id'])['values']['biometric_id']==='990346','Editing without mapping fields must preserve the original mapping');
+ $conflict=array_replace($implicit,['username'=>'ci.auto.implicit.conflict','employee_code'=>'AT000990346']);
+ map_blocked($db,fn()=>save_employee($db,$admin,$conflict,[]),'Implicit mapping conflict must roll back employee creation');
+ $optout=array_replace($implicit,['username'=>'ci.auto.implicit.optout','employee_code'=>'AT00990348','biometric_auto_map'=>0]);
+ $optoutId=save_employee($db,$admin,$optout,[]);
+ map_check(!array_filter(chr_rows($db,'mapping'),fn($m)=>(int)$m['employee_id']===$optoutId),'Explicit opt-out must remain supported');
+ $unauthorized=att_employee_mapping_defaults($db,$viewer,$implicit);
+ map_check(!isset($unauthorized['biometric_auto_map']),'Default must not grant biometric permissions');
+ $second=att_record_write($db,$admin,'devices',['title'=>'CI Second Enabled'],['device_code'=>'CI-AUTO-SECOND'],null,'Enabled');
+ map_blocked($db,fn()=>save_employee($db,$admin,array_replace($implicit,['username'=>'ci.auto.ambiguous','employee_code'=>'AT00990349']),[]),'Multiple enabled devices must require a selection');
+ $db->exec('ROLLBACK TO SAVEPOINT creation_defaults');
 }finally{if($db->inTransaction())$db->rollBack();}
 echo "PASS: automatic employee-code mapping, exact ID preservation, idempotency, conflict and permission guards, opt-out, edit preservation and pre-joining isolation.\n";
