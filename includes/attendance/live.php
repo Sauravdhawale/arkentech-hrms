@@ -35,7 +35,7 @@ function att_live_punch(PDO $db,array $actor,array $in):int {
   if($day!==$status['attendance_date'])throw new InvalidArgumentException('The shift has changed. Refresh before recording a punch.');
   $q=$db->prepare('SELECT * FROM hr_attendance WHERE employee_id=? AND attendance_date=? FOR UPDATE');$q->execute([$employee,$day]);$old=$q->fetch(PDO::FETCH_ASSOC);
   $checkIn=$old['check_in']??$at;
-  $id=chr_save_attendance($db,$actor,['id'=>$old['id']??0,'version'=>$old['version']??0,'employee_id'=>$employee,'attendance_date'=>$day,'check_in'=>$checkIn,'check_out'=>$action==='Check Out'?$at:null,'source'=>'Admin Manual','notes'=>$reason]);
+  $id=chr_save_attendance($db,$actor,['id'=>$old['id']??0,'version'=>$old['version']??0,'employee_id'=>$employee,'attendance_date'=>$day,'check_in'=>$checkIn,'check_out'=>$action==='Check Out'?$at:null,'source'=>'Admin Manual','notes'=>$reason],false,true);
   $db->prepare('INSERT INTO hr_manual_punch_events(employee_id,attendance_date,action,punched_at,source,actor_id,notes,request_key) VALUES(?,?,?,?,?,?,?,?)')->execute([$employee,$day,$action,$at,'Admin Manual',$actor['id'],$reason,$key]);
   if($owns)$db->commit();return $id;
  }catch(Throwable $e){if($owns&&$db->inTransaction())$db->rollBack();throw $e;}

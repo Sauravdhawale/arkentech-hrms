@@ -1,4 +1,5 @@
 <?php
+require_once dirname(__DIR__).'/attendance/timeline.php';
 /** Read-only presence estimate. Never changes payroll, raw punches or attendance. */
 function ess_punch_sequence(array $punches):array {
  usort($punches,fn($a,$b)=>strcmp($a['punched_at'],$b['punched_at']) ?: (($a['id']??0)<=>($b['id']??0)));
@@ -19,7 +20,8 @@ function ess_punch_sequence(array $punches):array {
  return ['state'=>$state,'last'=>$last,'inferred'=>$inferred,'count'=>$count,'events'=>$events];
 }
 /** Manual attendance is a presence baseline, not a reason to ignore later device events. */
-function ess_presence_sequence(?array $attendance,array $punches,array $manualEvents=[]):array {
+function ess_presence_sequence(?array $attendance,array $punches,array $manualEvents=[],?array $timeline=null):array {
+ if($timeline)return att_timeline_sequence($timeline,$punches,$manualEvents);
  // Explicit admin punches remain authoritative at their own time; subsequent device punches still apply.
  if($manualEvents){
   usort($manualEvents,fn($a,$b)=>strcmp($a['punched_at'],$b['punched_at']) ?: (($a['id']??0)<=>($b['id']??0)));
@@ -80,7 +82,8 @@ function ess_punch_status(PDO $db,int $owner):array {
  }
  $base+=['attendance_date'=>$day,'attendance_id'=>(int)($attendance['id']??0),'attendance_version'=>(int)($attendance['version']??0)];
  $mq=$db->prepare('SELECT id,action,punched_at FROM hr_manual_punch_events WHERE employee_id=? AND attendance_date=? AND punched_at<=? ORDER BY punched_at,id');$mq->execute([$owner,$day,date('Y-m-d H:i:s')]);
- $sequence=ess_presence_sequence($attendance?:null,$punches,$mq->fetchAll(PDO::FETCH_ASSOC));
+ $timeline=att_timeline_saved($db,$owner,$day);
+ $sequence=ess_presence_sequence($attendance?:null,$punches,$mq->fetchAll(PDO::FETCH_ASSOC),$timeline);
  $base['last_punch_at']=$sequence['last']??null;
  if($sequence['state']==='review')return array_replace($base,['state'=>'review','label'=>'Punch needs review','detail'=>'Attendance processing is incomplete']);
  [$start,$end]=chr_shift_bounds($day,$resolved['shift']['values']);
@@ -127,8 +130,3 @@ function ess_shift_timer(array $events,int $start,int $end,array $shift,int $now
   'first_in_label'=>$first?date('d M, h:i A',$first):'—','last_out_label'=>$lastOut?date('d M, h:i A',$lastOut):'—',
   'inferred'=>$inferred,'expired'=>false];
 }
-
-
-
-
-

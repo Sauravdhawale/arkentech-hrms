@@ -42,6 +42,7 @@ jobs:
           python3 tests/admin_unavailable.py
           php tests/attendance_upgrade.php
           php tests/attendance_live.php
+          php tests/attendance_timeline.php
           php tests/employee_auto_mapping.php
           php tests/attendance_sheet_status.php
           php tests/attendance_punch_windows.php
@@ -81,6 +82,7 @@ jobs:
           UI_PLAYWRIGHT_PATH: /tmp/shrms-ui-check/node_modules/playwright
         run: |
           node tests/attendance_ui.cjs
+          node tests/attendance_timeline_ui.cjs
           node tests/theme_ui.cjs
           node tests/admin_audit_ui.cjs
           node tests/employee_dashboard_ui.cjs
@@ -91,6 +93,7 @@ jobs:
           name: shrms-ui-screenshots
           path: /tmp/shrms-ui-screenshots/
           if-no-files-found: ignore
+
 
 
 
