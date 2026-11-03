@@ -27,3 +27,9 @@ The timeline shows clock times on wider segments, a current-time marker, and a c
 - At least one working period must remain. To remove all work for a day, use the attendance sheet's absence correction instead.
 
 These actions affect a draft only. Reset changes restores the previous timeline; saving requires a reason and retains the original punches and audit trail. The break summary counts only time within the shift, while individual period durations show the entire displayed interval.
+
+## Timeline readability update
+
+Recorded time is the default graph range, fitting the available punches and live endpoint. Full shift shows the scheduled window. Switching views never changes attendance. A time ruler and current-time badge make the position clear. Exact numbered IN/OUT times stay visible beneath the graph even when very short intervals cannot fit labels inside the colored bar. Dragging, precise time fields, period removal and audit behavior are unchanged.
+
+For the standalone timeline-design update ZIP, upload its assets/ folder into the portal root and replace the two matching CSS/JavaScript files. It requires the previously installed live timeline. No PHP or database changes are included in that smaller ZIP.

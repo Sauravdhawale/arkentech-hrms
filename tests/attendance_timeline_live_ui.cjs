@@ -48,6 +48,14 @@ const {chromium}=require(process.env.UI_PLAYWRIGHT_PATH||'playwright');
  // A sole work period cannot silently erase an entire day's attendance.
  data.events=[{at:start,state:'in'}];data.revision='sole';await page.getByRole('button',{name:'Discard edits & reload live data',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.atl-boundary').length===1);
  await page.getByRole('button',{name:'Remove work period 1',exact:true}).click();assert.match(await page.locator('[data-tl-message]').innerText(),/Keep at least one working period/);assert.equal(await page.locator('.atl-boundary').count(),1);
- assert.deepEqual(errors,[]);console.log('PASS: live totals, punches, preserved drafts, stale saves, overnight overtime, recovery, responsive timeline, visible period times and work/break removal.');
+ // Short breaks have exact labels even when the full-shift graph cannot fit text.
+ data.events=[{at:start+180,state:'in'},{at:start+900,state:'out'},{at:start+1620,state:'in'}];data.cutoff=start+9600;data.revision='short-break';
+ await page.getByRole('button',{name:'Refresh live data',exact:true}).click();await page.waitForFunction(()=>document.querySelector('[name=timeline_revision]').value==='short-break');
+ assert.equal(await page.locator('.atl-punch-chip').count(),3);assert.match(await page.locator('.atl-punch-chip').nth(1).innerText(),/OUT.*06:15:00 pm/s);
+ const beforeRange=await page.locator('[name=timeline_events]').inputValue(),beforeWork=await page.locator('[data-tl-work]').innerText();
+ await page.getByRole('button',{name:'Full shift',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Full shift',exact:true}).getAttribute('aria-pressed'),'true');assert.equal(await page.locator('[name=timeline_events]').inputValue(),beforeRange);assert.equal(await page.locator('[data-tl-work]').innerText(),beforeWork);assert.ok(await page.locator('[data-tl-save]').isDisabled());
+ await page.getByRole('button',{name:'Recorded time',exact:true}).click();
+ for(const width of [1280,390]){await page.setViewportSize({width,height:1000});await page.getByRole('button',{name:'Recorded time',exact:true}).click();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:`/tmp/shrms-ui-screenshots/timeline-readable-${width}.png`,fullPage:true});}
+ assert.deepEqual(errors,[]);console.log('PASS: live totals, punches, draft protection, overnight overtime, responsive timeline, period removal, exact punch labels and non-mutating timeline zoom.');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
