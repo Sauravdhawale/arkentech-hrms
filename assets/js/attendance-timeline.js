@@ -49,9 +49,10 @@
   function changed(){pause();render();}
   function setTime(i,at){const lower=i?events[i-1].at+1:min,upper=Math.min(cfg.cutoff,i+1<events.length?events[i+1].at-1:max);events[i].at=Math.max(lower,Math.min(upper,at));dirty=true;render();}
   function render(rebuild=true,redraw=true){
-   min=Math.min(cfg.start,...original.map(e=>e.at),...events.filter(e=>Number.isFinite(e.at)).map(e=>e.at))-1800;max=Math.max(cfg.end,...original.map(e=>e.at),...events.filter(e=>Number.isFinite(e.at)).map(e=>e.at),cfg.live?now():cfg.end)+1800;
+   if(!drag){min=Math.min(cfg.start,...original.map(e=>e.at),...events.filter(e=>Number.isFinite(e.at)).map(e=>e.at))-1800;max=Math.max(cfg.end,...original.map(e=>e.at),...events.filter(e=>Number.isFinite(e.at)).map(e=>e.at),cfg.live?now():cfg.end)+1800;
    const validEvents=events.filter(e=>Number.isFinite(e.at));
    if(view==='recorded'&&validEvents.length){min=Math.min(...validEvents.map(e=>e.at))-900;max=Math.max(min+3600,...validEvents.map(e=>e.at),...events.map((e,i)=>Number.isFinite(e.at)?endFor(events,i):min))+900;}
+   }
    viewButtons.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===view)));
    const err=invalid(),v=totals(events),before=totals(original),difference=v.work-before.work;
    form.querySelector('[name=timeline_events]').value=JSON.stringify(events);
@@ -82,7 +83,7 @@
    });
   }
   track.addEventListener('pointermove',ev=>{if(!drag)return;const rect=track.getBoundingClientRect();const at=Math.round((min+(ev.clientX-rect.left)/rect.width*(max-min))/60)*60;setTime(drag.i,at);});
-  const endDrag=()=>{drag=null;};track.addEventListener('pointerup',endDrag);track.addEventListener('pointercancel',endDrag);
+  const endDrag=()=>{if(drag){drag=null;render();}};track.addEventListener('pointerup',endDrag);track.addEventListener('pointercancel',endDrag);
   form.querySelector('[data-tl-add]')?.addEventListener('click',()=>{
    if(!events.length){events.push({at:Math.min(cfg.start,cfg.cutoff),state:'in'});changed();return;}
    let best=null;events.forEach((e,i)=>{const end=events[i+1]?.at??Math.min(cfg.end,cfg.cutoff);if(end-e.at>=120&&(!best||end-e.at>best.length))best={i,length:end-e.at,at:Math.floor((e.at+end)/2),state:e.state==='in'?'out':'in'};});
