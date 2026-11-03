@@ -3,6 +3,8 @@
 if (!isset($user)) { http_response_code(404); exit; }
 $admin=$user['role']==='super_admin';
 $passwordSetup=!$admin&&!empty($user['must_change_password']);
+$pdo=db();require_once __DIR__.'/foundation/core.php';
+$teamAccess=!$admin&&!$passwordSetup&&can($pdo,$user,'team.view');
 if($passwordSetup&&$_SERVER['REQUEST_METHOD']==='POST'&&($_POST['action']??'')!=='change_password'){http_response_code(403);exit('Complete your password setup before using employee features.');}
 $nav=$admin?['overview'=>'Overview','employees'=>'People','attendance'=>'Attendance','devices'=>'Biometric devices','shifts'=>'Shifts & rules','regularisation'=>'Regularisation','leaves'=>'Leave management','holidays'=>'Holidays','payroll'=>'Payroll','recruitment'=>'Recruitment','onboarding'=>'Onboarding','performance'=>'Performance & PMS','announcements'=>'Announcements','helpdesk'=>'Helpdesk','reports'=>'Reports','audit'=>'Audit log','offboarding'=>'Offboarding','settings'=>'Company settings','system'=>'System configuration']:['overview'=>'My dashboard','profile'=>'My profile','attendance'=>'My attendance','regularisation'=>'Regularisation','leaves'=>'My leave','holidays'=>'Holiday calendar','payroll'=>'My payslips','onboarding'=>'My onboarding','performance'=>'My performance','announcements'=>'Company notices','helpdesk'=>'My requests','security'=>'Login & security'];
 require_once __DIR__.'/suite-definitions.php';
@@ -11,6 +13,7 @@ $nav['attendance']='Attendance records';$nav['monthly']='Monthly attendance';
 if($admin){$nav['raw_logs']='Raw biometric logs';$nav['sync']='Sync history';$nav['device_attendance']='Device punch attendance';$nav['device_monthly']='Device punch summary';}
 if(!$admin)$nav+=['my_shift'=>'My Shift','attendance_sheet'=>'Attendance Sheet','leave_history'=>'Leave History','inbox'=>'Inbox','notifications'=>'Notifications','my_salary'=>'My Payroll & Payslips','approvals'=>'Leave Approvals'];
 $page=$_GET['page'] ?? 'overview';
+if($teamAccess)$nav+=['team_people'=>'Team People','team_attendance'=>'Team Attendance'];
 if(!$admin&&!$passwordSetup&&$page==='profile'){$profileTab=(string)($_GET['tab']??'overview');$page=['overview'=>'profile','shift'=>'my_shift','documents'=>'documents','security'=>'security','payroll'=>'my_salary'][$profileTab]??'profile';}
 if (!isset($nav[$page])) { http_response_code(403); exit('This section is not available for your role.'); }
 $pdo=db(); $notice=''; $error=''; $ready=true;
@@ -19,7 +22,8 @@ function audit_action(PDO $pdo,int $actor,string $action,int $record): void { $p
 function field_text(string $key,int $max,bool $required=true): string { $s=trim((string)($_POST[$key] ?? '')); if (($required && $s==='') || strlen($s)>$max) throw new InvalidArgumentException('Please complete all fields within their character limits.'); return $s; }
 require_once __DIR__.'/core-hr/service.php';if(!att_biometric_enabled($pdo))foreach(['devices','mapping','sync','raw_logs','device_attendance','device_monthly'] as $biometricPage)unset($nav[$biometricPage]);
 $coreReady=chr_ready($pdo);if(!$admin&&$coreReady&&$page==='payroll')$page='my_salary';if($coreReady){$companyZone=$pdo->query('SELECT timezone FROM company_settings WHERE id=1')->fetchColumn();if($companyZone)date_default_timezone_set($companyZone);}
-if(!$admin&&$coreReady&&!in_array($page,['overview','profile','my_shift','documents','attendance','attendance_sheet','monthly','regularisation','leaves','balances','leave_history','my_salary','payroll','performance','reviews','tasks','helpdesk','inbox','notifications','security','announcements'],true)&&!($page==='approvals'&&can($pdo,$user,'leave.approve'))){http_response_code(403);exit('This section is not available in the employee workspace.');}
+if(!$admin&&$coreReady&&!in_array($page,['overview','profile','my_shift','documents','attendance','attendance_sheet','monthly','regularisation','leaves','balances','leave_history','my_salary','payroll','performance','reviews','tasks','helpdesk','inbox','notifications','security','announcements'],true)&&!($page==='approvals'&&can($pdo,$user,'leave.approve'))&&!($teamAccess&&in_array($page,['team_people','team_attendance'],true))){http_response_code(403);exit('This section is not available in the employee workspace.');}
+if(in_array($page,['team_people','team_attendance'],true))require __DIR__.'/team/controller.php';
 require __DIR__.'/suite.php';
 require_once __DIR__.'/leave-balances.php';
 $coreReady=chr_ready($pdo);
@@ -113,9 +117,12 @@ $groups['Communication']=['announcements','helpdesk'];
 if($admin)$groups['Reports']=['reports','audit'];
 $groups['System']=[$admin?'system':'security'];
 if(!$admin&&$coreReady){$groups=['Dashboard'=>['overview'],'Inbox'=>['inbox'],'Attendance'=>['attendance'],'Leave'=>['leaves'],'Payroll'=>['my_salary'],'Performance & PMS'=>['performance','reviews'],'Tasks'=>['tasks'],'Help Desk'=>['helpdesk']];$nav=array_merge($nav,['overview'=>'Dashboard','profile'=>'My Profile','documents'=>'My Documents','attendance'=>'Attendance','regularisation'=>'Attendance Requests','leaves'=>'Leave','balances'=>'Leave Balance','payroll'=>'My Payslips','security'=>'Change Password']);if(can($pdo,$user,'leave.approve'))$groups['Team Workspace']=['approvals'];}
+if($teamAccess&&$coreReady)$groups['My team']=array_merge(['team_people','team_attendance'],$groups['Team Workspace']??[]);
+if($teamAccess)unset($groups['Team Workspace']);
 if($passwordSetup){$groups=['Complete account setup'=>['security']];$nav['security']='Complete account setup';}
 foreach($groups as $label=>$pages): if(count($pages)===1):$key=$pages[0];?><a class="<?= $key===$page?'active':'' ?>" href="?page=<?=h($key)?>"><?=h($label)?></a><?php else:?><details <?=in_array($page,$pages,true)?'open':''?>><summary class="<?=in_array($page,$pages,true)?'active':''?>"><?=h($label)?></summary><div><?php foreach($pages as $key):?><a class="<?=$key===$page?'active':''?>" href="?page=<?=h($key)?>"><?=h($nav[$key])?></a><?php endforeach ?></div></details><?php endif;endforeach ?></nav><div class="aside-bottom" <?=(!$admin&&$coreReady&&!$passwordSetup)?'hidden':''?>><button id="theme" type="button">◐ Switch appearance</button><form action="logout.php" method="post"><?php token(); ?><button class="wide-button">Sign out ↪</button></form></div></aside><div class="main"><header><button id="menu" class="mobile-menu" aria-label="Toggle navigation" aria-expanded="false">☰</button><span><?= $admin?'Company workspace':'Employee workspace' ?> / <?=h($nav[$page])?></span><?php if(!$admin&&$coreReady&&!$passwordSetup)require __DIR__.'/ess/header.php';else echo '<span>'.h($user['name']).'</span>';?></header><main id="content"><div class="page-title"><div><span class="eyebrow"><?= $admin?'YOUR PEOPLE, IN ONE PLACE':'YOUR WORKDAY, SIMPLIFIED' ?></span><h1><?=h($nav[$page])?></h1><p><?= $admin?'Manage your team and review employee requests.':'Your personal records, updates and requests.' ?></p></div><span class="badge"><?= $admin?'Super Admin':'Employee' ?></span></div><?php if(!$ready): ?><div class="error" role="alert">Workspace setup is incomplete. Ask your administrator to import database/002-workspaces.sql.</div><?php endif ?><?php if($error): ?><div class="error" role="alert"><?=h($error)?></div><?php endif ?><?php if(isset($_GET['saved'])): ?><div class="success" role="status">Saved successfully.</div><?php endif ?>
 <?php require __DIR__.'/workspace-content.php';?></main><footer>PeopleFlow by Arkentech<span><?= $admin?'Company workspace':'Employee workspace' ?></span></footer></div><script src="assets/workspace.js?v=<?=filemtime(__DIR__.'/../assets/workspace.js')?>"></script><script src="assets/ess.js?v=<?=substr(hash_file('sha256',__DIR__.'/../assets/ess.js'),0,12)?>" defer></script></body></html>
+
 
 
 
