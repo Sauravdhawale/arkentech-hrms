@@ -31,8 +31,8 @@
 .shrms-ui .team-workspace .team-heading p{font-size:14px;margin-top:6px}
 .shrms-ui .team-workspace .team-table{max-height:none!important;border-radius:0;border-right:0;border-bottom:0;border-left:0;scrollbar-gutter:auto}
 .shrms-ui .team-workspace .team-table table{font-size:16px;table-layout:auto;margin:0}
-.shrms-ui .team-workspace .team-table thead th{padding:17px 24px;font-size:13px;letter-spacing:0;text-transform:none;background:var(--table-head,#f5f7fa)!important}
-.shrms-ui .team-workspace .team-table tbody :is(th,td){padding:22px 24px;font-size:16px;line-height:1.55;letter-spacing:0;border-bottom:1px solid var(--team-line);border-right:0;white-space:normal;color:var(--team-text)}
+.shrms-ui .team-workspace .team-table thead th{padding:17px 24px!important;font-size:13px!important;letter-spacing:0;text-transform:none;background:var(--table-head,#f5f7fa)!important}
+.shrms-ui .team-workspace .team-table tbody :is(th,td){padding:22px 24px!important;font-size:16px!important;line-height:1.55;letter-spacing:0;border-bottom:1px solid var(--team-line);border-right:0;white-space:normal;color:var(--team-text)}
 .shrms-ui .team-workspace .team-table tbody th{background:var(--card-bg,#fff)!important;font-weight:600}
 .shrms-ui .team-workspace .team-table tbody tr:hover :is(th,td){background:var(--row-hover,#f8fafc)!important}
 .shrms-ui .team-workspace .team-table tbody tr:last-child :is(th,td){border-bottom:0}
@@ -46,4 +46,6 @@
 .shrms-ui .team_people .team-table th:nth-child(3){width:27%}
 .shrms-ui .team_people .team-table th:nth-child(4){width:15%}
 .shrms-ui .team_people .team-table th:last-child{width:13%}
-@media(max-width:780px){.shrms-ui.has-app-shell:is(.ess-page-team_people,.ess-page-team_attendance) #content{padding:22px 16px 32px}.shrms-ui .team-workspace .team-heading{padding:20px}.shrms-ui .team-workspace .team-table tbody :is(th,td){padding:18px 20px}.shrms-ui .team-workspace .team-table thead th{padding:15px 20px}}
+@media(max-width:780px){.shrms-ui.has-app-shell:is(.ess-page-team_people,.ess-page-team_attendance) #content{padding:22px 16px 32px}.shrms-ui .team-workspace .team-heading{padding:20px}.shrms-ui .team-workspace .team-table tbody :is(th,td){padding:18px 20px!important}.shrms-ui .team-workspace .team-table thead th{padding:15px 20px!important}}
+
+.shrms-ui .team-workspace .wide-button{width:auto;margin:0}
