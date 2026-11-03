@@ -1,11 +1,8 @@
 .team-workspace{--team-accent:#b12625;--team-text:var(--text,#172b43);--team-muted:var(--muted,#52647a);--team-line:var(--border,#dce3eb);color:var(--team-text);display:grid;gap:18px;min-width:0}
 .team-workspace .panel{margin:0;padding:22px;border:1px solid var(--team-line);border-radius:14px}
-.team-intro,.team-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.team-heading{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
 .team-workspace h2{font-size:23px;line-height:1.35;margin:8px 0}.team-workspace h3{font-size:17px;margin:0;line-height:1.4}
 .team-workspace p{font-size:14px;line-height:1.6;margin:6px 0 0;color:var(--team-muted)}
-.team-tabs{display:flex;gap:8px;border-bottom:1px solid var(--team-line)}
-.team-tabs a{padding:12px 18px;min-height:44px;text-decoration:none;color:var(--team-muted);font-weight:600;border-bottom:3px solid transparent}
-.team-tabs a[aria-current]{color:var(--team-accent);border-color:var(--team-accent)}
 .team-workspace .team-filter{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px}
 .team-filter label{display:grid;gap:8px;font-size:14px;font-weight:600;flex:1;min-width:180px;max-width:440px}
 .team-filter input{width:100%;min-height:44px;box-sizing:border-box}
@@ -21,4 +18,34 @@
 .team-table small{display:block;font-weight:400;color:var(--team-muted);margin-top:4px}.team-empty{padding:36px 22px}.team-note{padding:0 4px}.team-back{justify-self:start;padding-left:0;color:var(--team-accent)}
 .dark .team-workspace{--team-accent:#ffb2ac;--team-text:#edf2f8;--team-muted:#bac6d6;--team-line:#384659}
 .dark .team-table thead{background:#202c3c}.dark .team-workspace .primary{background:#b12625}
-@media(max-width:600px){.team-workspace .panel,.team-heading{padding:16px}.team-workspace .team-records{padding:0}.team-filter label{max-width:none;flex-basis:100%}.team-intro{align-items:flex-start}.team-workspace h2{font-size:21px}.team-table th,.team-table td{padding:12px}.team-workspace{gap:14px}}
+@media(max-width:600px){.team-workspace .panel,.team-heading{padding:16px}.team-workspace .team-records{padding:0}.team-filter label{max-width:none;flex-basis:100%}.team-workspace h2{font-size:21px}.team-table th,.team-table td{padding:12px}.team-workspace{gap:14px}}
+
+
+/* Team pages use the whole workspace; other employee pages retain their layout. */
+.shrms-ui.has-app-shell:is(.ess-page-team_people,.ess-page-team_attendance) #content{max-width:none;width:100%;padding:26px clamp(16px,2vw,30px) 40px}
+.shrms-ui:is(.ess-page-team_people,.ess-page-team_attendance) .page-title{margin:0 0 22px}
+.shrms-ui:is(.ess-page-team_people,.ess-page-team_attendance) .page-title :is(.eyebrow,p,.badge){display:none}
+.shrms-ui .team-workspace .team-records{padding:0;border-radius:14px;box-shadow:0 4px 18px #16243805}
+.shrms-ui .team-workspace .team-heading{padding:24px 26px}
+.shrms-ui .team-workspace .team-heading h3{font-size:20px;line-height:1.4;margin:0}
+.shrms-ui .team-workspace .team-heading p{font-size:14px;margin-top:6px}
+.shrms-ui .team-workspace .team-table{max-height:none!important;border-radius:0;border-right:0;border-bottom:0;border-left:0;scrollbar-gutter:auto}
+.shrms-ui .team-workspace .team-table table{font-size:16px;table-layout:auto;margin:0}
+.shrms-ui .team-workspace .team-table thead th{padding:17px 24px!important;font-size:13px!important;letter-spacing:0;text-transform:none;background:var(--table-head,#f5f7fa)!important}
+.shrms-ui .team-workspace .team-table tbody :is(th,td){padding:22px 24px!important;font-size:16px!important;line-height:1.55;letter-spacing:0;border-bottom:1px solid var(--team-line);border-right:0;white-space:normal;color:var(--team-text)}
+.shrms-ui .team-workspace .team-table tbody th{background:var(--card-bg,#fff)!important;font-weight:600}
+.shrms-ui .team-workspace .team-table tbody tr:hover :is(th,td){background:var(--row-hover,#f8fafc)!important}
+.shrms-ui .team-workspace .team-table tbody tr:last-child :is(th,td){border-bottom:0}
+.shrms-ui .team-workspace .team-table small{font-size:13px;margin-top:5px}
+.shrms-ui .team-workspace .team-badge{font-size:13px;font-weight:500;padding:6px 11px}
+.shrms-ui .team-workspace .team-record-link{border:1px solid var(--team-line);border-radius:9px;background:var(--card-bg,#fff);font-size:14px;min-height:44px;padding:9px 14px}
+.shrms-ui .team-workspace .team-record-link:hover{border-color:var(--team-accent);background:var(--brand-soft,#fff4f2);text-decoration:none}
+.shrms-ui .team_people .team-table table{min-width:860px}
+.shrms-ui .team_people .team-table th:first-child{width:26%}
+.shrms-ui .team_people .team-table th:nth-child(2){width:19%}
+.shrms-ui .team_people .team-table th:nth-child(3){width:27%}
+.shrms-ui .team_people .team-table th:nth-child(4){width:15%}
+.shrms-ui .team_people .team-table th:last-child{width:13%}
+@media(max-width:780px){.shrms-ui.has-app-shell:is(.ess-page-team_people,.ess-page-team_attendance) #content{padding:22px 16px 32px}.shrms-ui .team-workspace .team-heading{padding:20px}.shrms-ui .team-workspace .team-table tbody :is(th,td){padding:18px 20px!important}.shrms-ui .team-workspace .team-table thead th{padding:15px 20px!important}}
+
+.shrms-ui .team-workspace .wide-button{width:auto;margin:0}
