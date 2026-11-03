@@ -29,10 +29,10 @@
 .shrms-ui .team-workspace .team-heading{padding:24px 26px}
 .shrms-ui .team-workspace .team-heading h3{font-size:20px;line-height:1.4;margin:0}
 .shrms-ui .team-workspace .team-heading p{font-size:14px;margin-top:6px}
-.shrms-ui .team-workspace .team-table{max-height:none;border-radius:0}
+.shrms-ui .team-workspace .team-table{max-height:none!important;border-radius:0;border-right:0;border-bottom:0;border-left:0;scrollbar-gutter:auto}
 .shrms-ui .team-workspace .team-table table{font-size:16px;table-layout:auto;margin:0}
 .shrms-ui .team-workspace .team-table thead th{padding:17px 24px;font-size:13px;letter-spacing:0;text-transform:none;background:var(--table-head,#f5f7fa)!important}
-.shrms-ui .team-workspace .team-table tbody :is(th,td){padding:22px 24px;font-size:16px;line-height:1.55;letter-spacing:0;border-bottom:1px solid var(--team-line);white-space:normal;color:var(--team-text)}
+.shrms-ui .team-workspace .team-table tbody :is(th,td){padding:22px 24px;font-size:16px;line-height:1.55;letter-spacing:0;border-bottom:1px solid var(--team-line);border-right:0;white-space:normal;color:var(--team-text)}
 .shrms-ui .team-workspace .team-table tbody th{background:var(--card-bg,#fff)!important;font-weight:600}
 .shrms-ui .team-workspace .team-table tbody tr:hover :is(th,td){background:var(--row-hover,#f8fafc)!important}
 .shrms-ui .team-workspace .team-table tbody tr:last-child :is(th,td){border-bottom:0}
