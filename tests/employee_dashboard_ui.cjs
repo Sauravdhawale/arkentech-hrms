@@ -28,6 +28,8 @@ const root=path.resolve(__dirname,'..');
    assert.match(await page.locator('[data-workday-value="worked"]').innerText(),/04h 34m/);
    assert.match(await page.locator('[data-workday-state]').innerText(),/Checked In/);
    assert.equal(await page.locator('[data-workday-value]').count(),9);
+   for(const key of ['allowed_break','break','excess_break','late_remaining'])
+    assert.equal(await page.locator('[data-workday-value="'+key+'"]').isVisible(),true,key+' is visible without opening details');
    assert.equal(await page.locator('[data-workday-value="after_end"]').isVisible(),false);
    await page.locator('.ess-time-details summary').click();
    assert.equal(await page.locator('[data-workday-value="after_end"]').isVisible(),true);

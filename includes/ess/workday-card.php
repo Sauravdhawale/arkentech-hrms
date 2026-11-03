@@ -5,14 +5,14 @@
  <p class="ess-workday-progress-label" data-workday-progress-label>Within-shift work progress</p>
  <progress data-workday-progress max="100" value="0" aria-label="Within-shift working time completed"></progress>
  <div class="ess-workday-metrics">
- <?php foreach(['shift_worked'=>'Within shift','overtime'=>'Net overtime','break'=>'Break taken','excess_break'=>'Excess break'] as $key=>$label):?>
+ <?php foreach(['allowed_break'=>'Allowed break','break'=>'Break taken','excess_break'=>'Excess break','late_remaining'=>'Late time to cover'] as $key=>$label):?>
  <div><small><?=h($label)?></small><strong data-workday-value="<?=h($key)?>">—</strong></div>
  <?php endforeach;?>
  </div>
  <details class="ess-time-details">
- <summary>Time details <span>Shift, break allowance &amp; calculation notes</span></summary>
+ <summary>Time details <span>Shift, overtime &amp; calculation notes</span></summary>
  <div class="ess-workday-metrics ess-workday-secondary">
- <?php foreach(['before_start'=>'Before shift','after_end'=>'After shift','allowed_break'=>'Allowed break','late_remaining'=>'Late time to cover'] as $key=>$label):?>
+ <?php foreach(['shift_worked'=>'Within shift','overtime'=>'Net overtime','before_start'=>'Before shift','after_end'=>'After shift'] as $key=>$label):?>
  <div><small><?=h($label)?></small><strong data-workday-value="<?=h($key)?>">—</strong></div>
  <?php endforeach;?>
  </div>
