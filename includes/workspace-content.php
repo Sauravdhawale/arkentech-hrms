@@ -1,4 +1,4 @@
-<?php if(!$admin&&$coreReady&&!$passwordSetup&&in_array($page,['profile','my_shift','documents','security'],true)):$owner=(int)$user['id'];$employee=foundation_employee($pdo,$owner);$today=date('Y-m-d');if($employee)require __DIR__.'/ess/profile-view.php';else echo '<section class="panel">Your employee profile is not linked. Contact HR.</section>'; elseif(!$admin&&$coreReady&&in_array($page,['overview','profile','my_shift','attendance','attendance_sheet','monthly','regularisation','leaves','balances','leave_history','inbox','notifications','approvals','my_salary'],true)):require __DIR__.'/ess/view.php'; elseif(isset($suite[$page])): suite_render($pdo,$user,$page,$suite[$page],$suiteReady);
+<?php if(!$admin&&$teamAccess&&in_array($page,['team_people','team_attendance'],true)):require __DIR__.'/team/view.php'; elseif(!$admin&&$coreReady&&!$passwordSetup&&in_array($page,['profile','my_shift','documents','security'],true)):$owner=(int)$user['id'];$employee=foundation_employee($pdo,$owner);$today=date('Y-m-d');if($employee)require __DIR__.'/ess/profile-view.php';else echo '<section class="panel">Your employee profile is not linked. Contact HR.</section>'; elseif(!$admin&&$coreReady&&in_array($page,['overview','profile','my_shift','attendance','attendance_sheet','monthly','regularisation','leaves','balances','leave_history','inbox','notifications','approvals','my_salary'],true)):require __DIR__.'/ess/view.php'; elseif(isset($suite[$page])): suite_render($pdo,$user,$page,$suite[$page],$suiteReady);
 elseif(in_array($page,['attendance','monthly','device_attendance','device_monthly','raw_logs','sync','reports'],true)): require __DIR__.'/suite-reports.php';
 elseif($page==='overview'):
  $total=$admin?(int)$pdo->query("SELECT COUNT(*) FROM users WHERE role='employee' AND active=1")->fetchColumn():null;
@@ -32,3 +32,4 @@ elseif($page==='overview'):
  'settings'=>['Company settings','Two-role access model',['Company profile','Departments & designations','Attendance policies','Leave policies','Payroll configuration']]
  ];$m=$modules[$page];empty_module($m[0],$m[1],$m[2]);
  endif; ?>
+
