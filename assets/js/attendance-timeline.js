@@ -2,7 +2,7 @@
  document.querySelectorAll('[data-attendance-timeline]').forEach(form=>{
   const cfg=JSON.parse(form.querySelector('[data-timeline-config]').textContent), clone=a=>a.map(e=>({at:Number(e.at),state:e.state}));
   let events=clone(cfg.events),dirty=!!cfg.retry,drag=null,original=clone(cfg.original),stale=false,offline=false,busy=false,receivedAt=performance.now();const track=form.querySelector('[data-tl-track]'),rows=form.querySelector('[data-tl-boundaries]'),message=form.querySelector('[data-tl-message]'),save=form.querySelector('[data-tl-save]');
-  let min,max;
+  let min,max,view='recorded';
   const liveStatus=form.querySelector('[data-tl-live-status]'),refresh=form.querySelector('[data-tl-refresh]');
   const now=()=>cfg.cutoff+(cfg.live&&!dirty&&!offline?Math.max(0,Math.floor((performance.now()-receivedAt)/1000)):0);
   const local=at=>new Date((at+cfg.offset)*1000).toISOString().slice(0,19);
@@ -15,6 +15,11 @@
   const totals=list=>list.reduce((v,e,i)=>{const seconds=e.state==='in'?Math.max(0,endFor(list,i)-e.at):Math.max(0,Math.min(endFor(list,i),cfg.end)-Math.max(e.at,cfg.start));v[e.state==='in'?'work':'break']+=seconds;return v;},{work:0,break:0});
   const invalid=()=>{if(stale)return 'New punches or corrections arrived. Reload live data before saving; your draft is preserved until you reload.';if(!events.length)return cfg.start>cfg.cutoff?'This shift has not started. Choose Current shift · Live.':'No recorded check-in for this shift. Add a time marker only to correct a missing punch.';if(events.length>200)return 'Use no more than 200 time markers.';if(events[0].state!=='in')return 'The first marker must start working time.';for(let i=0;i<events.length;i++){const e=events[i];if(!Number.isFinite(e.at)||!['in','out'].includes(e.state))return 'Enter a valid time and activity.';if(e.at>cfg.cutoff)return 'Times cannot be later than this editing snapshot. Refresh live data to include newer times.';if(i&&e.at<=events[i-1].at)return 'Keep times in order; move or remove the neighbouring marker first.';}if(events.at(-1).at-events[0].at>129600)return 'Keep the timeline within 36 hours.';if(events.at(-1).state==='in'&&cfg.cutoff-events[0].at>129600)return 'Add the missing final check-out for this older shift before saving.';return '';};
   function node(tag,props={},text=''){const n=document.createElement(tag);Object.assign(n,props);if(text)n.textContent=text;return n;}
+  const toolbar=node('div',{className:'atl-chart-toolbar'}),viewButtons=node('div',{className:'atl-view-buttons'}),ruler=node('div',{className:'atl-ruler'}),punchTimes=node('div',{className:'atl-punch-times'});
+  const chartHeading=node('div',{});chartHeading.append(node('h3',{},'Attendance timeline'),node('p',{},'Work and breaks · times in your shift timezone'));
+  viewButtons.setAttribute('role','group');viewButtons.setAttribute('aria-label','Timeline range');
+  for(const [value,title] of [['recorded','Recorded time'],['shift','Full shift']]){const b=node('button',{type:'button',className:'button'},title);b.dataset.view=value;b.addEventListener('click',()=>{view=value;render(false);});viewButtons.append(b);}
+  toolbar.append(chartHeading,viewButtons);track.before(toolbar);track.after(ruler);const scale=form.querySelector('.atl-scale');(scale||ruler).after(punchTimes);punchTimes.setAttribute('aria-label','Exact punch times');
   const periods=node('section',{className:'atl-periods'}),periodList=node('div',{className:'atl-period-list'});
   periods.setAttribute('aria-label','Work and break periods');
   periods.append(node('h3',{},'Work and break periods'),node('p',{},'Times use the shift timezone. Remove break counts that period as work; remove work excludes it from worked time. Review your changes, enter a reason and save.'),periodList);rows.before(periods);
@@ -44,7 +49,11 @@
   function changed(){pause();render();}
   function setTime(i,at){const lower=i?events[i-1].at+1:min,upper=Math.min(cfg.cutoff,i+1<events.length?events[i+1].at-1:max);events[i].at=Math.max(lower,Math.min(upper,at));dirty=true;render();}
   function render(rebuild=true,redraw=true){
-   min=Math.min(cfg.start,...original.map(e=>e.at),...events.filter(e=>Number.isFinite(e.at)).map(e=>e.at))-1800;max=Math.max(cfg.end,...original.map(e=>e.at),...events.filter(e=>Number.isFinite(e.at)).map(e=>e.at),cfg.live?now():cfg.end)+1800;
+   if(!drag){min=Math.min(cfg.start,...original.map(e=>e.at),...events.filter(e=>Number.isFinite(e.at)).map(e=>e.at))-1800;max=Math.max(cfg.end,...original.map(e=>e.at),...events.filter(e=>Number.isFinite(e.at)).map(e=>e.at),cfg.live?now():cfg.end)+1800;
+   const validEvents=events.filter(e=>Number.isFinite(e.at));
+   if(view==='recorded'&&validEvents.length){min=Math.min(...validEvents.map(e=>e.at))-900;max=Math.max(min+3600,...validEvents.map(e=>e.at),...events.map((e,i)=>Number.isFinite(e.at)?endFor(events,i):min))+900;}
+   }
+   viewButtons.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===view)));
    const err=invalid(),v=totals(events),before=totals(original),difference=v.work-before.work;
    form.querySelector('[name=timeline_events]').value=JSON.stringify(events);
    form.querySelector('[data-tl-work]').textContent=duration(v.work);form.querySelector('[data-tl-break]').textContent=duration(v.break);form.querySelector('[data-tl-difference]').textContent=(difference<0?'−':difference>0?'+':'')+duration(Math.abs(difference));
@@ -54,13 +63,17 @@
    form.querySelector('[name=timeline_cutoff]').value=cfg.cutoff;
    form.querySelector('[name=timeline_revision]').value=cfg.revision;
    form.querySelector('[data-tl-start]').textContent=label(min);form.querySelector('[data-tl-end]').textContent=label(max);if(redraw){track.replaceChildren();
-   events.forEach((e,i)=>{if(!Number.isFinite(e.at))return;const a=Math.max(min,e.at),b=Math.min(max,endFor(events,i));if(b>a){const segment=node('div',{className:'atl-segment'});segment.dataset.state=e.state;segment.style.left=`${(a-min)/(max-min)*100}%`;segment.style.width=`${(b-a)/(max-min)*100}%`;segment.append(node('strong',{},`${i+1}. ${e.state==='in'?'Working':'Break'}`));if((b-a)/(max-min)>.16)segment.append(node('span',{},`${clock(e.at)} – ${clock(endFor(events,i))}`));segment.title=`${e.state==='in'?'Working':'Break'}: ${exact(e.at)} – ${exact(endFor(events,i))}`;track.append(segment);}
+   const width=track.clientWidth||800;
+   events.forEach((e,i)=>{if(!Number.isFinite(e.at))return;const a=Math.max(min,e.at),b=Math.min(max,endFor(events,i));if(b>a){const segment=node('div',{className:'atl-segment'});segment.dataset.state=e.state;segment.style.left=`${(a-min)/(max-min)*100}%`;segment.style.width=`${(b-a)/(max-min)*100}%`;const pixels=(b-a)/(max-min)*width;if(pixels>56)segment.append(node('strong',{},pixels>110?`${i+1}. ${e.state==='in'?'Working':'Break'}`:String(i+1)));if(pixels>185){segment.append(node('span',{},`${clock(e.at)} – ${clock(endFor(events,i))}`),node('small',{},duration(b-a)));}segment.title=`${e.state==='in'?'Working':'Break'}: ${exact(e.at)} – ${exact(endFor(events,i))}`;track.append(segment);}
     const handle=node('button',{type:'button',className:'atl-handle',disabled:!cfg.editable});handle.style.left=`${Math.max(0,Math.min(100,(e.at-min)/(max-min)*100))}%`;handle.setAttribute('role','slider');handle.setAttribute('aria-label',`Time marker ${i+1}`);handle.setAttribute('aria-valuemin',String(i?events[i-1].at+1:min));handle.setAttribute('aria-valuemax',String(Math.min(cfg.cutoff,i+1<events.length?events[i+1].at-1:max)));handle.setAttribute('aria-valuenow',String(e.at));handle.setAttribute('aria-valuetext',label(e.at));handle.title=label(e.at);
     handle.addEventListener('pointerdown',ev=>{if(!cfg.editable)return;ev.preventDefault();pause();drag={i,id:ev.pointerId};track.setPointerCapture(ev.pointerId);});
     handle.addEventListener('keydown',ev=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(ev.key)){ev.preventDefault();setTime(i,e.at+(['ArrowLeft','ArrowDown'].includes(ev.key)?-1:1)*(ev.shiftKey?300:60));track.querySelectorAll('.atl-handle')[i]?.focus();}});track.append(handle);
    });
-   if(cfg.live){const marker=node('div',{className:'atl-now'});marker.style.left=`${Math.max(0,Math.min(100,(now()-min)/(max-min)*100))}%`;marker.textContent=`${dirty?'Snapshot':'Now'} ${clock(now())}`;track.append(marker);}
+   if(cfg.live){const marker=node('div',{className:'atl-now'}),position=Math.max(0,Math.min(100,(now()-min)/(max-min)*100));marker.style.left=`${position}%`;marker.dataset.align=position<30?'start':'end';marker.append(node('span',{},`${dirty?'Snapshot':offline?'Last received':'Now'} ${clock(now())}`));track.append(marker);}
+   ruler.replaceChildren();const desired=(max-min)/Math.max(2,Math.floor(width/100)),step=[1800,3600,7200,14400,21600,43200,86400].find(s=>s>=desired)||86400;
+   for(let at=Math.ceil((min+cfg.offset)/step)*step-cfg.offset;at<max;at+=step){const position=(at-min)/(max-min)*100;if(position<7||position>93)continue;const tick=node('span',{},clock(at));tick.style.left=`${position}%`;ruler.append(tick);}
    }
+   if(rebuild){punchTimes.replaceChildren();events.forEach((e,i)=>{if(!Number.isFinite(e.at))return;const chip=node('div',{className:'atl-punch-chip'});chip.dataset.state=e.state;chip.append(node('span',{className:'atl-punch-number'},String(i+1)),node('strong',{},e.state==='in'?'IN':'OUT'),node('span',{},exact(e.at)));punchTimes.append(chip);});}
    renderPeriods(rebuild);
    if(!rebuild){if(!dirty)rows.querySelectorAll('input[type="datetime-local"]').forEach(input=>input.max=local(cfg.cutoff));return;}rows.replaceChildren();events.forEach((e,i)=>{
     const row=node('div',{className:'atl-boundary'});row.append(node('span',{className:'atl-number'},String(i+1)));
@@ -70,7 +83,7 @@
    });
   }
   track.addEventListener('pointermove',ev=>{if(!drag)return;const rect=track.getBoundingClientRect();const at=Math.round((min+(ev.clientX-rect.left)/rect.width*(max-min))/60)*60;setTime(drag.i,at);});
-  const endDrag=()=>{drag=null;};track.addEventListener('pointerup',endDrag);track.addEventListener('pointercancel',endDrag);
+  const endDrag=()=>{if(drag){drag=null;render();}};track.addEventListener('pointerup',endDrag);track.addEventListener('pointercancel',endDrag);
   form.querySelector('[data-tl-add]')?.addEventListener('click',()=>{
    if(!events.length){events.push({at:Math.min(cfg.start,cfg.cutoff),state:'in'});changed();return;}
    let best=null;events.forEach((e,i)=>{const end=events[i+1]?.at??Math.min(cfg.end,cfg.cutoff);if(end-e.at>=120&&(!best||end-e.at>best.length))best={i,length:end-e.at,at:Math.floor((e.at+end)/2),state:e.state==='in'?'out':'in'};});
