@@ -66,6 +66,9 @@ jobs:
           php tests/ess_punch_status.php
           php tests/ess_attendance_metrics.php
           python3 tests/ess_http.py
+          php tests/my_punches.php
+          php tests/my_punches_fixture.php
+          python3 tests/my_punches_http.py
           php tests/team_access.php
           python3 tests/team_access_http.py
 
@@ -89,6 +92,7 @@ jobs:
           node tests/theme_ui.cjs
           node tests/admin_audit_ui.cjs
           node tests/employee_dashboard_ui.cjs
+          node tests/my_punches_ui.cjs
           node tests/team_workspace_ui.cjs
       - name: Save UI screenshots
         if: always()
@@ -97,6 +101,7 @@ jobs:
           name: shrms-ui-screenshots
           path: /tmp/shrms-ui-screenshots/
           if-no-files-found: ignore
+
 
 
 
