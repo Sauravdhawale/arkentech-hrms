@@ -72,7 +72,7 @@
       if (dialog.open && selected === '') set(dialog, '[data-message]', e.message + ' Displayed records may be outdated.');
     } finally { currentBusy = false; }
   }
-  openers.forEach(button => button.addEventListener('click', () => { origin = button; selected = ''; dialog.showModal(); loadDialog(); }));
+  openers.forEach(button => button.addEventListener('click', () => { origin = button; selected = ''; input.value = ''; q('[data-rows]').replaceChildren(); ['total','in','out'].forEach(k => set(dialog, `[data-count="${k}"]`, '—')); set(dialog, '[data-context]', 'Current shift'); dialog.showModal(); loadDialog(); }));
   q('[data-close]').addEventListener('click', () => dialog.close());
   dialog.addEventListener('close', () => { ++requestId; dialog.removeAttribute('aria-busy'); origin?.focus(); });
   input.addEventListener('change', () => {

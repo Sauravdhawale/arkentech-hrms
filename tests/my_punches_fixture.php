@@ -2,7 +2,7 @@
 if(PHP_SAPI!=='cli'||getenv('DB_NAME')!=='peopleflow_ci')exit('Disposable CI database only.');
 require dirname(__DIR__).'/auth.php';
 $db=db();$device=(int)$db->query("SELECT id FROM hr_records WHERE module='devices' LIMIT 1")->fetchColumn();
-if(!$device)$device=(int)$db->query('SELECT id FROM hr_records LIMIT 1')->fetchColumn();
+if(!$device)throw new RuntimeException('Attendance device fixture missing');
 foreach(['applicant','lead'] as $name){
  $q=$db->prepare('SELECT id FROM users WHERE username=?');$q->execute(['ess.'.$name]);$owner=(int)$q->fetchColumn();if(!$owner)throw new RuntimeException('ESS fixture missing');
  $key='my-punch-history-'.$name;

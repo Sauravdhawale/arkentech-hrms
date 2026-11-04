@@ -19,10 +19,11 @@ const root=path.resolve(__dirname,'..');
     const body=url.searchParams.has('date')?{...data,date:url.searchParams.get('date'),counts:{total:0,in:0,out:0,unknown:0},punches:[]}:data;
     return route.fulfill({contentType:'application/json',body:JSON.stringify(body)});
    }
-   return route.fulfill({contentType:'text/html',body:`<!doctype html><html><meta name="viewport" content="width=device-width,initial-scale=1"><body><button data-my-punches-open>My punches</button>${summary}</body></html>`});
+   return route.fulfill({contentType:'text/html',body:`<!doctype html><html><meta name="viewport" content="width=device-width,initial-scale=1"><body class="shrms-ui employee-ui"><button data-my-punches-open>My punches</button>${summary}</body></html>`});
   });
   for(const width of [375,768,1440]){
    await page.setViewportSize({width,height:900});await page.goto('http://punch.test/employee.php');
+   for(const name of ['style.css','workspace.css','ess.css','theme.css']) await page.addStyleTag({content:fs.readFileSync(path.join(process.env.UI_BASE_ASSETS||path.join(root,'assets'),name),'utf8').replace(/@import\s+url\([^)]*\)\s*;/g,'')});
    await page.addStyleTag({content:fs.readFileSync(path.join(root,'assets/my-punches.css'),'utf8')});
    await page.addScriptTag({content:fs.readFileSync(path.join(root,'assets/my-punches.js'),'utf8')});
    await page.waitForFunction(()=>document.querySelector('[data-punch-count="total"]').textContent==='3');
