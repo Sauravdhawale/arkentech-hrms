@@ -27,3 +27,9 @@ dialog.my-punches-dialog{box-sizing:border-box;width:min(760px,calc(100vw - 24px
 .dark .my-punches-counts>div,.dark .my-punches-dialog th,.dark .my-punches-dialog button{background:#202c3c;color:#f1f5f9;border-color:#38465a}
 .dark .my-punches-counts strong{color:#f1f5f9}.dark .my-punches-meta,.dark .my-punches-message,.dark .my-punches-counts span,.dark .my-punches-heading p,.dark .my-punches-dialog td small{color:#b7c4d6}
 @media(max-width:540px){dialog.my-punches-dialog{padding:16px}.my-punches-counts{gap:8px}.my-punches-counts>div{padding:12px 10px}.my-punches-counts span{font-size:11px}.my-punches-counts strong{font-size:22px}.my-punches-dialog th,.my-punches-dialog td{padding:10px 8px}.my-punches-heading h2{font-size:20px}.my-punches-open{font-size:11px!important;padding:6px 8px!important}.my-punches-filters label{flex-basis:100%}}
+
+/* Override generic portal table minimums inside this compact, private history. */
+.shrms-ui .my-punches-dialog table{min-width:0;width:100%;table-layout:fixed}
+.shrms-ui .my-punches-dialog th,.shrms-ui .my-punches-dialog td{white-space:normal;padding:13px 14px;overflow-wrap:anywhere}
+.shrms-ui .my-punches-dialog th:first-child{width:32%}.shrms-ui .my-punches-dialog th:nth-child(2){width:23%}
+@media(max-width:540px){.shrms-ui .my-punches-dialog th,.shrms-ui .my-punches-dialog td{padding:10px 8px}.shrms-ui .my-punches-dialog th:first-child{width:37%}.shrms-ui .my-punches-dialog th:nth-child(2){width:28%}.my-punches-badge{font-size:10px;padding:5px 6px}}

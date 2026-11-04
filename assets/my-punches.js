@@ -45,7 +45,7 @@
       timeCell.append(time, date);
       const direction = document.createElement('td'), badge = document.createElement('span');
       badge.className = 'my-punches-badge ' + (['in','out'].includes(p.direction) ? p.direction : 'unknown');
-      badge.textContent = p.direction === 'in' ? 'IN' : p.direction === 'out' ? 'OUT' : 'Unclassified'; direction.append(badge);
+      badge.textContent = p.direction === 'in' ? 'IN' : p.direction === 'out' ? 'OUT' : 'Review'; direction.append(badge);
       const detail = document.createElement('td'), source = document.createElement('strong'), note = document.createElement('small');
       source.textContent = p.source; note.textContent = p.note; detail.append(source, note);
       tr.append(timeCell, direction, detail); rows.append(tr);

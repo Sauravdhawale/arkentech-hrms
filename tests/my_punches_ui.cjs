@@ -33,6 +33,7 @@ const root=path.resolve(__dirname,'..');
    assert.match(await page.locator('[data-message]').innerText(),/1 unclassified/);
    assert.equal(await page.locator('[data-count="out"]').innerText(),'1');
    assert.equal(await page.locator('dialog').evaluate(e=>e.scrollWidth<=e.clientWidth+1),true,'Dialog overflow '+width);
+   assert.equal(await page.locator('.my-punches-table-wrap').evaluate(e=>e.scrollWidth<=e.clientWidth+1),true,'Table overflow '+width);
    fs.mkdirSync('/tmp/shrms-ui-screenshots',{recursive:true});
    for(const dark of [false,true]){await page.evaluate(d=>document.body.classList.toggle('dark',d),dark);await page.screenshot({path:`/tmp/shrms-ui-screenshots/my-punches-${width}-${dark?'dark':'light'}.png`});}
    await page.locator('[data-date]').fill('2026-11-01');await page.locator('[data-date]').dispatchEvent('change');
